@@ -123,7 +123,7 @@ export default function AboutPage() {
                 </svg>
              </div>
              <div className="absolute bottom-[-20px] right-[-20px] bg-white p-6 rounded-2xl shadow-xl z-20">
-                <div className="font-serif text-3xl font-black text-[#E8185A]">2024</div>
+                <div className="font-serif text-3xl font-black text-[#E8185A]">2026</div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Program Launch</div>
              </div>
           </div>
