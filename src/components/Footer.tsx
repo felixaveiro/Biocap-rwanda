@@ -1,95 +1,277 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 
+const COLORS = {
+  pink: '#e8185e',
+  navy: '#1a3a5c',
+};
+
+const QUICK_LINKS = [
+  { label: 'Home',          href: '/'           },
+  { label: 'Biotechnology', href: '/Biotech'     },
+  { label: 'Environment',   href: '/Environment' },
+  { label: 'DNA Week',      href: '/Dna-week'    },
+  { label: 'About Us',      href: '/About'       },
+];
+
+const RECENT_NEWS_FOOTER = [
+  { date: 'Apr 28, 2025', title: 'Rwanda Approves First Biofortified Cassava Variety',        href: '#' },
+  { date: 'Mar 15, 2025', title: 'New Biosafety Guidelines Open Doors for Gene-Edited Crops', href: '#' },
+  { date: 'Feb 4, 2025',  title: '34% Yield Gains Confirmed Under Drought Conditions',        href: '#' },
+];
+
 export default function Footer() {
+  const [footerEmail, setFooterEmail] = useState('');
+
   return (
-    <footer className="bg-[#1B3A5C] relative pt-24 pb-12 overflow-hidden">
-      {/* Top Jagged Edge Divider (Separates white page from navy footer) */}
-      <div className="absolute top-[-1px] left-0 w-full z-20 rotate-180 leading-[0]">
-        <svg className="relative block w-full h-[60px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
-          <path 
-            d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z" 
-            fill="#ffffff"
-          ></path>
-        </svg>
-      </div>
+    <>
+      <style>{`
+        .bc-footer {
+          background: #1a3a5c;
+          color: #fff;
+          width: 100%;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .bc-footer-wave {
+          line-height: 0;
+          overflow: hidden;
+        }
+        .bc-footer-grid {
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 4rem 2.5rem 3rem;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 3rem;
+        }
+        .bc-footer-heading {
+          font-family: 'Syne', sans-serif;
+          font-weight: 700;
+          font-size: 0.75rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 1.5rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 2px solid #e8185e;
+          display: inline-block;
+        }
+        .bc-footer-link {
+          color: rgba(255,255,255,0.6);
+          text-decoration: none;
+          font-size: 0.9rem;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          transition: color 0.2s;
+        }
+        .bc-footer-link:hover { color: #e8185e; }
+        .bc-footer-bottom {
+          border-top: 1px solid rgba(255,255,255,0.08);
+          padding: 1.25rem 2.5rem;
+          text-align: center;
+          color: rgba(255,255,255,0.3);
+          font-size: 0.75rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+        }
+        .bc-footer-social {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(255,255,255,0.6);
+          font-size: 0.8rem;
+          text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+        }
+        .bc-footer-social:hover { background: #e8185e; color: #fff; }
+        .bc-footer-input {
+          flex: 1;
+          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(255,255,255,0.15);
+          background: rgba(255,255,255,0.08);
+          color: #fff;
+          font-size: 0.85rem;
+          outline: none;
+          font-family: 'DM Sans', sans-serif;
+        }
+        .bc-footer-input::placeholder { color: rgba(255,255,255,0.4); }
+        @media (max-width: 1024px) {
+          .bc-footer-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 640px) {
+          .bc-footer-grid { grid-template-columns: 1fr; gap: 2rem; padding: 3rem 1.5rem 2rem; }
+        }
+      `}</style>
 
-      <div className="max-w-7xl mx-auto px-6 lg:px-12 grid md:grid-cols-2 lg:grid-cols-4 gap-12 relative z-30 text-white">
-        
-        {/* Brand Column */}
-        <div className="space-y-6">
-          <div className="text-3xl font-bold">
-            <span className="text-[#E8185A]">Bio</span><span>Cap</span>
-          </div>
-          <p className="text-white/60 text-sm leading-relaxed">
-            Building Rwandan capacity for accelerated development, deregulation, and deployment of enhanced crops.
-          </p>
-          <div className="flex gap-2">
-            <input 
-              type="email" 
-              placeholder="Email Address" 
-              className="bg-white/10 border-none rounded-lg px-4 py-2 text-white w-full text-sm outline-none focus:ring-1 focus:ring-[#E8185A]" 
+      <footer className="bc-footer">
+
+        {/* Wave — inside footer, transitions from white page bg */}
+        <div className="bc-footer-wave">
+          <svg
+            viewBox="0 0 1200 70"
+            preserveAspectRatio="none"
+            style={{ display: 'block', width: '100%', height: '70px' }}
+          >
+            <path
+              d="M0,0V28c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,8,1113,28,1200,34V0Z"
+              fill="#ffffff"
             />
-            <button className="bg-[#E8185A] text-white px-4 py-2 rounded-lg hover:bg-white hover:text-[#E8185A] transition-colors">
-              →
-            </button>
+          </svg>
+        </div>
+
+        {/* 4-Column Grid */}
+        <div className="bc-footer-grid">
+
+          {/* Col 1: Brand + Newsletter */}
+          <div>
+            <div style={{
+              fontFamily: 'Syne, sans-serif',
+              fontSize: '1.9rem',
+              fontWeight: 800,
+              marginBottom: '1rem',
+              letterSpacing: '-0.5px',
+            }}>
+              <span style={{ color: COLORS.pink }}>Bio</span>
+              <span style={{ color: '#fff' }}>Cap</span>
+            </div>
+            <p style={{
+              color: 'rgba(255,255,255,0.55)',
+              fontSize: '0.88rem',
+              lineHeight: 1.75,
+              marginBottom: '1.8rem',
+              maxWidth: '240px',
+            }}>
+              Building Rwandan capacity for crop development, deregulation, and deployment of enhanced crops for food security.
+            </p>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
+              <input
+                type="email"
+                placeholder="Email address"
+                className="bc-footer-input"
+                value={footerEmail}
+                onChange={e => setFooterEmail(e.target.value)}
+              />
+              <button
+                style={{
+                  background: COLORS.pink,
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '0 1rem',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  flexShrink: 0,
+                  transition: 'filter 0.2s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.15)')}
+                onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
+              >
+                →
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Quick Links Column */}
-        <div>
-          <h4 className="font-bold text-lg mb-8 border-b-2 border-[#E8185A] inline-block pb-1 uppercase tracking-widest text-xs">
-            Quick Links
-          </h4>
-          <ul className="space-y-4 text-white/50 text-sm font-medium uppercase tracking-wider">
-            <li><Link href="/About" className="hover:text-[#E8185A] transition-colors">→ About Us</Link></li>
-            <li><Link href="/Biotech" className="hover:text-[#E8185A] transition-colors">→ Biotechnology</Link></li>
-            <li><Link href="/Environment" className="hover:text-[#E8185A] transition-colors">→ Environment</Link></li>
-            <li><Link href="/Dna-week" className="hover:text-[#E8185A] transition-colors">→ DNA Week</Link></li>
-          </ul>
-        </div>
+          {/* Col 2: Quick Links */}
+          <div>
+            <div className="bc-footer-heading">Quick Links</div>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {QUICK_LINKS.map(l => (
+                <li key={l.href}>
+                  <Link href={l.href} className="bc-footer-link">
+                    <span style={{ color: COLORS.pink, fontSize: '0.7rem' }}>→</span>
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Recent News Column */}
-        <div>
-          <h4 className="font-bold text-lg mb-8 border-b-2 border-[#E8185A] inline-block pb-1 uppercase tracking-widest text-xs">
-            Recent News
-          </h4>
-          <div className="space-y-6">
-            <div className="flex gap-4 items-center group cursor-pointer">
-              <div className="w-14 h-14 rounded-lg bg-white/10 shrink-0 overflow-hidden group-hover:bg-[#E8185A]/20 transition-colors"></div>
-              <div>
-                <p className="text-[#E8185A] text-[10px] font-bold">MAY 08, 2026</p>
-                <p className="text-white text-xs font-bold leading-tight group-hover:text-[#E8185A]">Maize trials in Eastern Province</p>
-              </div>
+          {/* Col 3: Recent News */}
+          <div>
+            <div className="bc-footer-heading">Recent News</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {RECENT_NEWS_FOOTER.map((n, i) => (
+                <div key={i}>
+                  <span style={{
+                    color: COLORS.pink,
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    display: 'block',
+                    marginBottom: '0.3rem',
+                  }}>
+                    {n.date}
+                  </span>
+                  <Link
+                    href={n.href}
+                    style={{
+                      color: 'rgba(255,255,255,0.7)',
+                      textDecoration: 'none',
+                      fontSize: '0.85rem',
+                      lineHeight: 1.55,
+                      display: 'block',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
+                  >
+                    {n.title}
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Col 4: Contact Us */}
+          <div>
+            <div className="bc-footer-heading">Contact Us</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+              {[
+                { icon: '📞', text: '+250 788 000 000' },
+                { icon: '✉️', text: 'info@biocaprwanda.org' },
+                { icon: '📍', text: 'KG 7 Ave, Kigali, Rwanda' },
+              ].map((c, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}>{c.icon}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.88rem', lineHeight: 1.55 }}>
+                    {c.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Social icons */}
+            <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+              {[
+                { label: '𝕏', href: '#' },
+                { label: 'in', href: '#' },
+                { label: 'f',  href: '#' },
+                { label: '▶',  href: '#' },
+              ].map((s, i) => (
+                <a key={i} href={s.href} className="bc-footer-social">
+                  {s.label}
+                </a>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Contact Column */}
-        <div>
-          <h4 className="font-bold text-lg mb-8 border-b-2 border-[#E8185A] inline-block pb-1 uppercase tracking-widest text-xs">
-            Contact Us
-          </h4>
-          <ul className="space-y-4 text-white/60 text-sm font-medium">
-            <li className="flex items-center gap-3">
-              <span className="text-[#E8185A]">📞</span> +250 788 000 000
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="text-[#E8185A]">✉️</span> info@biocap.rw
-            </li>
-            <li className="flex items-center gap-3">
-              <span className="text-[#E8185A]">📍</span> KG 7 Ave, Kigali, Rwanda
-            </li>
-          </ul>
+        {/* Bottom bar */}
+        <div className="bc-footer-bottom">
+          © 2026 BioCap Rwanda &nbsp;•&nbsp; All Rights Reserved
         </div>
-      </div>
-
-      {/* Copyright Bar */}
-      <div className="mt-20 pt-8 border-t border-white/5 text-center text-white/20 text-[10px] tracking-[4px] uppercase">
-        © 2026 BioCap Rwanda • All Rights Reserved
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }

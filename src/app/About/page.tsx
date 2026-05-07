@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Footer from '@/components/Footer';
 
 export default function AboutPage() {
   const pillars = [
@@ -189,6 +190,7 @@ export default function AboutPage() {
             </div>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
