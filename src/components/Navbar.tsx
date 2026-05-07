@@ -9,6 +9,7 @@ const navLinks = [
   { href: '/About', label: 'About' },
   { href: '/Biotech', label: 'Biotechnology' },
   { href: '/Environment', label: 'Environment' },
+  { href: '/Gallery', label: 'Gallery ' },
 ];
 
 export default function Navbar() {
@@ -413,7 +414,7 @@ export default function Navbar() {
                   <path d="M4 4c0 8 16 8 16 16" />
                   <path d="M20 4C20 12 4 12 4 20" />
                 </svg>
-                <span>DNA Week</span>
+                <span>Resource</span>
               </Link>
             </li>
           </ul>
