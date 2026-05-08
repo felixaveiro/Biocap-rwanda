@@ -1,32 +1,30 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/About', label: 'About' },
-  { href: '/Biotech', label: 'Biotechnology' },
-  { href: '/Environment', label: 'Environment' },
-  { href: '/Gallery', label: 'Gallery ' },
+  { href: '/',            label: 'Home'          },
+  { href: '/About',       label: 'About'         },
+  { href: '/Biotech',     label: 'Biotechnology' },
+  { href: '/Environment', label: 'Environment'   },
+  { href: '/Gallery',     label: 'Gallery'       },
 ];
 
 export default function Navbar() {
-  const pathname = usePathname();
+  const pathname  = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Close menu on route change
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   return (
     <>
@@ -34,32 +32,31 @@ export default function Navbar() {
         @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
 
         :root {
-          --navy: #1a365d;
-          --navy-dark: #0f2240;
-          --pink: #e91e63;
+          --navy:       #1a365d;
+          --navy-dark:  #0f2240;
+          --pink:       #e91e63;
           --pink-light: #ff4d8b;
-          --white: #ffffff;
+          --white:      #ffffff;
           --gray-light: #f4f6fa;
         }
 
-        .biocap-nav {
+        /* ── Nav shell ─────────────────────────────────── */
+        .bc-nav {
           font-family: 'Syne', sans-serif;
           position: sticky;
           top: 0;
           z-index: 1000;
-          transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(255, 255, 255, 0.97);
-          border-bottom: 1.5px solid rgba(26, 54, 93, 0.08);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
+          background: rgba(255,255,255,0.97);
+          border-bottom: 1.5px solid rgba(26,54,93,0.08);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          transition: box-shadow 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        .bc-nav.scrolled {
+          box-shadow: 0 4px 32px rgba(26,54,93,0.10);
         }
 
-        .biocap-nav.scrolled {
-          box-shadow: 0 4px 32px rgba(26, 54, 93, 0.10);
-          background: rgba(255, 255, 255, 0.99);
-        }
-
-        .nav-inner {
+        .bc-nav-inner {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -69,34 +66,49 @@ export default function Navbar() {
           height: 70px;
         }
 
-        /* Logo */
-        .logo-link {
+        /* ── Logo ──────────────────────────────────────── */
+        .bc-logo {
           text-decoration: none;
           display: flex;
           align-items: center;
-          gap: 0.2rem;
-          position: relative;
+          gap: 10px;
         }
 
-        .logo-bio {
-          font-size: 1.65rem;
+        .bc-logo-img-wrap {
+          position: relative;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          overflow: hidden;
+          flex-shrink: 0;
+          background: #f0f4fa;
+          border: 1.5px solid rgba(26,54,93,0.10);
+          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+        }
+        .bc-logo:hover .bc-logo-img-wrap {
+          transform: rotate(-6deg) scale(1.08);
+          box-shadow: 0 4px 16px rgba(233,30,99,0.20);
+        }
+
+        .bc-logo-text {
+          display: flex;
+          align-items: center;
+          line-height: 1;
+        }
+        .bc-bio {
+          font-size: 1.6rem;
           font-weight: 800;
           color: var(--navy);
           letter-spacing: -0.04em;
-          line-height: 1;
           transition: color 0.2s;
         }
-
-        .logo-cap {
-          font-size: 1.65rem;
+        .bc-cap {
+          font-size: 1.6rem;
           font-weight: 800;
           color: var(--pink);
           letter-spacing: -0.04em;
-          line-height: 1;
-          transition: color 0.2s;
         }
-
-        .logo-dot {
+        .bc-dot {
           display: inline-block;
           width: 7px;
           height: 7px;
@@ -104,25 +116,24 @@ export default function Navbar() {
           background: var(--pink);
           margin-left: 3px;
           margin-bottom: 14px;
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s;
+          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), background 0.2s;
         }
-
-        .logo-link:hover .logo-dot {
-          transform: scale(1.5) translateY(-2px);
+        .bc-logo:hover .bc-dot {
+          transform: scale(1.6) translateY(-2px);
           background: var(--navy);
         }
 
-        /* Desktop Links */
-        .nav-links {
+        /* ── Desktop links ─────────────────────────────── */
+        .bc-links {
           display: flex;
           align-items: center;
-          gap: 0.25rem;
+          gap: 0.2rem;
           list-style: none;
           margin: 0;
           padding: 0;
         }
 
-        .nav-link-item a {
+        .bc-link-item a {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
           font-size: 0.78rem;
@@ -130,43 +141,33 @@ export default function Navbar() {
           letter-spacing: 0.08em;
           text-transform: uppercase;
           color: #64748b;
-          padding: 0.5rem 0.85rem;
+          padding: 0.5rem 0.9rem;
           border-radius: 8px;
           position: relative;
-          transition: color 0.2s ease;
           display: inline-flex;
           align-items: center;
+          transition: color 0.2s;
         }
-
-        .nav-link-item a::after {
+        .bc-link-item a::after {
           content: '';
           position: absolute;
           bottom: 4px;
           left: 50%;
           transform: translateX(-50%) scaleX(0);
-          width: calc(100% - 1.4rem);
+          width: calc(100% - 1.6rem);
           height: 2px;
           background: var(--pink);
           border-radius: 99px;
-          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
           transform-origin: center;
         }
+        .bc-link-item a:hover        { color: var(--navy); }
+        .bc-link-item a:hover::after,
+        .bc-link-item a.active::after { transform: translateX(-50%) scaleX(1); }
+        .bc-link-item a.active        { color: var(--navy); }
 
-        .nav-link-item a:hover {
-          color: var(--navy);
-        }
-
-        .nav-link-item a:hover::after,
-        .nav-link-item a.active::after {
-          transform: translateX(-50%) scaleX(1);
-        }
-
-        .nav-link-item a.active {
-          color: var(--navy);
-        }
-
-        /* CTA Button */
-        .dna-btn {
+        /* ── CTA button ────────────────────────────────── */
+        .bc-cta {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
           font-size: 0.78rem;
@@ -179,7 +180,7 @@ export default function Navbar() {
           border-radius: 99px;
           position: relative;
           overflow: hidden;
-          transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: border-color 0.28s, box-shadow 0.28s;
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
@@ -187,46 +188,25 @@ export default function Navbar() {
           border: 2px solid transparent;
           white-space: nowrap;
         }
-
-        .dna-btn::before {
+        .bc-cta::before {
           content: '';
           position: absolute;
           inset: 0;
           background: var(--pink);
           transform: translateX(-102%);
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
           border-radius: inherit;
         }
-
-        .dna-btn:hover::before {
-          transform: translateX(0);
-        }
-
-        .dna-btn:hover {
+        .bc-cta:hover::before { transform: translateX(0); }
+        .bc-cta:hover {
           border-color: var(--pink);
-          box-shadow: 0 4px 18px rgba(233, 30, 99, 0.28);
+          box-shadow: 0 4px 18px rgba(233,30,99,0.28);
         }
+        .bc-cta span, .bc-cta svg { position: relative; z-index: 1; }
+        .bc-cta::after { display: none; }
 
-        .dna-btn span, .dna-btn svg {
-          position: relative;
-          z-index: 1;
-        }
-
-        .dna-btn::after {
-          display: none;
-        }
-
-        /* Helix icon */
-        .helix-icon {
-          width: 14px;
-          height: 14px;
-          flex-shrink: 0;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* Hamburger */
-        .hamburger-btn {
+        /* ── Hamburger ─────────────────────────────────── */
+        .bc-ham {
           display: none;
           background: none;
           border: none;
@@ -242,75 +222,42 @@ export default function Navbar() {
           width: 40px;
           height: 40px;
         }
-
-        .hamburger-btn:hover {
-          background: var(--gray-light);
-        }
-
-        .bar {
+        .bc-ham:hover { background: var(--gray-light); }
+        .bc-bar {
           display: block;
           width: 22px;
           height: 2px;
           border-radius: 2px;
           background: var(--navy);
-          transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s, width 0.3s;
+          transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.2s, width 0.3s;
           transform-origin: center;
         }
+        .bc-bar-mid { width: 16px; }
+        .bc-ham.open .bc-bar:first-child { transform: translateY(7px) rotate(45deg); width: 22px; }
+        .bc-ham.open .bc-bar-mid { opacity: 0; transform: scaleX(0); }
+        .bc-ham.open .bc-bar:last-child  { transform: translateY(-7px) rotate(-45deg); width: 22px; }
 
-        .bar-mid {
-          width: 16px;
-        }
-
-        .hamburger-btn.open .bar:first-child {
-          transform: translateY(7px) rotate(45deg);
-          width: 22px;
-        }
-
-        .hamburger-btn.open .bar-mid {
-          opacity: 0;
-          transform: scaleX(0);
-        }
-
-        .hamburger-btn.open .bar:last-child {
-          transform: translateY(-7px) rotate(-45deg);
-          width: 22px;
-        }
-
-        /* Mobile Drawer */
-        .mobile-drawer {
+        /* ── Mobile drawer ─────────────────────────────── */
+        .bc-drawer {
           position: fixed;
           top: 70px;
-          left: 0;
-          right: 0;
-          background: rgba(255, 255, 255, 0.99);
+          left: 0; right: 0;
+          background: rgba(255,255,255,0.99);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
           padding: 1.25rem 2rem 1.75rem;
-          border-bottom: 1.5px solid rgba(26, 54, 93, 0.08);
-          box-shadow: 0 16px 40px rgba(26, 54, 93, 0.1);
+          border-bottom: 1.5px solid rgba(26,54,93,0.08);
+          box-shadow: 0 16px 40px rgba(26,54,93,0.10);
           transform: translateY(-110%);
           opacity: 0;
-          transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s;
           pointer-events: none;
           z-index: 999;
         }
+        .bc-drawer.open { transform: translateY(0); opacity: 1; pointer-events: all; }
 
-        .mobile-drawer.open {
-          transform: translateY(0);
-          opacity: 1;
-          pointer-events: all;
-        }
-
-        .mobile-links {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .mobile-link-item a {
+        .bc-mob-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+        .bc-mob-links li a {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
           font-size: 0.85rem;
@@ -321,41 +268,18 @@ export default function Navbar() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0.75rem 0.75rem;
+          padding: 0.75rem;
           border-radius: 10px;
-          transition: all 0.2s ease;
+          transition: all 0.2s;
         }
-
-        .mobile-link-item a:hover,
-        .mobile-link-item a.active {
-          color: var(--navy);
-          background: var(--gray-light);
-        }
-
-        .mobile-link-item a.active {
-          color: var(--pink);
-        }
-
-        .mobile-arrow {
-          opacity: 0;
-          transform: translateX(-6px);
-          transition: all 0.2s ease;
-          font-size: 0.8rem;
-        }
-
-        .mobile-link-item a:hover .mobile-arrow,
-        .mobile-link-item a.active .mobile-arrow {
-          opacity: 1;
-          transform: translateX(0);
-        }
-
-        .mobile-divider {
-          height: 1px;
-          background: rgba(26, 54, 93, 0.07);
-          margin: 0.75rem 0;
-        }
-
-        .mobile-dna-btn {
+        .bc-mob-links li a:hover,
+        .bc-mob-links li a.active { color: var(--navy); background: var(--gray-light); }
+        .bc-mob-links li a.active  { color: var(--pink); }
+        .bc-mob-arrow { opacity: 0; transform: translateX(-6px); transition: all 0.2s; font-size: 0.8rem; }
+        .bc-mob-links li a:hover .bc-mob-arrow,
+        .bc-mob-links li a.active .bc-mob-arrow { opacity: 1; transform: translateX(0); }
+        .bc-divider { height: 1px; background: rgba(26,54,93,0.07); margin: 0.75rem 0; }
+        .bc-mob-cta {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
           font-size: 0.82rem;
@@ -370,45 +294,57 @@ export default function Navbar() {
           gap: 0.5rem;
           padding: 0.85rem;
           border-radius: 12px;
-          transition: all 0.25s ease;
-          box-shadow: 0 2px 12px rgba(26, 54, 93, 0.2);
+          transition: all 0.25s;
+          box-shadow: 0 2px 12px rgba(26,54,93,0.20);
         }
-
-        .mobile-dna-btn:hover {
+        .bc-mob-cta:hover {
           background: linear-gradient(135deg, var(--pink), var(--pink-light));
-          box-shadow: 0 4px 18px rgba(233, 30, 99, 0.3);
+          box-shadow: 0 4px 18px rgba(233,30,99,0.30);
           transform: translateY(-1px);
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
-          .nav-links { display: none; }
-          .hamburger-btn { display: flex; }
-          .nav-inner { padding: 0 1.25rem; }
+          .bc-links { display: none; }
+          .bc-ham   { display: flex; }
+          .bc-nav-inner { padding: 0 1.25rem; }
         }
       `}</style>
 
-      <nav className={`biocap-nav${scrolled ? ' scrolled' : ''}`}>
-        <div className="nav-inner">
-          
-          <Link href="/" className="logo-link">
-            <span className="logo-bio">Bio</span>
-            <span className="logo-cap">Cap</span>
-            <span className="logo-dot" />
+      {/* ── Nav bar ───────────────────────────────────────── */}
+      <nav className={`bc-nav${scrolled ? ' scrolled' : ''}`}>
+        <div className="bc-nav-inner">
+
+          {/* Logo — image + text */}
+          <Link href="/" className="bc-logo">
+            <div className="bc-logo-img-wrap">
+              <Image
+                src="/image/biocap-logo.png"
+                alt="BioCap Logo"
+                fill
+                style={{ objectFit: 'contain' }}
+                sizes="36px"
+                priority
+              />
+            </div>
+            <div className="bc-logo-text">
+              <span className="bc-bio">Bio</span>
+              <span className="bc-cap">Cap</span>
+              <span className="bc-dot" />
+            </div>
           </Link>
 
-          
-          <ul className="nav-links">
+          {/* Desktop nav links */}
+          <ul className="bc-links">
             {navLinks.map(({ href, label }) => (
-              <li key={href} className="nav-link-item">
+              <li key={href} className="bc-link-item">
                 <Link href={href} className={pathname === href ? 'active' : ''}>
                   {label}
                 </Link>
               </li>
             ))}
             <li>
-              <Link href="/Dna-week" className="dna-btn">
-                <svg className="helix-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <Link href="/Dna-week" className="bc-cta">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                   <path d="M4 4c4 2 8 2 12 0" />
                   <path d="M4 20c4-2 8-2 12 0" />
                   <path d="M4 4c0 8 16 8 16 16" />
@@ -419,33 +355,33 @@ export default function Navbar() {
             </li>
           </ul>
 
-         
+          {/* Hamburger */}
           <button
-            className={`hamburger-btn${menuOpen ? ' open' : ''}`}
-            onClick={() => setMenuOpen(!menuOpen)}
+            className={`bc-ham${menuOpen ? ' open' : ''}`}
+            onClick={() => setMenuOpen(o => !o)}
             aria-label="Toggle menu"
           >
-            <span className="bar" />
-            <span className="bar bar-mid" />
-            <span className="bar" />
+            <span className="bc-bar" />
+            <span className="bc-bar bc-bar-mid" />
+            <span className="bc-bar" />
           </button>
         </div>
       </nav>
 
-     
-      <div className={`mobile-drawer${menuOpen ? ' open' : ''}`}>
-        <ul className="mobile-links">
+      {/* ── Mobile drawer ─────────────────────────────────── */}
+      <div className={`bc-drawer${menuOpen ? ' open' : ''}`}>
+        <ul className="bc-mob-links">
           {navLinks.map(({ href, label }) => (
-            <li key={href} className="mobile-link-item">
+            <li key={href}>
               <Link href={href} className={pathname === href ? 'active' : ''}>
                 {label}
-                <span className="mobile-arrow">→</span>
+                <span className="bc-mob-arrow">→</span>
               </Link>
             </li>
           ))}
         </ul>
-        <div className="mobile-divider" />
-        <Link href="/Dna-week" className="mobile-dna-btn">
+        <div className="bc-divider" />
+        <Link href="/Dna-week" className="bc-mob-cta">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
             <path d="M4 4c4 2 8 2 12 0" />
             <path d="M4 20c4-2 8-2 12 0" />
