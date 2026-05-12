@@ -159,6 +159,7 @@ export default function Footer() {
                 className="bc-footer-input"
                 value={footerEmail}
                 onChange={e => setFooterEmail(e.target.value)}
+                suppressHydrationWarning 
               />
               <button
                 style={{
@@ -175,6 +176,7 @@ export default function Footer() {
                 }}
                 onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.15)')}
                 onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
+                suppressHydrationWarning 
               >
                 →
               </button>
