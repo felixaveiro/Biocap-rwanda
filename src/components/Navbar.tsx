@@ -10,6 +10,7 @@ const navLinks = [
   { href: '/About',       label: 'About'         },
   { href: '/Objectives',  label: 'Objectives'    },
   { href: '/Biotech',     label: 'Biotechnology' },
+  { href: '/Milestones', label: 'Milestones'   },
   { href: '/Environment', label: 'Environment'   },
   { href: '/Gallery',     label: 'Gallery'       },
 ];
@@ -327,11 +328,11 @@ export default function Navbar() {
                 priority
               />
             </div>
-            <div className="bc-logo-text">
+            {/* <div className="bc-logo-text">
               <span className="bc-bio">Bio</span>
               <span className="bc-cap">Cap</span>
               <span className="bc-dot" />
-            </div>
+            </div> */}
           </Link>
 
           {/* Desktop nav links */}
