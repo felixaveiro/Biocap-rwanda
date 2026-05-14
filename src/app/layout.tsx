@@ -15,7 +15,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "BioCap | Building Rwandan Capacity",
-  description: "Accelerated Development, Deregulation, and Deployment of Enhanced Crops in Rwanda.",
+  description:
+    "Accelerated Development, Deregulation, and Deployment of Enhanced Crops in Rwanda.",
+  icons: {
+    icon: "/image/biocap-logo.png",
+  },
 };
 
 export default function RootLayout({
