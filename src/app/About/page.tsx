@@ -69,14 +69,78 @@ export default function AboutPage() {
   ];
 
   const partners = [
-    'Republic of Rwanda',
-    'RAB',
-    'Alliance for Science Rwanda',
-    'DDPSC',
-    'Michigan State University',
-    'IITA',
-    'CGIAR',
-    'CIP',
+    {
+      name: 'CIP',
+      fullName: 'International Potato Center',
+      role: 'Primary Grantee & Lead',
+      url: 'https://cipotato.org',
+      initials: 'CIP',
+      accent: '#E8185A',
+      logo: '/image/cip-logo.webp',
+    },
+    {
+      name: 'RAB',
+      fullName: 'Rwanda Agriculture Board',
+      role: 'National Lead & Host Institution',
+      url: 'https://www.rab.gov.rw',
+      initials: 'RAB',
+      accent: '#1E4D6B',
+      logo: '/image/rab-logo.png',
+    },
+    {
+      name: 'IITA',
+      fullName: 'Intl. Institute of Tropical Agriculture',
+      role: 'Banana Gene Editing Lead',
+      url: 'https://www.iita.org',
+      initials: 'IITA',
+      accent: '#2A7F8C',
+      logo: '/image/IITA-TAA-logo.png',
+    },
+    {
+      name: 'DDPSC',
+      fullName: 'Donald Danforth Plant Science Center',
+      role: 'Cassava Molecular Analysis',
+      url: 'https://www.danforthcenter.org',
+      initials: 'DDPSC',
+      accent: '#7B3FA0',
+      logo: '/image/DDPSC-logo.jpg',
+    },
+    {
+      name: 'MSU',
+      fullName: 'Michigan State University',
+      role: 'Regulatory Science & Biosafety',
+      url: 'https://msu.edu',
+      initials: 'MSU',
+      accent: '#18453B',
+      logo: '/image/oip1-logo.jpeg',
+    },
+    {
+      name: 'CGIAR',
+      fullName: 'CGIAR',
+      role: 'Global Research Network',
+      url: 'https://www.cgiar.org',
+      initials: 'CGIAR',
+      accent: '#0070C0',
+      logo: '/image/cgiar-logo.svg',
+    },
+    {
+      name: 'Alliance for Science',
+      fullName: 'Alliance for Science Rwanda',
+      role: 'Communication & Outreach',
+      url: 'https://www.afs-rwanda.org/',
+      initials: 'AfS-rwanda',
+      accent: '#7adb94',
+      logo: '/image/afs-logo.png',
+    },
+    {
+      name: 'Republic of Rwanda',
+      fullName: 'Republic of Rwanda — MINAGRI',
+      role: 'Government & Policy',
+      url: 'https://www.minagri.gov.rw',
+      initials: 'RW',
+      accent: '#20A8D8',
+      logo: '/image/Coat_of_arms_of_Rwanda.svg',
+    },
   ];
 
   return (
@@ -115,20 +179,66 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── PARTNERS STRIP ── */}
-      <section className="py-12 border-b border-gray-100 px-6 lg:px-12 bg-white">
-        <p className="text-center text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-8">
-          Trusted &amp; supported by
-        </p>
-        <div className="flex flex-wrap justify-center items-center gap-4 lg:gap-6 opacity-60">
-          {partners.map((partner) => (
-            <span
-              key={partner}
-              className="px-5 py-2 border border-gray-200 rounded-lg text-sm font-bold text-slate-500"
-            >
-              {partner}
-            </span>
-          ))}
+      {/* ── PARTNERS ── */}
+      <section className="py-16 border-b border-gray-100 px-6 lg:px-12 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-2">
+              Trusted &amp; supported by
+            </p>
+            <p className="text-xs text-slate-400">Click any partner to visit their website</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+            {partners.map((p) => (
+              <a
+                key={p.name}
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 hover:shadow-md transition-all duration-300 text-center no-underline"
+              >
+                {/* Logo circle with initials */}
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
+                  style={{ background: `${p.accent}15`, border: `1.5px solid ${p.accent}30` }}
+                >
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden">
+  {p.logo ? (
+    <img
+      src={p.logo}
+      alt={p.name}
+      className="w-full h-full object-contain p-1"
+    />
+  ) : (
+    <span
+      className="font-black text-xs tracking-tight leading-none"
+      style={{ color: p.accent }}
+    >
+      {p.initials}
+    </span>
+  )}
+</div>
+                </div>
+                {/* Name & role */}
+                <div>
+                  <p className="text-xs font-bold text-[#1B3A5C] leading-snug mb-1">{p.fullName}</p>
+                  <p
+                    className="text-[10px] font-semibold uppercase tracking-wider"
+                    style={{ color: p.accent }}
+                  >
+                    {p.role}
+                  </p>
+                </div>
+                {/* Visit link indicator */}
+                <span className="text-[10px] text-slate-400 group-hover:text-slate-600 transition-colors flex items-center gap-1">
+                  {p.url.replace('https://', '')}
+                  <svg className="w-2.5 h-2.5 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+                  </svg>
+                </span>
+              </a>
+            ))}
+          </div>
         </div>
       </section>
 
