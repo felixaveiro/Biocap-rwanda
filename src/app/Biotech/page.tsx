@@ -32,8 +32,8 @@ interface CropData {
   key: CropKey;
   label: string;
   Icon: React.ElementType;
-  color: string;         // primary accent hex
-  colorLight: string;    // pill / badge bg
+  color: string;
+  colorLight: string;
   status: 'approved' | 'trials';
   statusLabel: string;
   subtitle: string;
@@ -53,24 +53,24 @@ const CROPS: CropData[] = [
     subtitle: '4 information sections · REMA environmental release approved September 2025',
     sections: [
       {
-        title: 'What is Biotech Cassava?',
+        title: 'Molecular Marker Training',
         SectionIcon: Dna,
-        body: 'Biotech cassava varieties have been developed to resist Cassava Brown Streak Disease (CBSD) and Cassava Mosaic Disease (CMD), which devastate yields across Sub-Saharan Africa. Rwanda\'s RABP-CMP program has developed and tested lines like TH16-T2xR2-82 and TH16-T2xR1-222 in confined field trials.',
+        body: 'IITA supports the cassava product component through training for use of molecular markers to select elite progeny lines. This enables RAB scientists to identify and advance the most promising disease-resistant cassava lines with precision, accelerating the breeding pipeline.',
       },
       {
-        title: 'Key Challenges Addressed',
+        title: 'Molecular Characterisation',
+        SectionIcon: Microscope,
+        body: 'DDPSC supports the cassava breeding component by training RAB scientists in techniques required to characterise new cassava lines at the molecular level. This includes event-specific PCR, T-DNA copy number assessment, DNA sequencing and bioinformatics, and expression of the RNAi cassette in F1 progeny lines.',
+      },
+      {
+        title: 'Virus Diagnostics & Capacity',
         SectionIcon: ShieldAlert,
-        body: 'CBSD and CMD can destroy up to 100% of a cassava harvest. Rwanda\'s smallholder farmers depend on cassava as both food and income. Biotech resistance traits directly address these devastating threats to food security.',
+        body: 'Training is also provided in virus diagnostics for detection of the pathogens that cause CBSD and CMD. Although applied to cassava, most of these techniques are applicable to all transgenic crops and will raise capacity for this type of analysis at RAB — ensuring participants can transfer skills and establish them independently.',
       },
       {
-        title: 'Benefits for Farmers',
+        title: 'Centre of Excellence at RAB Rubona',
         SectionIcon: TrendingUp,
-        body: 'Disease resistance means stable yields, lower crop losses, and reduced need for replanting. Biotech cassava also offers improved nutritional profiles and yield improvements of up to 40% compared to susceptible conventional varieties.',
-      },
-      {
-        title: 'Field Trial Results',
-        SectionIcon: FlaskConical,
-        body: 'Confined field trials in Rubona and other RAB stations demonstrated strong CBSD resistance. Environmental release approval was granted by REMA on September 3rd, 2025 — marking Rwanda\'s first approval of a biotech food crop.',
+        body: 'These activities lay the groundwork for Rwanda to take a leadership role in agricultural biotechnology. Through targeted investments in infrastructure, capacity building, and product innovation, the Centre of Excellence for Crop Biotechnology at RAB Rubona will become a nationally anchored platform for science-based food security solutions.',
       },
     ],
     docName: 'A5-Biotech-Cassava-General-FAQ-2025',
@@ -86,24 +86,24 @@ const CROPS: CropData[] = [
     subtitle: '4 information sections · REMA environmental release approved September 2025',
     sections: [
       {
-        title: 'What is Biotech Potato?',
+        title: 'Training & Transformation Pipeline',
         SectionIcon: Dna,
-        body: 'Biotech potato varieties developed under the RABP-CMP program are engineered to resist Late Blight (Phytophthora infestans) — the most devastating potato disease globally. These varieties carry resistance genes (R genes) sourced from wild potato relatives to confer durable protection.',
+        body: 'Trainees begin with a two-to-three-month residency at CIP laboratories within the BecA-ILRI Hub in Nairobi for advanced techniques, after initial training organised in Rwanda. The full transformation cycle covers gene construct assembly, Agrobacterium culture maintenance, plasmid validation, explant infection, plant regeneration, molecular characterisation, and greenhouse phenotyping.',
       },
       {
-        title: 'Key Challenges Addressed',
+        title: 'Target Varieties & 3R-Gene Construct',
         SectionIcon: ShieldAlert,
-        body: 'Late Blight can destroy an entire potato field within days under wet conditions. Rwandan farmers spend heavily on fungicide applications — up to 15 sprays per season. Biotech resistance drastically reduces input costs and crop losses for smallholders.',
+        body: 'Farmer-preferred Rwandan varieties Kinigi and Cyerekezo will be transformed with the three-gene construct pCIP99 (GB MN164628.2), containing Rpi-vnt1.1 from Solanum venturii and Rpi-RB and Rpi-blb2 from Solanum bulbocastanum. This 3R-gene stacking delivers broad-spectrum, durable resistance to diverse late blight pathogen strains under field conditions.',
       },
       {
-        title: 'Benefits for Farmers',
-        SectionIcon: TrendingUp,
-        body: 'Resistant varieties eliminate most fungicide spray cycles, cutting production costs significantly. Yield stability improves by up to 50% in seasons with high disease pressure. Reduced chemical use also benefits the environment and farmer health.',
-      },
-      {
-        title: 'Field Trial Results',
+        title: 'Cisgenic Approach & Regulatory Pathway',
         SectionIcon: Microscope,
-        body: 'Multi-season confined field trials across Rwanda\'s highland potato zones showed near-complete resistance to Late Blight strains. REMA granted environmental release approval in September 2025, enabling seed multiplication and expanded farmer access.',
+        body: 'A second construct from TSL stacks Rpi-vnt1, Rpi-amr1, and Rpi-amr3 — all sourced exclusively from the Solanum genus — creating potential for cisgenic classification rather than transgenic, which may simplify the regulatory pathway. The potato ALS gene serves as a selectable marker conferring chlorsulfuron herbicide resistance for streamlined selection.',
+      },
+      {
+        title: 'Confined Field Trials & National Ownership',
+        SectionIcon: TrendingUp,
+        body: 'Resulting transformation events will advance to confined field trials (CFTs) across three existing RABP-CMP sites, with all activities led by trained Rwandan scientists. RAB will carefully select recipient varieties distinct from any pending biotech releases to avoid regulatory complications, as tuber morphology remains the primary field-level identification method.',
       },
     ],
     docName: 'A5-Biotech-Potato-General-FAQ-2025',
@@ -119,24 +119,24 @@ const CROPS: CropData[] = [
     subtitle: '4 information sections · Under confined field trial evaluation',
     sections: [
       {
-        title: 'What is Biotech Banana?',
+        title: 'Gene Editing Training Pipeline',
         SectionIcon: Dna,
-        body: 'Biotech banana varieties are being developed to resist Banana Xanthomonas Wilt (BXW) and Black Sigatoka, two of the most destructive banana diseases in East and Central Africa. Rwanda\'s RABP-CMP program is evaluating transgenic and gene-edited lines in confined trials.',
+        body: 'At least five RAB early-career scientists will receive hands-on training at IITA\'s Gene Editing Platform at the BecA/ILRI Hub in Nairobi. The full pipeline is covered: target gene identification, guide RNA design, construct development, embryogenic cell suspension, Agrobacterium-mediated transformation, transgene-free editing, sequencing validation, and phenotypic evaluation.',
       },
       {
-        title: 'Key Challenges Addressed',
+        title: 'BXW Resistance: Sukali Ndiizi',
         SectionIcon: ShieldAlert,
-        body: 'BXW has devastated banana production across the Great Lakes region, with losses exceeding 90% in affected plantations. Banana is a staple food and key income source for millions of Rwandan households, making disease resistance a critical food security priority.',
+        body: 'Training focuses on BXW resistance targets MusaPUB22 and MusaPUB23, already successfully knocked out in dessert banana cultivar Sukali Ndiizi using CRISPR-Cas9. The resulting transgene-free events have been validated for mutation accuracy and absence of foreign DNA, and are now ready for field evaluation in Rwanda — led by a RAB scientist returning from her PhD at IITA in 2025.',
       },
       {
-        title: 'Benefits for Farmers',
-        SectionIcon: TrendingUp,
-        body: 'Disease-resistant banana varieties would eliminate the need for costly and labor-intensive BXW management practices like debudding and tool sterilization. Yield stability and nutritional security for farming households would improve significantly.',
-      },
-      {
-        title: 'Field Trial Status',
+        title: 'Injagi Editing & FULCRUM™ System',
         SectionIcon: FlaskConical,
-        body: 'Confined field trials are ongoing at RAB research stations. Early results show promising resistance profiles. The program is on track to submit a dossier to REMA for environmental release consideration pending successful multi-season trial data.',
+        body: 'RAB will establish a gene editing pipeline for Injagi — a farmer-preferred cooking banana — using the FULCRUM™ system licensed by IITA from Pairwise, securing Rwanda\'s freedom to operate for public-sector use. RAB scientists will develop embryogenic cell suspensions for Injagi and edit susceptibility genes including Alcohol Dehydrogenase 1 (ADH1) to confer Fusarium Wilt resistance, with plans to stack both BXW and Fusarium resistance traits.',
+      },
+      {
+        title: 'National Ownership & Long-Term Impact',
+        SectionIcon: TrendingUp,
+        body: 'Upon training completion, RAB will have an in-country self-sustaining banana gene editing pipeline. The RAB team will lead edited line development, biosafety data generation, phenotypic evaluation under high-disease pressure, and integration into national seed systems — positioning Rwanda as a regional leader in banana biotechnology.',
       },
     ],
     docName: 'A5-Biotech-Banana-General-FAQ-2025',

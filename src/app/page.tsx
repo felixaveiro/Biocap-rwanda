@@ -100,10 +100,9 @@ const STATS = [
 ];
 
 const CROPS = [
-  { name: 'Cassava', pct: 78, tag: 'Vitamin-A Biofortified' },
-  { name: 'Sorghum', pct: 65, tag: 'Drought Tolerant'       },
-  { name: 'Maize',   pct: 52, tag: 'Disease Resistant'      },
-  { name: 'Beans',   pct: 41, tag: 'Nitrogen-Fixing'        },
+  { name: 'Cassava', pct: 90, tag: 'Vitamin-A Biofortified' },
+  { name: 'Potato', pct: 87, tag: 'Drought Tolerant'       },
+  { name: 'Banana',   pct: 80, tag: 'Nitrogen-Fixing'        },
 ];
 
 const NEWS = [
