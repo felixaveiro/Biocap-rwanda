@@ -65,11 +65,11 @@ export default function EnvironmentPage() {
             grow well even in tough conditions. This supports sustainable agriculture and 
             helps us use our land more wisely.
           </p>
-          <div className="flex flex-wrap gap-3">
+          {/* <div className="flex flex-wrap gap-3">
             <span className="bg-slate-100 text-[#1a3a5c] font-bold text-[10px] px-4 py-2 rounded-full uppercase tracking-tighter">#BetterCrops</span>
             <span className="bg-slate-100 text-[#1a3a5c] font-bold text-[10px] px-4 py-2 rounded-full uppercase tracking-tighter">#StrongerRwanda</span>
             <span className="bg-slate-100 text-[#1a3a5c] font-bold text-[10px] px-4 py-2 rounded-full uppercase tracking-tighter">#BioCapEcology</span>
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -120,7 +120,7 @@ export default function EnvironmentPage() {
         </div>
       </section>
 
-      {/* ── FOOTER ── */}
+     
       <Footer />
     </div>
   );

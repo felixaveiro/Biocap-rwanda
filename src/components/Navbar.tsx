@@ -78,13 +78,13 @@ export default function Navbar() {
 
         .bc-logo-img-wrap {
           position: relative;
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
+          width: 60px;
+          height: 60px;
+          border-radius: 50px;
           overflow: hidden;
           flex-shrink: 0;
           background: #f0f4fa;
-          border: 1.5px solid rgba(26,54,93,0.10);
+          border: 1.5px solid rgba(238, 242, 248, 0.6);
           transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
         }
         .bc-logo:hover .bc-logo-img-wrap {
@@ -312,11 +312,11 @@ export default function Navbar() {
         }
       `}</style>
 
-      {/* ── Nav bar ───────────────────────────────────────── */}
+      
       <nav className={`bc-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="bc-nav-inner">
 
-          {/* Logo — image + text */}
+          
           <Link href="/" className="bc-logo">
             <div className="bc-logo-img-wrap">
               <Image
@@ -324,15 +324,10 @@ export default function Navbar() {
                 alt="BioCap Logo"
                 fill
                 style={{ objectFit: 'contain' }}
-                sizes="36px"
+                sizes="35px"
                 priority
               />
             </div>
-            {/* <div className="bc-logo-text">
-              <span className="bc-bio">Bio</span>
-              <span className="bc-cap">Cap</span>
-              <span className="bc-dot" />
-            </div> */}
           </Link>
 
           {/* Desktop nav links */}
