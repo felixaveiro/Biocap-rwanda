@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { Phone, Mail, MapPin, X } from 'lucide-react';
 
 const COLORS = {
   pink: '#e8185e',
@@ -20,6 +21,37 @@ const RECENT_NEWS_FOOTER = [
   { date: 'Apr 28, 2025', title: 'Rwanda Approves First Biofortified Cassava Variety',        href: '#' },
   { date: 'Mar 15, 2025', title: 'New Biosafety Guidelines Open Doors for Gene-Edited Crops', href: '#' },
   { date: 'Feb 4, 2025',  title: '34% Yield Gains Confirmed Under Drought Conditions',        href: '#' },
+];
+
+const CONTACT_ITEMS = [
+  { icon: Phone,  text: '+250 733 389 450' },
+  { icon: Mail,   text: 'bellancile.uzayisenga@rab.gov.rw' },
+  { icon: MapPin, text: 'GQ8C+W5, Ruhashya, huye' },
+];
+
+// Inline SVG for LinkedIn since lucide-react v1.16.0 doesn't include it
+function LinkedInIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect width="4" height="12" x="2" y="9" />
+      <circle cx="4" cy="4" r="2" />
+    </svg>
+  );
+}
+
+const SOCIAL_LINKS = [
+  { icon: X,             href: 'https://x.com/RwandaBioCap' },
+  { icon: LinkedInIcon,  href: 'https://www.linkedin.com/company/rwanda-biocap-progam/' },
 ];
 
 export default function Footer() {
@@ -87,7 +119,6 @@ export default function Footer() {
           align-items: center;
           justify-content: center;
           color: rgba(255,255,255,0.6);
-          font-size: 0.8rem;
           text-decoration: none;
           transition: background 0.2s, color 0.2s;
         }
@@ -114,7 +145,7 @@ export default function Footer() {
 
       <footer className="bc-footer">
 
-        {/* Wave — inside footer, transitions from white page bg */}
+        {/* Wave */}
         <div className="bc-footer-wave">
           <svg
             viewBox="0 0 1200 70"
@@ -159,7 +190,7 @@ export default function Footer() {
                 className="bc-footer-input"
                 value={footerEmail}
                 onChange={e => setFooterEmail(e.target.value)}
-                suppressHydrationWarning 
+                suppressHydrationWarning
               />
               <button
                 style={{
@@ -176,7 +207,7 @@ export default function Footer() {
                 }}
                 onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.15)')}
                 onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
-                suppressHydrationWarning 
+                suppressHydrationWarning
               >
                 →
               </button>
@@ -239,15 +270,15 @@ export default function Footer() {
           <div>
             <div className="bc-footer-heading">Contact Us</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
-              {[
-                { icon: '📞', text: '+250 733 389 450' },
-                { icon: '✉️', text: 'bellancile.uzayisenga@rab.gov.rw' },
-                { icon: '📍', text: 'GQ8C+W5, Ruhashya, huye' },
-              ].map((c, i) => (
+              {CONTACT_ITEMS.map(({ icon: Icon, text }, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}>{c.icon}</span>
+                  <Icon
+                    size={16}
+                    strokeWidth={1.75}
+                    style={{ color: COLORS.pink, marginTop: '2px', flexShrink: 0 }}
+                  />
                   <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.88rem', lineHeight: 1.55 }}>
-                    {c.text}
+                    {text}
                   </span>
                 </div>
               ))}
@@ -255,16 +286,11 @@ export default function Footer() {
 
             {/* Social icons */}
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-              {[
-                { label: '𝕏', href: 'https://x.com/RwandaBioCap' },
-                { label: 'in', href: 'https://www.linkedin.com/company/rwanda-biocap-progam/' },
-                { label: 'f',  href: '#' },
-                { label: '▶',  href: '#' },
-              ].map((s, i) => (
-                <a key={i} href={s.href} className="bc-footer-social">
-                  {s.label}
-                </a>
-              ))}
+              {SOCIAL_LINKS.map(({ icon: Icon, href }, i) => (
+  <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="bc-footer-social">
+    <Icon size={15} strokeWidth={1.75} />
+  </a>
+))}
             </div>
           </div>
         </div>
