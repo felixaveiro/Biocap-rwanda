@@ -12,6 +12,14 @@ import {
   BookOpen,
   Radio,
   Globe,
+  Wheat,
+  Newspaper,
+  Smartphone,
+  Landmark,
+  Handshake,
+  GraduationCap,
+  Leaf,
+  FlaskConical,
 } from 'lucide-react';
 
 export default function AboutPage() {
@@ -40,9 +48,9 @@ export default function AboutPage() {
   ];
 
   const focusCrops = [
-    { emoji: '🥔', name: 'Potato', trait: 'Late blight resistance' },
-    { emoji: '🌿', name: 'Cassava', trait: 'CMD & CBSD resistance' },
-    { emoji: '🍌', name: 'Banana', trait: 'BXW & Fusarium wilt resistance' },
+    { icon: Wheat, name: 'Potato', trait: 'Late blight resistance', color: '#E8185A', bg: '#fde8ef' },
+    { icon: Leaf, name: 'Cassava', trait: 'CMD & CBSD resistance', color: '#2A7F8C', bg: '#e6f4f6' },
+    { icon: Sprout, name: 'Banana', trait: 'BXW & Fusarium wilt resistance', color: '#7B3FA0', bg: '#f3e8f9' },
   ];
 
   const coreMessages = [
@@ -53,12 +61,12 @@ export default function AboutPage() {
   ];
 
   const audiences = [
-    { icon: '🌾', label: 'Smallholder farmers and cooperatives' },
-    { icon: '📰', label: 'Journalists and media houses' },
-    { icon: '📱', label: 'Social media influencers and youth' },
-    { icon: '🏛️', label: 'Policymakers and regulators' },
-    { icon: '🤝', label: 'Civil society and faith-based organisations' },
-    { icon: '🎓', label: 'Academia and students' },
+    { icon: Wheat, label: 'Smallholder farmers and cooperatives' },
+    { icon: Newspaper, label: 'Journalists and media houses' },
+    { icon: Smartphone, label: 'Social media influencers and youth' },
+    { icon: Landmark, label: 'Policymakers and regulators' },
+    { icon: Handshake, label: 'Civil society and faith-based organisations' },
+    { icon: GraduationCap, label: 'Academia and students' },
   ];
 
   const commTools = [
@@ -73,6 +81,7 @@ export default function AboutPage() {
       name: 'CIP',
       fullName: 'International Potato Center',
       role: 'Primary Grantee & Lead',
+      description: 'A CGIAR research centre dedicated to reducing poverty and hunger through scientific innovation in potato and sweetpotato systems across the developing world.',
       url: 'https://cipotato.org',
       initials: 'CIP',
       accent: '#E8185A',
@@ -82,6 +91,7 @@ export default function AboutPage() {
       name: 'RAB',
       fullName: 'Rwanda Agriculture Board',
       role: 'National Lead & Host Institution',
+      description: 'Rwanda\'s principal government body overseeing agricultural research, development, and the regulation of seeds and plant varieties to drive national food security.',
       url: 'https://www.rab.gov.rw',
       initials: 'RAB',
       accent: '#1E4D6B',
@@ -91,6 +101,7 @@ export default function AboutPage() {
       name: 'IITA',
       fullName: 'Intl. Institute of Tropical Agriculture',
       role: 'Banana Gene Editing Lead',
+      description: 'A world-class research-for-development organisation improving livelihoods in Africa by enhancing crop systems using cutting-edge gene-editing and biotechnology tools.',
       url: 'https://www.iita.org',
       initials: 'IITA',
       accent: '#2A7F8C',
@@ -100,6 +111,7 @@ export default function AboutPage() {
       name: 'DDPSC',
       fullName: 'Donald Danforth Plant Science Center',
       role: 'Cassava Molecular Analysis',
+      description: 'An independent, not-for-profit research institute advancing plant science to improve human health, food security, and agricultural sustainability through molecular innovation.',
       url: 'https://www.danforthcenter.org',
       initials: 'DDPSC',
       accent: '#7B3FA0',
@@ -109,37 +121,21 @@ export default function AboutPage() {
       name: 'MSU',
       fullName: 'Michigan State University',
       role: 'Regulatory Science & Biosafety',
+      description: 'A leading land-grant research university providing rigorous biosafety training, regulatory science expertise, and capacity building for African scientists and policymakers.',
       url: 'https://msu.edu',
       initials: 'MSU',
       accent: '#18453B',
-      logo: '/image/oip1-logo.jpeg',
-    },
-    {
-      name: 'CGIAR',
-      fullName: 'CGIAR',
-      role: 'Global Research Network',
-      url: 'https://www.cgiar.org',
-      initials: 'CGIAR',
-      accent: '#0070C0',
-      logo: '/image/cgiar-logo.svg',
+      logo: '/image/MSU Combo.png',
     },
     {
       name: 'Alliance for Science',
       fullName: 'Alliance for Science Rwanda',
       role: 'Communication & Outreach',
+      description: 'A science communication network amplifying evidence-based voices on biotechnology, engaging farmers, media, and policymakers to build public trust in agricultural innovation.',
       url: 'https://www.afs-rwanda.org/',
       initials: 'AfS-rwanda',
-      accent: '#7adb94',
+      accent: '#2E9E5B',
       logo: '/image/afs-logo.png',
-    },
-    {
-      name: 'Republic of Rwanda',
-      fullName: 'Republic of Rwanda — MINAGRI',
-      role: 'Government & Policy',
-      url: 'https://www.minagri.gov.rw',
-      initials: 'RW',
-      accent: '#20A8D8',
-      logo: '/image/Coat_of_arms_of_Rwanda.svg',
     },
   ];
 
@@ -180,63 +176,19 @@ export default function AboutPage() {
       </section>
 
       {/* ── PARTNERS ── */}
-      <section className="py-16 border-b border-gray-100 px-6 lg:px-12 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10">
+      <section className="py-20 border-b border-gray-100 px-6 lg:px-12 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
             <p className="text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-2">
               Trusted &amp; supported by
             </p>
             <p className="text-xs text-slate-400">Click any partner to visit their website</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
+
+          {/* 6 partners — 2 rows of 3, perfectly centered */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {partners.map((p) => (
-              <a
-                key={p.name}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-slate-100 bg-white hover:border-slate-200 hover:shadow-md transition-all duration-300 text-center no-underline"
-              >
-                {/* Logo circle with initials */}
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
-                  style={{ background: `${p.accent}15`, border: `1.5px solid ${p.accent}30` }}
-                >
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden">
-  {p.logo ? (
-    <img
-      src={p.logo}
-      alt={p.name}
-      className="w-full h-full object-contain p-1"
-    />
-  ) : (
-    <span
-      className="font-black text-xs tracking-tight leading-none"
-      style={{ color: p.accent }}
-    >
-      {p.initials}
-    </span>
-  )}
-</div>
-                </div>
-                {/* Name & role */}
-                <div>
-                  <p className="text-xs font-bold text-[#1B3A5C] leading-snug mb-1">{p.fullName}</p>
-                  <p
-                    className="text-[10px] font-semibold uppercase tracking-wider"
-                    style={{ color: p.accent }}
-                  >
-                    {p.role}
-                  </p>
-                </div>
-                {/* Visit link indicator */}
-                <span className="text-[10px] text-slate-400 group-hover:text-slate-600 transition-colors flex items-center gap-1">
-                  {p.url.replace('https://', '')}
-                  <svg className="w-2.5 h-2.5 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
-                  </svg>
-                </span>
-              </a>
+              <PartnerCard key={p.name} p={p} />
             ))}
           </div>
         </div>
@@ -292,9 +244,17 @@ export default function AboutPage() {
                 key={c.name}
                 className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4"
               >
-                <span className="text-5xl">{c.emoji}</span>
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ background: c.bg }}
+                >
+                  <c.icon className="w-8 h-8" style={{ color: c.color }} />
+                </div>
                 <h3 className="text-lg font-bold text-[#1B3A5C]">{c.name}</h3>
-                <span className="text-xs font-semibold uppercase tracking-widest text-[#E8185A] bg-[#fde8ef] px-4 py-1.5 rounded-full">
+                <span
+                  className="text-xs font-semibold uppercase tracking-widest px-4 py-1.5 rounded-full"
+                  style={{ color: c.color, background: c.bg }}
+                >
                   {c.trait}
                 </span>
               </div>
@@ -409,7 +369,9 @@ export default function AboutPage() {
                     key={a.label}
                     className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-start gap-3"
                   >
-                    <span className="text-2xl flex-shrink-0">{a.icon}</span>
+                    <div className="w-9 h-9 rounded-lg bg-[#fde8ef] flex items-center justify-center flex-shrink-0">
+                      <a.icon className="w-4 h-4 text-[#E8185A]" />
+                    </div>
                     <p className="text-sm text-slate-600 font-medium leading-snug">{a.label}</p>
                   </div>
                 ))}
@@ -511,5 +473,66 @@ export default function AboutPage() {
 
       <Footer />
     </div>
+  );
+}
+
+/* ── Reusable Partner Card ── */
+function PartnerCard({ p }) {
+  return (
+    <a
+      href={p.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col items-center gap-5 p-8 rounded-2xl border border-slate-100 bg-white hover:shadow-xl transition-all duration-300 text-center no-underline w-full relative overflow-hidden"
+    >
+      {/* Accent top bar */}
+      <div
+        className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+        style={{ background: `linear-gradient(90deg, ${p.accent}, ${p.accent}80)` }}
+      />
+
+      {/* Logo circle */}
+      <div
+        className="w-24 h-24 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden"
+        style={{ background: `${p.accent}12`, border: `1.5px solid ${p.accent}25` }}
+      >
+        {p.logo ? (
+          <img
+            src={p.logo}
+            alt={p.name}
+            className="w-full h-full object-contain p-2"
+          />
+        ) : (
+          <span
+            className="font-black text-sm tracking-tight leading-none"
+            style={{ color: p.accent }}
+          >
+            {p.initials}
+          </span>
+        )}
+      </div>
+
+      {/* Name, role & description */}
+      <div className="space-y-2 w-full">
+        <p className="text-sm font-bold text-[#1B3A5C] leading-snug text-center">{p.fullName}</p>
+        <p
+          className="text-xs font-semibold uppercase tracking-wider text-center"
+          style={{ color: p.accent }}
+        >
+          {p.role}
+        </p>
+        <p className="text-xs text-slate-500 leading-relaxed pt-1 text-justify">
+          {p.description}
+        </p>
+      </div>
+
+      {/* Visit link */}
+      <span className="text-[11px] text-slate-400 group-hover:text-slate-600 transition-colors flex items-center gap-1 mt-auto">
+        {p.url.replace('https://', '')}
+        <svg className="w-2.5 h-2.5 opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/>
+        </svg>
+      </span>
+    </a>
   );
 }
