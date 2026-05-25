@@ -10,11 +10,13 @@ const COLORS = {
 };
 
 const QUICK_LINKS = [
-  { label: 'Home',          href: '/'           },
+  { label: 'Home',          href: '/'            },
+  { label: 'About Us',      href: '/About'       },
   { label: 'Biotechnology', href: '/Biotech'     },
   { label: 'Environment',   href: '/Environment' },
-  { label: 'DNA Week',      href: '/Dna-week'    },
-  { label: 'About Us',      href: '/About'       },
+  { label: 'Gallery',      href: '/Gallery'      },
+  { label: 'Resource',      href: '/Dna-week'    },
+  
 ];
 
 const RECENT_NEWS_FOOTER = [
@@ -287,10 +289,10 @@ export default function Footer() {
             {/* Social icons */}
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               {SOCIAL_LINKS.map(({ icon: Icon, href }, i) => (
-  <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="bc-footer-social">
-    <Icon size={15} strokeWidth={1.75} />
-  </a>
-))}
+                <a key={i} href={href} className="bc-footer-social">
+                  <Icon size={15} strokeWidth={1.75} />
+                </a>
+              ))}
             </div>
           </div>
         </div>
