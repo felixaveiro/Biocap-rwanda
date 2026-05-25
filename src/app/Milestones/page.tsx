@@ -836,16 +836,6 @@ export default function MilestonesPage() {
       `}</style>
 
       <div className="ms-page">
-
-        {/* Breadcrumb */}
-        <div className="ms-breadcrumb">
-          <div className="ms-breadcrumb-inner">
-            <Link href="/">Home</Link>
-            <span className="ms-breadcrumb-sep">›</span>
-            <span className="ms-breadcrumb-cur">Milestones</span>
-          </div>
-        </div>
-
         {/* Hero */}
         <section className="ms-hero">
           <div className="ms-hero-dots" aria-hidden="true" />
