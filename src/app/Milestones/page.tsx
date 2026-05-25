@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Footer from '@/components/Footer';
+import { Trophy, Wheat, Sprout, Leaf, ArrowRight, Calendar } from 'lucide-react';
 
 /* ─── Data ──────────────────────────────────────────────────────── */
 
@@ -56,6 +57,12 @@ const STATS = [
   { value: 65, suffix: '%',  label: 'Phase 2 Complete' },
 ];
 
+const CROPS = [
+  { Icon: Wheat,  name: 'Maize'   },
+  { Icon: Sprout, name: 'Potato'  },
+  { Icon: Leaf,   name: 'Cassava' },
+];
+
 type Status = 'completed' | 'in-progress' | 'planned';
 
 /* ─── Helpers ────────────────────────────────────────────────────── */
@@ -106,9 +113,9 @@ function StatCard({ value, suffix, label, active }: { value: number; suffix: str
 
 function StatusBadge({ status }: { status: Status }) {
   const map: Record<Status, { label: string; cls: string }> = {
-    completed:   { label: '✓ Completed',   cls: 'ms-badge--completed'   },
+    completed:     { label: '✓ Completed',   cls: 'ms-badge--completed' },
     'in-progress': { label: '● In Progress', cls: 'ms-badge--progress'  },
-    planned:     { label: '◆ Planned',     cls: 'ms-badge--planned'     },
+    planned:       { label: '◆ Planned',     cls: 'ms-badge--planned'   },
   };
   const { label, cls } = map[status];
   return <span className={`ms-badge ${cls}`}>{label}</span>;
@@ -160,9 +167,7 @@ function PhaseCard({ phase, side, index }: { phase: typeof PHASES[0]; side: 'lef
 
       {/* Date */}
       <div className="ms-card-date">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
+        <Calendar size={12} aria-hidden="true" />
         Target: {phase.date}
       </div>
     </div>
@@ -408,8 +413,8 @@ export default function MilestonesPage() {
           background: rgba(232,24,94,0.15);
           border: 2px solid rgba(232,24,94,0.4);
           display: flex; align-items: center; justify-content: center;
-          font-size: 1.8rem;
           flex-shrink: 0;
+          color: #ff6ba3;
           animation: ms-trophy-bounce 3s ease-in-out infinite;
         }
         @keyframes ms-trophy-bounce {
@@ -447,13 +452,20 @@ export default function MilestonesPage() {
           border-radius: 12px;
           padding: 0.7rem 1rem;
           transition: background 0.25s, transform 0.25s;
+          color: rgba(255,255,255,0.85);
         }
         .ms-crop-pill:hover { background: rgba(232,24,94,0.15); transform: translateY(-3px); }
-        .ms-crop-pill-icon { font-size: 1.5rem; }
+        .ms-crop-pill-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--pink-light);
+        }
         .ms-crop-pill-name { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
         @media (max-width: 760px) {
           .ms-achievement-card { grid-template-columns: 1fr; text-align: center; }
           .ms-achievement-crops { justify-content: center; }
+          .ms-achievement-icon { margin: 0 auto; }
         }
 
         /* ── Timeline ── */
@@ -844,9 +856,9 @@ export default function MilestonesPage() {
               <span className="ms-hero-badge-dot" aria-hidden="true" />
               Programme Progress
             </div>
-            <h1>Programme <em>Milestones</em> & Achievements</h1>
+            <h1>Programme <em>Milestones</em> &amp; Achievements</h1>
             <p className="ms-hero-sub">
-              Tracking our progress as we make history in Rwanda's agricultural biotechnology — phase by phase, crop by crop.
+              Tracking our progress as we make history in Rwanda&apos;s agricultural biotechnology — phase by phase, crop by crop.
             </p>
           </div>
         </section>
@@ -867,7 +879,9 @@ export default function MilestonesPage() {
               className={`ms-achievement-card ${achievementVisible ? 'ms-visible' : ''}`}
               ref={achievementRef}
             >
-              <div className="ms-achievement-icon" aria-hidden="true">🏆</div>
+              <div className="ms-achievement-icon" aria-hidden="true">
+                <Trophy size={28} strokeWidth={1.5} />
+              </div>
               <div>
                 <div className="ms-achievement-title">Historic Achievement — September 3, 2025</div>
                 <p className="ms-achievement-text">
@@ -876,14 +890,12 @@ export default function MilestonesPage() {
                 </p>
               </div>
               <div className="ms-achievement-crops">
-                {[
-                  { icon: '🌽', name: 'Maize'   },
-                  { icon: '🥔', name: 'Potato'  },
-                  { icon: '🌿', name: 'Cassava' },
-                ].map(c => (
-                  <div className="ms-crop-pill" key={c.name}>
-                    <span className="ms-crop-pill-icon" aria-hidden="true">{c.icon}</span>
-                    <span className="ms-crop-pill-name">{c.name}</span>
+                {CROPS.map(({ Icon, name }) => (
+                  <div className="ms-crop-pill" key={name}>
+                    <span className="ms-crop-pill-icon" aria-hidden="true">
+                      <Icon size={24} strokeWidth={1.5} />
+                    </span>
+                    <span className="ms-crop-pill-name">{name}</span>
                   </div>
                 ))}
               </div>
@@ -956,13 +968,11 @@ export default function MilestonesPage() {
           <div className="ms-cta-inner">
             <h2>See the Science Behind It</h2>
             <p>
-              Explore the biotechnology innovations and field research driving each milestone in Rwanda's agricultural transformation.
+              Explore the biotechnology innovations and field research driving each milestone in Rwanda&apos;s agricultural transformation.
             </p>
             <Link href="/Biotech" className="ms-cta-btn">
               Explore Biotechnology in modern universe
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+              <ArrowRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </Link>
           </div>
         </section>

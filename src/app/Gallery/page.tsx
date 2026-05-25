@@ -12,6 +12,7 @@ import {
   FlaskConical,
   FolderOpen,
 } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 type Category = 'all' | 'field' | 'lab' | 'community' | 'crops';
 
@@ -493,6 +494,7 @@ export default function GalleryPage() {
             )}
           </div>
         </div>
+        <Footer />
       </div>
     </>
   );
