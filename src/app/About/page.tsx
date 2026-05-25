@@ -281,8 +281,8 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="relative">
             <div className="bg-[#1B3A5C] aspect-[4/3] rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">
-              <img src="/image/image-01.jpg" className="w-full h-full object-cover opacity-30" />
-              <svg
+              <img src="/image/image-01.jpg" className="w-full h-full object-cover opacity-70" />
+              {/* <svg
                 width="160"
                 height="160"
                 viewBox="0 0 24 24"
@@ -293,7 +293,7 @@ export default function AboutPage() {
               >
                 <circle cx="12" cy="12" r="10" />
                 <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-              </svg>
+              </svg> */}
             </div>
             <div className="absolute bottom-[-20px] right-[-20px] bg-white p-6 rounded-2xl shadow-xl z-20">
               <div className="font-serif text-3xl font-black text-[#E8185A]">2025</div>

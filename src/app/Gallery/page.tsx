@@ -1,25 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import {
-  X,
-  ChevronLeft,
-  ChevronRight,
+  ExternalLink,
   Search,
   Images,
   Microscope,
   Leaf,
   Users,
   FlaskConical,
-  ZoomIn,
+  FolderOpen,
 } from 'lucide-react';
-
-// ─── BioCap Brand Tokens ───────────────────────────────────────────
-// Navy    : #1E4D6B   Pink/Magenta : #E8185A
-// Purple  : #7B3FA0   Teal         : #2A7F8C
-// Bg      : #F7F4FB
-// ──────────────────────────────────────────────────────────────────
 
 type Category = 'all' | 'field' | 'lab' | 'community' | 'crops';
 
@@ -30,386 +22,226 @@ interface GalleryItem {
   title: string;
   caption: string;
   category: Category;
-  /** Tailwind-compatible span class for masonry feel */
+  href: string;
+  itemCount: number;
+  date: string;
   tall?: boolean;
 }
 
-// Replace src values with your actual image paths under /public/image/
 const GALLERY_ITEMS: GalleryItem[] = [
   {
     id: 1,
-    src: '/image/image-01.jpg',
-    alt: 'Field research cassava',
-    title: 'Cassava Field Trials',
-    caption: 'Researchers evaluating CBSD-resistant cassava lines at RAB Rubona station.',
+    src: '/image/DSC_6501.JPG',
+    alt: 'Huye confined field trial',
+    title: 'HUYE Confined Field Trial',
+    caption: 'Confined field trial evaluations at Huye research station.',
     category: 'field',
+    href: 'https://biotechnology.pixieset.com/huyeconfinedfildtrialsitecasavaandmaize/',
+    itemCount: 342,
+    date: 'Mar 17, 2026',
     tall: true,
   },
   {
     id: 2,
-    src: '/image/image-02.jpg',
-    alt: 'Laboratory DNA analysis',
-    title: 'DNA Sequencing Lab',
-    caption: 'Molecular characterization of biotech crop lines at the RABP-CMP laboratory.',
-    category: 'lab',
+    src: '/image/ofab.jpeg',
+    alt: 'Impact of OFAB',
+    title: 'The Impact of OFAB',
+    caption: 'Open Forum on Agricultural Biotechnology outcomes and highlights.',
+    category: 'community',
+    href: 'https://biotechnology.pixieset.com/theimpactofofabformediaandinfruencersday2/',
+    itemCount: 17,
+    date: 'May 20, 2026',
   },
   {
     id: 3,
     src: '/image/image-03.jpg',
-    alt: 'Farmer training session',
-    title: 'Farmer Engagement',
-    caption: 'Smallholder farmers learning about biotech potato benefits during a field day.',
+    alt: 'Impact of OFAB media',
+    title: 'OFAB Media Coverage',
+    caption: 'Media and stakeholder engagement from the OFAB forum.',
     category: 'community',
+    href: 'https://biotechnology.pixieset.com/theimpactofofabformediaandinfruencers/',
+    itemCount: 112,
+    date: 'May 19, 2026',
     tall: true,
   },
   {
     id: 4,
     src: '/image/image-04.jpg',
-    alt: 'Potato crop inspection',
-    title: 'Late Blight Resistance',
-    caption: 'Biotech potato plants showing strong resistance to late blight in highland trials.',
-    category: 'crops',
-  },
-  {
-    id: 5,
-    src: '/image/image-05.jpg',
-    alt: 'Tissue culture lab',
-    title: 'Tissue Culture Propagation',
-    caption: 'Clean planting material produced through advanced tissue culture techniques.',
+    alt: 'DNA Day',
+    title: 'DNA Day',
+    caption: 'Celebrating DNA Day with scientists, students and the public.',
     category: 'lab',
-  },
-  {
-    id: 6,
-    src: '/image/image-06.jpg',
-    alt: 'Banana field evaluation',
-    title: 'Banana BXW Trials',
-    caption: 'Confined field evaluation of BXW-resistant banana lines across multiple sites.',
-    category: 'field',
-    tall: true,
-  },
-  {
-    id: 7,
-    src: '/image/image-07.jpg',
-    alt: 'Community workshop',
-    title: 'Biosafety Workshop',
-    caption: 'Stakeholders participating in REMA-led biosafety regulatory training.',
-    category: 'community',
-  },
-  {
-    id: 8,
-    src: '/image/image-08.jpg',
-    alt: 'Cassava harvest',
-    title: 'Improved Cassava Yield',
-    caption: 'Demonstrating 40% yield improvement from biotech varieties versus conventional.',
-    category: 'crops',
-  },
-  {
-    id: 9,
-    src: '/image/image-09.jpg',
-    alt: 'Greenhouse experiment',
-    title: 'Greenhouse Screening',
-    caption: 'Early-stage disease screening of new transgenic lines under controlled conditions.',
-    category: 'lab',
-    tall: true,
-  },
-  {
-    id: 10,
-    src: '/image/image-10.jpg',
-    alt: 'Youth engagement science fair',
-    title: 'Science Outreach',
-    caption: 'BioCap scientists inspiring the next generation at a Kigali science fair.',
-    category: 'community',
-  },
-  {
-    id: 11,
-    src: '/image/image-11.jpg',
-    alt: 'Maize biotech evaluation',
-    title: 'Biotech Maize Plot',
-    caption: 'Performance evaluation of drought-tolerant maize varieties at RAB Karama.',
-    category: 'crops',
-  },
-  {
-    id: 12,
-    src: '/image/image-12.jpg',
-    alt: 'Soil sampling field',
-    title: 'Environmental Monitoring',
-    caption: 'Soil and ecological monitoring as part of REMA environmental release assessment.',
-    category: 'field',
+    href: 'https://biotechnology.pixieset.com/dnaday/',
+    itemCount: 214,
+    date: 'May 6, 2026',
   },
 ];
 
 const CATEGORIES: { key: Category; label: string; Icon: React.ElementType }[] = [
-  { key: 'all',       label: 'All Photos',  Icon: Images      },
-  { key: 'field',     label: 'Field Work',  Icon: Leaf        },
-  { key: 'lab',       label: 'Laboratory',  Icon: Microscope  },
-  { key: 'community', label: 'Community',   Icon: Users       },
-  { key: 'crops',     label: 'Crops',       Icon: FlaskConical},
+  { key: 'all',       label: 'All Collections', Icon: Images       },
+  { key: 'field',     label: 'Field Work',       Icon: Leaf         },
+  { key: 'lab',       label: 'Laboratory',       Icon: Microscope   },
+  { key: 'community', label: 'Community',        Icon: Users        },
+  { key: 'crops',     label: 'Crops',            Icon: FlaskConical },
 ];
 
-// ─── Lightbox ─────────────────────────────────────────────────────
-function Lightbox({
-  items,
-  index,
-  onClose,
-  onPrev,
-  onNext,
-}: {
-  items: GalleryItem[];
-  index: number;
-  onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  const item = items[index];
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(15, 25, 42, 0.92)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        backdropFilter: 'blur(6px)',
-      }}
-    >
-      {/* Close */}
-      <button
-        onClick={onClose}
-        aria-label="Close"
-        style={{
-          position: 'absolute',
-          top: '1.25rem',
-          right: '1.25rem',
-          background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '50%',
-          width: 42,
-          height: 42,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#fff',
-          transition: 'background 0.2s',
-        }}
-      >
-        <X size={18} />
-      </button>
-
-      {/* Prev */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onPrev(); }}
-        aria-label="Previous"
-        style={{
-          position: 'absolute',
-          left: '1.25rem',
-          background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '50%',
-          width: 46,
-          height: 46,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#fff',
-          transition: 'background 0.2s',
-        }}
-      >
-        <ChevronLeft size={22} />
-      </button>
-
-      {/* Image container */}
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '860px',
-          width: '100%',
-          borderRadius: '16px',
-          overflow: 'hidden',
-          background: '#0f1a2a',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
-        }}
-      >
-        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/10' }}>
-          <Image
-            src={item.src}
-            alt={item.alt}
-            fill
-            style={{ objectFit: 'cover' }}
-            sizes="860px"
-            priority
-          />
-        </div>
-        <div style={{ padding: '1.25rem 1.5rem' }}>
-          <p style={{ margin: '0 0 4px', color: '#fff', fontWeight: 700, fontSize: '1rem', fontFamily: 'Syne, sans-serif' }}>
-            {item.title}
-          </p>
-          <p style={{ margin: 0, color: 'rgba(255,255,255,0.6)', fontSize: '0.83rem', lineHeight: 1.5 }}>
-            {item.caption}
-          </p>
-          <p style={{ margin: '0.75rem 0 0', color: 'rgba(255,255,255,0.3)', fontSize: '0.72rem', letterSpacing: '0.05em' }}>
-            {index + 1} / {items.length}
-          </p>
-        </div>
-      </div>
-
-      {/* Next */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onNext(); }}
-        aria-label="Next"
-        style={{
-          position: 'absolute',
-          right: '1.25rem',
-          background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '50%',
-          width: 46,
-          height: 46,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          color: '#fff',
-          transition: 'background 0.2s',
-        }}
-      >
-        <ChevronRight size={22} />
-      </button>
-    </div>
-  );
-}
-
-// ─── Gallery Card ──────────────────────────────────────────────────
-function GalleryCard({
-  item,
-  onClick,
-}: {
-  item: GalleryItem;
-  onClick: () => void;
-}) {
+// ─── Collection Card ───────────────────────────────────────────────
+function CollectionCard({ item }: { item: GalleryItem }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div
-      onClick={onClick}
+    <a
+      href={item.href}
+      target="_blank"
+      rel="noopener noreferrer"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
         position: 'relative',
-        borderRadius: '12px',
+        borderRadius: '14px',
         overflow: 'hidden',
         cursor: 'pointer',
         gridRow: item.tall ? 'span 2' : 'span 1',
         background: '#ddd',
+        display: 'block',
+        textDecoration: 'none',
         boxShadow: hovered
-          ? '0 12px 40px rgba(30, 77, 107, 0.22)'
-          : '0 2px 12px rgba(30, 77, 107, 0.08)',
-        transform: hovered ? 'translateY(-3px)' : 'translateY(0)',
-        transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1), box-shadow 0.28s ease',
+          ? '0 16px 48px rgba(30,77,107,0.26)'
+          : '0 2px 14px rgba(30,77,107,0.09)',
+        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
+        transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease',
       }}
     >
-      {/* Image */}
-      <div style={{ position: 'relative', width: '100%', height: '100%', minHeight: item.tall ? '420px' : '200px' }}>
+      {/* Cover image */}
+      <div style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        minHeight: item.tall ? '420px' : '200px',
+      }}>
         <Image
           src={item.src}
           alt={item.alt}
           fill
           style={{
             objectFit: 'cover',
-            transform: hovered ? 'scale(1.06)' : 'scale(1)',
-            transition: 'transform 0.5s cubic-bezier(0.4,0,0.2,1)',
+            transform: hovered ? 'scale(1.07)' : 'scale(1)',
+            transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
           }}
           sizes="(max-width: 768px) 100vw, 33vw"
         />
       </div>
 
-      {/* Hover overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(to top, rgba(15,25,42,0.88) 0%, rgba(15,25,42,0.2) 55%, transparent 100%)',
-          opacity: hovered ? 1 : 0,
-          transition: 'opacity 0.3s ease',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: '1.1rem',
-        }}
-      >
-        <div
-          style={{
-            transform: hovered ? 'translateY(0)' : 'translateY(10px)',
-            transition: 'transform 0.3s ease',
-          }}
-        >
-          <p style={{ margin: '0 0 3px', color: '#fff', fontWeight: 700, fontSize: '0.88rem', fontFamily: 'Syne, sans-serif' }}>
+      {/* Always-visible bottom gradient + info */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(to top, rgba(10,20,38,0.92) 0%, rgba(10,20,38,0.35) 50%, transparent 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        padding: '1.1rem',
+      }}>
+        <div style={{
+          transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+          transition: 'transform 0.3s ease',
+        }}>
+          {/* Title */}
+          <p style={{
+            margin: '0 0 5px',
+            color: '#fff',
+            fontWeight: 700,
+            fontSize: '0.92rem',
+            fontFamily: 'Syne, sans-serif',
+            lineHeight: 1.3,
+          }}>
             {item.title}
           </p>
-          <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem', lineHeight: 1.4 }}>
-            {item.caption}
-          </p>
+
+          {/* Meta row: item count + date */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              color: 'rgba(255,255,255,0.65)',
+              fontSize: '0.72rem',
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 600,
+            }}>
+              <FolderOpen size={11} />
+              {item.itemCount} items
+            </span>
+            <span style={{
+              width: '3px',
+              height: '3px',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.3)',
+              flexShrink: 0,
+            }} />
+            <span style={{
+              color: 'rgba(255,255,255,0.5)',
+              fontSize: '0.72rem',
+              fontFamily: 'Syne, sans-serif',
+            }}>
+              {item.date}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Zoom icon */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '0.75rem',
-          right: '0.75rem',
-          background: 'rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(4px)',
-          border: '1px solid rgba(255,255,255,0.25)',
-          borderRadius: '50%',
-          width: 34,
-          height: 34,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          opacity: hovered ? 1 : 0,
-          transform: hovered ? 'scale(1)' : 'scale(0.7)',
-          transition: 'opacity 0.25s ease, transform 0.25s ease',
-        }}
-      >
-        <ZoomIn size={15} />
+      {/* Top-right: open external icon (shows on hover) */}
+      <div style={{
+        position: 'absolute',
+        top: '0.75rem',
+        right: '0.75rem',
+        background: hovered ? '#E8185A' : 'rgba(255,255,255,0.15)',
+        backdropFilter: 'blur(4px)',
+        border: '1px solid rgba(255,255,255,0.25)',
+        borderRadius: '50%',
+        width: 34,
+        height: 34,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        opacity: hovered ? 1 : 0,
+        transform: hovered ? 'scale(1)' : 'scale(0.7)',
+        transition: 'opacity 0.25s ease, transform 0.25s ease, background 0.2s ease',
+      }}>
+        <ExternalLink size={14} />
       </div>
 
       {/* Category pill */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '0.75rem',
-          left: '0.75rem',
-          background: 'rgba(232, 24, 90, 0.85)',
-          backdropFilter: 'blur(4px)',
-          borderRadius: '999px',
-          padding: '2px 10px',
-          fontSize: '0.65rem',
-          fontWeight: 700,
-          color: '#fff',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          fontFamily: 'Syne, sans-serif',
-        }}
-      >
+      <div style={{
+        position: 'absolute',
+        top: '0.75rem',
+        left: '0.75rem',
+        background: 'rgba(232,24,90,0.85)',
+        backdropFilter: 'blur(4px)',
+        borderRadius: '999px',
+        padding: '2px 10px',
+        fontSize: '0.65rem',
+        fontWeight: 700,
+        color: '#fff',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase' as const,
+        fontFamily: 'Syne, sans-serif',
+      }}>
         {item.category}
       </div>
-    </div>
+    </a>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────
+// ─── Page ──────────────────────────────────────────────────────────
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const filtered = GALLERY_ITEMS.filter((item) => {
     const matchCat = activeCategory === 'all' || item.category === activeCategory;
@@ -418,17 +250,6 @@ export default function GalleryPage() {
     return matchCat && matchSearch;
   });
 
-  const openLightbox = useCallback((idx: number) => setLightboxIndex(idx), []);
-  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
-  const prevImage = useCallback(() =>
-    setLightboxIndex((i) => (i !== null ? (i - 1 + filtered.length) % filtered.length : null)),
-    [filtered.length]
-  );
-  const nextImage = useCallback(() =>
-    setLightboxIndex((i) => (i !== null ? (i + 1) % filtered.length : null)),
-    [filtered.length]
-  );
-
   return (
     <>
       <style>{`
@@ -436,7 +257,6 @@ export default function GalleryPage() {
 
         .gallery-page { font-family: 'DM Sans', sans-serif; background: #F7F4FB; min-height: 100vh; }
 
-        /* Hero */
         .gallery-hero {
           background: #1E4D6B;
           padding: 3.5rem 2rem 3rem;
@@ -507,7 +327,6 @@ export default function GalleryPage() {
           letter-spacing: 0.04em;
         }
 
-        /* Controls */
         .gallery-controls {
           max-width: 1200px;
           margin: 0 auto;
@@ -518,11 +337,7 @@ export default function GalleryPage() {
           gap: 1rem;
           flex-wrap: wrap;
         }
-        .filter-tabs {
-          display: flex;
-          gap: 0.4rem;
-          flex-wrap: wrap;
-        }
+        .filter-tabs { display: flex; gap: 0.4rem; flex-wrap: wrap; }
         .filter-tab {
           display: inline-flex;
           align-items: center;
@@ -548,18 +363,8 @@ export default function GalleryPage() {
           box-shadow: 0 4px 14px rgba(30,77,107,0.25);
         }
 
-        /* Search */
-        .search-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .search-icon {
-          position: absolute;
-          left: 12px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
+        .search-wrap { position: relative; display: flex; align-items: center; }
+        .search-icon { position: absolute; left: 12px; color: #94a3b8; pointer-events: none; }
         .search-input {
           font-family: 'DM Sans', sans-serif;
           font-size: 0.85rem;
@@ -578,7 +383,6 @@ export default function GalleryPage() {
           box-shadow: 0 0 0 3px rgba(30,77,107,0.1);
         }
 
-        /* Grid */
         .gallery-grid-wrap {
           max-width: 1200px;
           margin: 0 auto;
@@ -600,7 +404,6 @@ export default function GalleryPage() {
           .search-wrap { width: 100%; }
         }
 
-        /* Empty state */
         .empty-state {
           grid-column: 1 / -1;
           display: flex;
@@ -620,7 +423,6 @@ export default function GalleryPage() {
           color: #475569;
         }
 
-        /* Results count */
         .results-meta {
           font-size: 0.8rem;
           color: #94a3b8;
@@ -635,18 +437,14 @@ export default function GalleryPage() {
       <div className="gallery-page">
         {/* Hero */}
         <section className="gallery-hero">
-          <p className="hero-breadcrumb">
-            Home › Gallery
-          </p>
-          <h1 className="hero-title">
-            Photo <span>Gallery</span>
-          </h1>
+          <p className="hero-breadcrumb">Home › Gallery</p>
+          <h1 className="hero-title">Photo <span>Collections</span></h1>
           <p className="hero-sub">
-            Documenting Rwanda's biotech agriculture journey — from laboratory to field to community.
+            Documenting Rwanda&apos;s biotech agriculture journey — from laboratory to field to community.
           </p>
           <div className="hero-count">
-            <Images size={13} aria-hidden="true" />
-            {GALLERY_ITEMS.length} photographs
+            <Images size={13} />
+            {GALLERY_ITEMS.length} collections
           </div>
         </section>
 
@@ -659,21 +457,19 @@ export default function GalleryPage() {
                 className={`filter-tab${activeCategory === key ? ' active' : ''}`}
                 onClick={() => setActiveCategory(key)}
               >
-                <Icon size={13} aria-hidden="true" />
+                <Icon size={13} />
                 {label}
               </button>
             ))}
           </div>
-
           <div className="search-wrap">
-            <Search size={15} className="search-icon" aria-hidden="true" />
+            <Search size={15} className="search-icon" />
             <input
               type="text"
               className="search-input"
-              placeholder="Search photos…"
+              placeholder="Search collections…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Search gallery"
             />
           </div>
         </div>
@@ -681,39 +477,23 @@ export default function GalleryPage() {
         {/* Grid */}
         <div className="gallery-grid-wrap">
           <p className="results-meta">
-            Showing <span>{filtered.length}</span> of {GALLERY_ITEMS.length} photos
+            Showing <span>{filtered.length}</span> of {GALLERY_ITEMS.length} collections
           </p>
-
           <div className="gallery-grid">
             {filtered.length === 0 ? (
               <div className="empty-state">
                 <Images size={40} strokeWidth={1.2} />
-                <p className="empty-title">No photos found</p>
+                <p className="empty-title">No collections found</p>
                 <p>Try a different category or search term.</p>
               </div>
             ) : (
-              filtered.map((item, idx) => (
-                <GalleryCard
-                  key={item.id}
-                  item={item}
-                  onClick={() => openLightbox(idx)}
-                />
+              filtered.map((item) => (
+                <CollectionCard key={item.id} item={item} />
               ))
             )}
           </div>
         </div>
       </div>
-
-      {/* Lightbox */}
-      {lightboxIndex !== null && (
-        <Lightbox
-          items={filtered}
-          index={lightboxIndex}
-          onClose={closeLightbox}
-          onPrev={prevImage}
-          onNext={nextImage}
-        />
-      )}
     </>
   );
 }
