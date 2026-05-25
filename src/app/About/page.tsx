@@ -22,6 +22,17 @@ import {
   FlaskConical,
 } from 'lucide-react';
 
+interface Partner {
+  name: string;
+  fullName: string;
+  role: string;
+  description: string;
+  url: string;
+  initials: string;
+  accent: string;
+  logo?: string;
+}
+
 export default function AboutPage() {
   const pillars = [
     {
@@ -76,7 +87,7 @@ export default function AboutPage() {
     { icon: Globe, label: 'Podcasts & social media content' },
   ];
 
-  const partners = [
+  const partners: Partner[] = [
     {
       name: 'CIP',
       fullName: 'International Potato Center',
@@ -91,7 +102,7 @@ export default function AboutPage() {
       name: 'RAB',
       fullName: 'Rwanda Agriculture Board',
       role: 'National Lead & Host Institution',
-      description: 'Rwanda\'s principal government body overseeing agricultural research, development, and the regulation of seeds and plant varieties to drive national food security.',
+      description: "Rwanda's principal government body overseeing agricultural research, development, and the regulation of seeds and plant varieties to drive national food security.",
       url: 'https://www.rab.gov.rw',
       initials: 'RAB',
       accent: '#1E4D6B',
@@ -135,7 +146,7 @@ export default function AboutPage() {
       url: 'https://www.afs-rwanda.org/',
       initials: 'AfS-rwanda',
       accent: '#2E9E5B',
-      logo: '/image/afs-logo.png',
+      logo: '/image/A4S RWANDA-04.jpg.jpeg',
     },
   ];
 
@@ -185,7 +196,6 @@ export default function AboutPage() {
             <p className="text-xs text-slate-400">Click any partner to visit their website</p>
           </div>
 
-          {/* 6 partners — 2 rows of 3, perfectly centered */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {partners.map((p) => (
               <PartnerCard key={p.name} p={p} />
@@ -477,7 +487,7 @@ export default function AboutPage() {
 }
 
 /* ── Reusable Partner Card ── */
-function PartnerCard({ p }) {
+function PartnerCard({ p }: { p: Partner }) {
   return (
     <a
       href={p.url}

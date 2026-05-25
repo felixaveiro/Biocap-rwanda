@@ -475,7 +475,7 @@ export default function ObjectivesPage() {
         {/* ── Breadcrumb ── */}
         <div className="obj-breadcrumb">
           <div className="obj-breadcrumb-inner">
-            <Link href="/">Home</Link>
+            <Link href="/About">About</Link>
             <span className="obj-breadcrumb-sep">›</span>
             <span className="obj-breadcrumb-cur">Objectives</span>
           </div>

@@ -240,9 +240,9 @@ export default function Footer() {
             <div className="bc-footer-heading">Contact Us</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
               {[
-                { icon: '📞', text: '+250 785 855 080' },
-                { icon: '✉️', text: 'info@biocaprwanda.org' },
-                { icon: '📍', text: '24X8+GFQ, KG 17 Ave, Kigali' },
+                { icon: '📞', text: '+250 733 389 450' },
+                { icon: '✉️', text: 'bellancile.uzayisenga@rab.gov.rw' },
+                { icon: '📍', text: 'GQ8C+W5, Ruhashya, huye' },
               ].map((c, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
                   <span style={{ fontSize: '1rem', marginTop: '1px', flexShrink: 0 }}>{c.icon}</span>
