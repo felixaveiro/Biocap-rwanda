@@ -53,7 +53,7 @@ export default function AboutPage() {
       id: '03',
       title: 'Deployment',
       desc: 'Getting enhanced seeds and agricultural innovations directly into the hands of Rwandan smallholder farmers through robust extension systems and farmer training programs.',
-      bgImage: '/image/DSC_6416.jpg',
+      bgImage: '/image/DSC_6510.jpg',
       border: 'bg-[#7B2D8B]', 
     },
   ];
