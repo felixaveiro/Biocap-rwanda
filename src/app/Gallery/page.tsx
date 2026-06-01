@@ -121,8 +121,6 @@ const CATEGORIES: { key: Category; label: string; Icon: React.ElementType }[] = 
   { key: 'community', label: 'Stakeholder Engagement',  Icon: Users        },
   { key: 'crops',     label: 'Crop Development',        Icon: FlaskConical },
 ];
-
-// ─── Collection Card ───────────────────────────────────────────────
 function CollectionCard({ item }: { item: GalleryItem }) {
   const [hovered, setHovered] = useState(false);
 

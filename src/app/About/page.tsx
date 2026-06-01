@@ -39,7 +39,7 @@ export default function AboutPage() {
       id: '01',
       title: 'Accelerated Development',
       desc: "Speeding up the research and creation of resilient crop varieties using modern biotechnology and precision breeding techniques tailored to Rwanda's unique agro-climatic zones.",
-      bgImage: '/image/image-03.jpg',
+      bgImage: '/image/LABDY3_1.jpg',
       border: 'bg-[#E8185A]',
     },
     {
@@ -53,8 +53,8 @@ export default function AboutPage() {
       id: '03',
       title: 'Deployment',
       desc: 'Getting enhanced seeds and agricultural innovations directly into the hands of Rwandan smallholder farmers through robust extension systems and farmer training programs.',
-      bgImage: '/image/image-05.jpg',
-      border: 'bg-[#7B2D8B]',
+      bgImage: '/image/DSC_6416.jpg',
+      border: 'bg-[#7B2D8B]', 
     },
   ];
 

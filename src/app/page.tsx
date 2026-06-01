@@ -48,7 +48,7 @@ const FEATURES = [
     body: "CRISPR-based crop improvements engineered for Rwanda's highland agro-ecological zones, from lab research to registered field varieties.",
     color: COLORS.purple,
     href: '/Biotech',
-    img: '/image/image-07.jpg',
+    img: '/image/IMG_79.jpg',
   },
   {
     Icon: Leaf,
@@ -56,7 +56,7 @@ const FEATURES = [
     body: 'Regenerative agriculture integrated with modern biosystems science — protecting biodiversity while dramatically boosting smallholder yield.',
     color: COLORS.teal,
     href: '/Environment',
-    img: '/image/image-08.jpg',
+    img: '/image/IMG_155.jpg',
   },
   {
     Icon: Scale,
@@ -64,7 +64,7 @@ const FEATURES = [
     body: "Evidence-driven policy reform enabling Rwanda's farmers and scientists to access the world's safest and most effective crop technologies.",
     color: COLORS.pink,
     href: '/About',
-    img: '/image/image-09.jpg',
+    img: '/image/DSC_6116.jpg',
   },
   {
     Icon: Handshake,
@@ -80,7 +80,7 @@ const FEATURES = [
     body: 'Real-time field data collection and analysis across multiple crop varieties, enabling rapid iteration and evidence-based recommendations.',
     color: COLORS.purple,
     href: '/Biotech',
-    img: '/image/image-03.jpg',
+    img: '/image/LABDY3_41.jpg',
   },
   {
     Icon: Globe,
@@ -88,7 +88,7 @@ const FEATURES = [
     body: 'Building a replicable model for East Africa, with Rwanda as the proving ground for scalable agricultural biotech deployment.',
     color: COLORS.teal,
     href: '/About',
-    img: '/image/image-04.jpg',
+    img: '/image/LABDY3_43.jpg',
   },
 ];
 
@@ -111,7 +111,7 @@ const NEWS = [
     date: 'Apr 28, 2025',
     title: 'Rwanda Approves First Biofortified Cassava Variety',
     body: 'NAEB greenlit a new vitamin-A enriched cassava strain developed in partnership with regional research institutes — a landmark for food security.',
-    img: '/image/image-05.jpg',
+    img: '/image/IMG_51(1).jpg',
   },
   {
     tag: 'Policy',
@@ -125,7 +125,7 @@ const NEWS = [
     date: 'Feb 4, 2025',
     title: '34% Yield Gains Confirmed Under Drought Conditions',
     body: 'Mid-season data from three districts confirms enhanced sorghum varieties significantly outperform conventional seeds under water stress.',
-    img: '/image/image-01.jpg',
+    img: '/image/IMG_79.jpg',
   },
 ];
 
