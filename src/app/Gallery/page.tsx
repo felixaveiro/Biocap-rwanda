@@ -44,7 +44,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
   },
   {
     id: 2,
-    src: '/image/ofab.jpeg',
+    src: '/image/DSC01236.jpg',
     alt: 'OFAB stakeholder engagement outcomes',
     title: 'OFAB: Outcomes & Impact',
     caption: 'Documenting the outcomes of the Open Forum on Agricultural Biotechnology (OFAB), highlighting evidence-based dialogue between scientists, policymakers, and civil society on biotech adoption in Rwanda.',
@@ -55,7 +55,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
   },
   {
     id: 3,
-    src: '/image/image-03.jpg',
+    src: '/image/DSC01175.jpg',
     alt: 'OFAB media and influencer engagement',
     title: 'OFAB Media & Influencer Engagement',
     caption: 'Strategic science communication sessions bringing together journalists and digital influencers to strengthen public understanding of agricultural biotechnology research and its implications for food security.',
@@ -90,7 +90,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
   },
   {
     id: 6,
-    src: '/image/image-03.jpg',
+    src: '/image/IMG_122.jpg',
     alt: 'BIOCAP project launch and presentations',
     title: 'BIOCAP Project Launch & Presentations',
     caption: 'Official launch of the BIOCAP initiative, featuring technical presentations to government representatives, research institutions, and development partners on project objectives, methodology, and anticipated impact on Rwanda\'s agricultural biotechnology capacity.',
