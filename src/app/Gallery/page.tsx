@@ -90,7 +90,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
   },
   {
     id: 6,
-    src: '/image/IMG_122.jpg',
+    src: '/image/IMG_39(2).jpg',
     alt: 'BIOCAP project launch and presentations',
     title: 'BIOCAP Project Launch & Presentations',
     caption: 'Official launch of the BIOCAP initiative, featuring technical presentations to government representatives, research institutions, and development partners on project objectives, methodology, and anticipated impact on Rwanda\'s agricultural biotechnology capacity.',
