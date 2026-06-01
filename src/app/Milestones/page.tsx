@@ -5,8 +5,6 @@ import Link from 'next/link';
 import Footer from '@/components/Footer';
 import { Trophy, Wheat, Sprout, Leaf, ArrowRight, Calendar } from 'lucide-react';
 
-/* ─── Data ──────────────────────────────────────────────────────── */
-
 const PHASES = [
   {
     id: 1,
@@ -14,8 +12,8 @@ const PHASES = [
     description:
       'Established partnerships, secured funding, and set up research infrastructure. Completed baseline studies and stakeholder mapping across all five target districts.',
     date: '2024-12-31',
-    status: 'completed' as const,
-    progress: 100,
+    status: 'in-progress' as const,
+    progress: 40,
     highlights: ['15 partnerships formed', '5 districts mapped', 'Lab infrastructure ready'],
   },
   {
@@ -24,8 +22,8 @@ const PHASES = [
     description:
       'Initiated crop breeding programs, established field trials, and began farmer training programs. Advanced varietal testing under controlled and open-field conditions.',
     date: '2025-12-31',
-    status: 'in-progress' as const,
-    progress: 65,
+    status: 'planned' as const,
+    progress: 0,
     highlights: ['120 farmers trained', '3 field trial sites active', '8 varieties under review'],
   },
   {

@@ -75,7 +75,7 @@ export default function AboutPage() {
     { icon: Wheat, label: 'Smallholder farmers and cooperatives' },
     { icon: Newspaper, label: 'Journalists and media houses' },
     { icon: Smartphone, label: 'Social media influencers and youth' },
-    { icon: Landmark, label: 'Policymakers and regulators' },
+    { icon: Landmark, label: 'Policymakers, Regulators and Religious Leaders' },
     { icon: Handshake, label: 'Civil society and faith-based organisations' },
     { icon: GraduationCap, label: 'Academia and students' },
   ];

@@ -429,7 +429,7 @@ export default function HomePage() {
                 onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
                 onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
               >
-                Explore Our Event
+                Explore Our Events
               </Link>
               <Link
                 href="/About"
