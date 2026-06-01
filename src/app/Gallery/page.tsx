@@ -73,7 +73,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
     caption: 'Annual DNA Day celebrations engaging students, educators, and the public in hands-on molecular biology activities, fostering scientific literacy and interest in biotechnology careers.',
     category: 'lab',
     href: 'https://biotechnology.pixieset.com/biocapdnaday/',
-    itemCount: 214,
+    itemCount: 28,
     date: 'May 6, 2026',
   },
   {
