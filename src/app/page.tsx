@@ -36,9 +36,9 @@ const SW = 1.5; // global strokeWidth for all icons
 
 /* ── DATA ── */
 const HERO_SLIDES = [
-  '/image/image-02.jpg',
-  '/image/image-01.jpg',
-  '/image/image-08.jpg',
+  '/image/DSC06556(1).jpg',
+  '/image/IMG_36.jpg',
+  '/image/IMG_44(1).jpg',
 ];
 
 const FEATURES = [
