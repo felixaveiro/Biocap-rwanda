@@ -23,37 +23,37 @@ const objectives = [
     Icon: Sprout,
     title: 'Crop Innovation',
     description:
-      'Develop drought-resistant and nutrient-enhanced crop varieties using advanced biotechnology techniques including genetic modification and marker-assisted breeding.',
+      'Advance the development of climate-smart and disease-resistant crop varieties through modern biotechnology, including genetic engineering and gene-editing technologies. BioCap supports research on farmer-preferred banana, cassava, potato, and other strategic food security crops to improve productivity, resilience, and sustainability while addressing major challenges caused by pests, diseases, and climate change.',
   },
   {
     Icon: GraduationCap,
     title: 'Capacity Building',
     description:
-      'Train local farmers, researchers, and extension workers in modern agricultural biotechnology practices and sustainable farming methods.',
+      'Strengthen Rwanda’s scientific and technical capacity in crop biotechnology by training researchers, scientists, regulators, and technical personnel at PhD, Master’s, and specialized technical levels. Through partnerships with leading international universities and research institutions, BioCap is building a new generation of African scientists capable of driving innovation and supporting the future growth of Rwanda’s food systems.',
   },
   {
     Icon: Globe,
     title: 'Food Security',
     description:
-      'Increase agricultural productivity and food security through the adoption of climate-smart biotechnology solutions across Rwanda.',
+      'Enhance food security and climate resilience by supporting the development and adoption of biotechnology solutions that reduce crop losses, improve yields, lower production costs, and decrease dependence on chemical pesticides. These innovations help farmers adapt to changing climatic conditions while improving livelihoods and ensuring sustainable agricultural production.',
   },
   {
     Icon: FlaskConical,
-    title: 'Research Excellence',
+    title: 'Centre of Excellence in Crop Biotechnology',
     description:
-      'Establish state-of-the-art research facilities and promote innovation in agricultural biotechnology across East Africa.',
+      'Develop a world-class Centre of Excellence in Crop Biotechnology at RAB that serves as Rwanda’s hub for biotechnology research, scientific training, biosafety communication, and innovation partnerships. Guided by the vision of *“African crops, developed by African scientists, for African farmers,”* the Centre will support current and future biotechnology solutions that enhance food security, competitiveness, and agricultural resilience across Africa.',
   },
   {
     Icon: Scale,
     title: 'Regulatory Advancement',
     description:
-      'Accelerate science-based biosafety regulations and streamline approval pathways for biotech crops that meet international safety standards.',
+      'Support science-based biosafety systems and strengthen Rwanda’s regulatory capacity for the safe development, testing, evaluation, and deployment of biotechnology innovations. BioCap promotes transparent, evidence-based decision-making and contributes to efficient regulatory pathways that meet national, regional, and international biosafety standards.',
   },
   {
     Icon: Handshake,
     title: 'Strategic Partnerships',
     description:
-      'Forge partnerships with international research institutions, governments, and private sector actors to co-develop and deploy innovations.',
+      'Foster strong partnerships among national institutions, international research organizations, universities, development partners, regulators, and private sector actors to accelerate biotechnology innovation in Africa. Through collaboration, BioCap supports the development, stewardship, and deployment of climate-smart crop technologies while strengthening the role of local scientists, seed companies, and the Centre of Excellence in Crop Biotechnology as drivers of agricultural transformation.',
   },
 ];
 
@@ -194,6 +194,7 @@ export default function ObjectivesPage() {
           line-height: 1.65;
           max-width: 540px;
           margin: 0 auto;
+          text-align: justify;
         }
 
         /* ── Vision / Goal cards ── */
@@ -249,6 +250,7 @@ export default function ObjectivesPage() {
           font-size: 0.94rem;
           line-height: 1.7;
           color: var(--text-muted);
+           text-align: justify;
         }
         .obj-vg-card ul {
           list-style: none;
@@ -406,6 +408,7 @@ export default function ObjectivesPage() {
           line-height: 1.7;
           color: var(--text-muted);
           flex: 1;
+          text-align: justify;
         }
 
         /* ── CTA strip ── */

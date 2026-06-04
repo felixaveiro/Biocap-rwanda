@@ -223,7 +223,7 @@ export default function HomePage() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          text-align: center;
+          text-align: justify;
         }
         .bc-hero-h1 {
           font-size: clamp(3rem, 6vw, 5rem);
@@ -231,7 +231,7 @@ export default function HomePage() {
           line-height: 1.05;
           color: var(--white);
         }
-        .bc-hero-h1 em { font-style: normal; color: var(--pink); }
+        .bc-hero-h1 em { font-style: normal; color: #fff; }
 
         /* ── TICKER ── */
         .bc-ticker {
@@ -402,7 +402,7 @@ export default function HomePage() {
             initial="hidden"
             animate="show"
             variants={{ show: { transition: { staggerChildren: 0.1 } } }}
-            style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
           >
             <motion.span
               variants={fadeUp}
