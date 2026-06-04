@@ -101,8 +101,8 @@ const STATS = [
 
 const CROPS = [
   { name: 'Cassava', pct: 90, tag: 'Vitamin-A Biofortified' },
-  { name: 'Potato', pct: 87, tag: 'Drought Tolerant'       },
-  { name: 'Banana',   pct: 80, tag: 'Nitrogen-Fixing'        },
+  { name: 'Potato',  pct: 87, tag: 'Drought Tolerant'       },
+  { name: 'Banana',  pct: 80, tag: 'Nitrogen-Fixing'        },
 ];
 
 const NEWS = [
@@ -209,21 +209,22 @@ export default function HomePage() {
           min-height: 100vh;
           display: flex;
           align-items: center;
-          justify-content: center;
+          justify-content: flex-start;
           overflow: hidden;
           background: var(--navy);
+          padding: 0 3rem 0 4rem;
         }
         .bc-hero-inner {
           position: relative;
           z-index: 3;
-          max-width: 860px;
-          margin: 0 auto;
-          padding: 7rem 2.5rem 9rem;
+          max-width: 640px;
+          margin: 0;
+          padding: 7rem 0 9rem;
           width: 100%;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          text-align: justify;
+          align-items: flex-start;
+          text-align: left;
         }
         .bc-hero-h1 {
           font-size: clamp(3rem, 6vw, 5rem);
@@ -363,7 +364,8 @@ export default function HomePage() {
         }
 
         @media (max-width: 768px) {
-          .bc-hero-inner { padding: 5rem 1.5rem 7rem; }
+          .bc-hero { padding: 0 1.5rem; }
+          .bc-hero-inner { padding: 5rem 0 7rem; }
         }
       `}</style>
 
@@ -388,11 +390,16 @@ export default function HomePage() {
           ))}
         </motion.div>
 
-        {/* Gradient overlay */}
+        {/* ── Overlay: matches About page exactly ──
+            About uses: from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent (left-to-right)
+            We mirror that as a solid-left dark overlay so text pops the same way */}
         <div
           style={{
-            position: 'absolute', inset: 0, zIndex: 2, pointerEvents: 'none',
-            background: 'linear-gradient(to bottom, rgba(26,58,92,0.72) 0%, rgba(26,58,92,0.50) 50%, rgba(26,58,92,0.80) 100%)',
+            position: 'absolute',
+            inset: 0,
+            zIndex: 2,
+            pointerEvents: 'none',
+            background: 'linear-gradient(to right, rgba(27,58,92,1) 0%, rgba(27,58,92,0.85) 50%, rgba(27,58,92,0.35) 100%)',
           }}
         />
 
@@ -422,7 +429,7 @@ export default function HomePage() {
               We unlock the genetic potential of crops to ensure food security and economic prosperity for every farmer across Rwanda's diverse agro-ecological zones.
             </motion.p>
 
-            <motion.div variants={fadeUp} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <motion.div variants={fadeUp} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
               <Link
                 href="/Dna-week"
                 style={{ background: COLORS.pink, color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', transition: 'filter 0.2s' }}
@@ -519,7 +526,6 @@ export default function HomePage() {
               <div className="bc-feature-img-bg" style={{ background: `url(${img}) center/cover` }} />
               <div className="bc-overlay" />
               <div style={{ position: 'relative', zIndex: 10, color: '#fff' }}>
-                {/* Lucide icon in a frosted pill */}
                 <div className="bc-feature-icon">
                   <Icon size={20} color="#fff" strokeWidth={SW} />
                 </div>
