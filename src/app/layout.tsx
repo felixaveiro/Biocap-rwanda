@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/image/biocap-logo.png",
   },
+  verification: {
+  google: 'KCG0wvJqn9U3Q',
+},
 };
 
 export default function RootLayout({

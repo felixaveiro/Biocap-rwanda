@@ -6,7 +6,6 @@ import { useRef, useState, useEffect } from 'react';
 import { Variants } from 'framer-motion';
 import Footer from '@/components/Footer';
 
-// ── Lucide icons ──────────────────────────────────────────
 import {
   Dna,
   Leaf,
@@ -20,7 +19,6 @@ import {
   MapPin,
 } from 'lucide-react';
 
-/* ── CONSTANTS ── */
 const COLORS = {
   pink:      '#e8185e',
   navy:      '#1a3a5c',
@@ -32,9 +30,8 @@ const COLORS = {
   gray:      '#6b7a93',
 };
 
-const SW = 1.5; // global strokeWidth for all icons
+const SW = 1.5; 
 
-/* ── DATA ── */
 const HERO_SLIDES = [
   '/image/DSC06556(1).jpg',
   '/image/IMG_36.jpg',
@@ -647,8 +644,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* ════════ FOOTER ════════ */}
       <Footer />
     </div>
   );
