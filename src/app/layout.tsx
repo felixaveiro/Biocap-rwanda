@@ -14,15 +14,53 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BIOCAP Rwanda",
+  title: {
+    default: "BIOCAP Rwanda",
+    template: "%s | BIOCAP Rwanda",
+  },
   description:
-    "Building Rwandan Capacity for accelerated development and deployment of enhanced crops.",
+    "Building Rwandan Capacity for accelerated development and deployment of enhanced crops for food security across Rwanda.",
+  keywords: [
+    "BIOCAP Rwanda",
+    "BioCap",
+    "crop biotechnology Rwanda",
+    "CRISPR agriculture Rwanda",
+    "food security Rwanda",
+    "AFS Rwanda",
+  ],
   icons: {
     icon: "/image/biocap-logo.png",
   },
- verification: {
-  google: "KCG0wvJqn9U3Qxr7UdPuwt_sN79EDPZl17hZGkV02oM",
-},
+  verification: {
+    google: "KCG0wvJqn9U3Qxr7UdPuwt_sN79EDPZl17hZGkV02oM",
+  },
+  openGraph: {
+    title: "BIOCAP Rwanda",
+    description:
+      "Building Rwandan Capacity for accelerated development and deployment of enhanced crops.",
+    url: "https://biocap-rwanda.afs-rwanda.org",
+    siteName: "BIOCAP Rwanda",
+    locale: "en_US",
+    type: "website",
+  },
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "BIOCAP Rwanda",
+  url: "https://biocap-rwanda.afs-rwanda.org",
+  description:
+    "Building Rwandan Capacity for accelerated development and deployment of enhanced crops for food security.",
+  address: {
+    "@type": "PostalAddress",
+    addressCountry: "RW",
+    addressLocality: "Huye",
+  },
+  sameAs: [
+    "https://x.com/RwandaBioCap",
+    "https://www.linkedin.com/company/rwanda-biocap-progam/",
+  ],
 };
 
 export default function RootLayout({
@@ -32,15 +70,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        
         <Navbar />
-        
-        <main>
-          {children}
-        </main>
+        <main>{children}</main>
       </body>
     </html>
   );

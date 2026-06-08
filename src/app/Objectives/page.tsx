@@ -13,9 +13,15 @@ import {
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Objectives | BioCap',
+  title: 'Objectives',
   description:
-    "Programme Vision & Goals — Transforming Rwanda's agriculture through safe, strategic deployment of biotechnology.",
+    'BIOCAP Rwanda programme vision and objectives — building crop biotechnology capacity, advancing food security, and developing disease-resistant Cassava, Potato and Banana varieties by 2029.',
+  openGraph: {
+    title: 'Objectives | BIOCAP Rwanda',
+    description:
+      'Explore BIOCAP Rwanda\'s programme objectives — crop innovation, capacity building, regulatory advancement, and food security through biotechnology.',
+    url: 'https://biocap-rwanda.afs-rwanda.org/Objectives',
+  },
 };
 
 const objectives = [
