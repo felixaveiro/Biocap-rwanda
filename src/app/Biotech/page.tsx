@@ -68,7 +68,7 @@ const CROPS: CropData[] = [
         body: 'Training is also provided in virus diagnostics for detection of the pathogens that cause CBSD and CMD. Although applied to cassava, most of these techniques are applicable to all transgenic crops and will raise capacity for this type of analysis at RAB — ensuring participants can transfer skills and establish them independently.',
       },
       {
-        title: 'Centre of Excellence at RAB Rubona',
+        title: 'Centre of Excellence in crop Biotechnology at RAB Rubona Station',
         SectionIcon: TrendingUp,
         body: 'These activities lay the groundwork for Rwanda to take a leadership role in agricultural biotechnology. Through targeted investments in infrastructure, capacity building, and product innovation, the Centre of Excellence for Crop Biotechnology at RAB Rubona will become a nationally anchored platform for science-based food security solutions.',
       },
@@ -221,6 +221,7 @@ function InfoCard({
           fontSize: '0.85rem',
           color: '#444',
           lineHeight: 1.6,
+          textAlign: 'justify',
         }}
       >
         {body}
@@ -464,10 +465,10 @@ export default function BiotechCropsPage() {
             margin: '0 0 0.5rem',
           }}
         >
-          Our Biotech Crops
+          Three Food Security Crops in Pipeline
         </h1>
         <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', margin: 0 }}>
-          Cassava, Potato &amp; Banana — REMA-approved environmental release, September 2025
+          {/* Cassava, Potato &amp; Banana — REMA-approved environmental release, September 2025 */}
         </p>
       </section>
 

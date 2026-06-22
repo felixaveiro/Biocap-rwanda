@@ -55,7 +55,7 @@ export default function EnvironmentPage() {
         <div className="space-y-8">
           <div className="flex items-center gap-3">
              <div className="w-12 h-[2px] bg-[#e8185e]"></div>
-             <span className="text-[#e8185e] font-bold uppercase tracking-widest text-xs">Our Commitment</span>
+             <span className="text-[#e8185e] font-bold uppercase tracking-widest text-xs">Our Commitment & Stewardship Activities</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-serif text-[#1a3a5c] font-bold leading-tight">
             Sustainable Agriculture for <span className="italic text-[#e8185e]">Rwanda.</span>
