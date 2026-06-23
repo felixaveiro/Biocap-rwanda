@@ -13,14 +13,16 @@ const QUICK_LINKS = [
   { label: 'Home',          href: '/'            },
   { label: 'About Us',      href: '/About'       },
   { label: 'Biotechnology', href: '/Biotech'     },
-  { label: 'Environment',   href: '/Environment' },
+  { label: 'Stewardship News',   href: '/Environment' },
   { label: 'Gallery',      href: '/Gallery'      },
   { label: 'Resource',      href: '/Dna-week'    },
+  { label: 'Dashboard',      href: '/auth/login'    },
+
   
 ];
 
 const RECENT_NEWS_FOOTER = [
-  { date: 'Apr 28, 2025', title: 'Rwanda Approves First Biofortified Cassava Variety',        href: '#' },
+  { date: 'Apr 28, 2025', title: 'Rwanda Approves First Biofortified Cassava Variety',        href: '/Environment' },
   { date: 'Mar 15, 2025', title: 'New Biosafety Guidelines Open Doors for Gene-Edited Crops', href: '#' },
   { date: 'Feb 4, 2025',  title: '34% Yield Gains Confirmed Under Drought Conditions',        href: '#' },
 ];
