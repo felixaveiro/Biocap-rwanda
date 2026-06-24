@@ -2,30 +2,39 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { authCookies } from "@/lib/auth/cookies";
 
 const navItems = [
-  { label: "Overview",    href: "/dashboard/dashboard" },
-  { label: "Blog",        href: "/dashboard/dashboard/blog" },
-  { label: "New Post",    href: "/dashboard/dashboard/blog/new" },
+  { label: "Overview", href: "/dashboard/dashboard" },
+  { label: "Blog", href: "/dashboard/dashboard/blog" },
+  { label: "New Post", href: "/dashboard/dashboard/blog/new" },
 ];
+
+interface SessionUser {
+  username: string;
+  role: string;
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router   = useRouter();
-  const [user, setUser]       = useState<{ name?: string; email: string } | null>(null);
+  const router = useRouter();
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("auth_user");
-    if (!stored) {
+    if (!authCookies.isLoggedIn()) {
       router.replace("/auth/login");
       return;
     }
-    setUser(JSON.parse(stored));
+
+    setUser({
+      username: authCookies.getUsername() ?? "User",
+      role: authCookies.getRole() ?? "",
+    });
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_user");
+    authCookies.clearSession();
     router.push("/auth/login");
   };
 
@@ -70,7 +79,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User + logout at bottom */}
         <div className="absolute bottom-0 left-0 right-0 border-t p-4">
-          <p className="text-xs text-gray-500 truncate">{user.name ?? user.email}</p>
+          <p className="text-xs text-gray-500 truncate">
+            {user.username} {user.role && <span className="text-gray-400">({user.role})</span>}
+          </p>
           <button
             onClick={handleLogout}
             className="mt-2 w-full rounded-lg bg-red-50 py-1.5 text-sm text-red-600 hover:bg-red-100 transition"
@@ -99,7 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ☰
           </button>
           <span className="text-sm text-gray-500">
-            Hi, <strong>{user.name ?? user.email}</strong>
+            Hi, <strong>{user.username}</strong>
           </span>
         </header>
 

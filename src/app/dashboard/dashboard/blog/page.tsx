@@ -1,16 +1,43 @@
+"use client";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getBlogs, type Blog } from "@/lib/api/blogs";
+import { ApiError } from "@/lib/api/client";
 
-// Replace with real data fetching later
-const MOCK_POSTS = [
-  { id: "1", title: "First post",  date: "2025-01-01" },
-  { id: "2", title: "Second post", date: "2025-02-15" },
-];
+export default function BlogListPage() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-export default function BlogPage() {
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadBlogs() {
+      try {
+        const data = await getBlogs();
+        if (isMounted) setBlogs(data);
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof ApiError ? err.message : "Failed to load blog posts.");
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    loadBlogs();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Blog Posts</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Blog Posts</h1>
+          <p className="text-sm text-gray-500">{blogs.length} total</p>
+        </div>
         <Link
           href="/dashboard/dashboard/blog/new"
           className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
@@ -19,24 +46,49 @@ export default function BlogPage() {
         </Link>
       </div>
 
-      <div className="space-y-3">
-        {MOCK_POSTS.map((post) => (
-          <div key={post.id} className="flex items-center justify-between rounded-xl bg-white p-4 shadow-sm">
-            <div>
-              <p className="font-medium text-gray-800">{post.title}</p>
-              <p className="text-xs text-gray-400">{post.date}</p>
+      {isLoading && <p className="text-sm text-gray-500">Loading posts...</p>}
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-600">{error}</p>
+      )}
+
+      {!isLoading && !error && blogs.length === 0 && (
+        <p className="text-sm text-gray-500">No posts yet. Create your first one.</p>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {blogs.map((blog) => (
+          <div key={blog._id} className="rounded-2xl bg-white shadow-sm overflow-hidden">
+            {blog.img && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={blog.img} alt={blog.title} className="h-36 w-full object-cover" />
+            )}
+            <div className="p-4">
+              <span className="inline-block rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600 mb-2">
+                {blog.tag}
+              </span>
+              <h2 className="font-semibold text-gray-800 line-clamp-2">{blog.title}</h2>
+              <p className="mt-1 text-xs text-gray-400">
+                {new Date(blog.createdAt).toLocaleDateString()} · {blog.author.username}
+              </p>
+
+              <div className="mt-4 flex gap-2">
+                <Link
+                  href={`/dashboard/dashboard/blog/${blog._id}`}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 transition"
+                >
+                  View
+                </Link>
+                {/*
+                  Edit/Delete are intentionally left out of the action row for now —
+                  the backend doesn't have PUT/DELETE /api/blogs/:id confirmed yet.
+                  Once that's in, add buttons here calling updateBlog()/deleteBlog()
+                  from lib/api/blogs.ts (already stubbed there).
+                */}
+              </div>
             </div>
-            <Link
-              href={`/dashboard/dashboard/blog/${post.id}`}
-              className="text-sm text-indigo-600 hover:underline"
-            >
-              View →
-            </Link>
           </div>
         ))}
-        {MOCK_POSTS.length === 0 && (
-          <p className="text-gray-400 text-sm">No posts yet. Create your first one!</p>
-        )}
       </div>
     </div>
   );

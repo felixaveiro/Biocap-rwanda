@@ -2,24 +2,44 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { loginUser } from "@/lib/api/auth";
+import { ApiError } from "@/lib/api/client";
+import { authCookies } from "@/lib/auth/cookies";
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    // ── Replace this block with your real API call ──
     if (!form.email || !form.password) {
       setError("Email and password are required.");
       return;
     }
-    // Simulate auth & redirect
-    localStorage.setItem("auth_user", JSON.stringify({ email: form.email }));
-    router.push("/dashboard/dashboard");
+
+    setIsSubmitting(true);
+
+    try {
+      const { token, role, username } = await loginUser({
+        email: form.email,
+        password: form.password,
+      });
+
+      authCookies.setSession({ token, role, username });
+      router.push("/dashboard/dashboard");
+    } catch (err) {
+      // ApiError carries the real message from the server (e.g. "Invalid credentials").
+      // Anything else (network failure, etc.) falls back to a generic message.
+      const message =
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,7 +65,8 @@ export default function LoginPage() {
               placeholder="jane@example.com"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
             />
           </div>
 
@@ -56,15 +77,17 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              disabled={isSubmitting}
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-60"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Sign in
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
       </div>
