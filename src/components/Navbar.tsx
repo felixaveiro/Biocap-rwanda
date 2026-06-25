@@ -17,7 +17,7 @@ const navLinks = [
   },
   { href: '/Biotech',     label: 'Biotechnology' },
   // { href: '/Milestones',  label: 'Milestones'    },
-  { href: '/Environment', label: 'Stewardship'   },
+  { href: '/Environment', label: 'Stewardship News'   },
   { href: '/Gallery',     label: 'Gallery'       },
   { href: '/Dna-week',    label: 'Resource'      },
 ];
