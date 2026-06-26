@@ -13,7 +13,7 @@ const QUICK_LINKS = [
   { label: 'Home',          href: '/'            },
   { label: 'About Us',      href: '/About'       },
   { label: 'Biotechnology', href: '/Biotech'     },
-  { label: 'Stewardship News',   href: '/Environment' },
+  { label: 'Stewardship News',   href: '/Stewardship-News' },
   { label: 'Gallery',      href: '/Gallery'      },
   { label: 'Resource',      href: '/Dna-week'    },
   { label: 'Dashboard',      href: '/auth/login'    },
