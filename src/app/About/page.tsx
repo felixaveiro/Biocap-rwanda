@@ -21,6 +21,9 @@ import {
   Leaf,
   FlaskConical,
   Quote,
+  Scale,
+  Telescope,
+  Target,
 } from 'lucide-react';
 
 interface Partner {
@@ -33,6 +36,45 @@ interface Partner {
   accent: string;
   logo?: string;
 }
+
+const objectives = [
+  {
+    Icon: Sprout,
+    title: 'Crop Innovation',
+    description:
+      'Advance the development of climate-smart and disease-resistant crop varieties through modern biotechnology, including genetic engineering and gene-editing technologies. BioCap supports research on farmer-preferred banana, cassava, potato, and other strategic food security crops to improve productivity, resilience, and sustainability while addressing major challenges caused by pests, diseases, and climate change.',
+  },
+  {
+    Icon: GraduationCap,
+    title: 'Capacity Building',
+    description:
+      "Strengthen Rwanda\u2019s scientific and technical capacity in crop biotechnology by training researchers, scientists, regulators, and technical personnel at PhD, Master\u2019s, and specialized technical levels. Through partnerships with leading international universities and research institutions, BioCap is building a new generation of African scientists capable of driving innovation and supporting the future growth of Rwanda\u2019s food systems.",
+  },
+  {
+    Icon: Globe,
+    title: 'Food Security',
+    description:
+      'Enhance food security and climate resilience by supporting the development and adoption of biotechnology solutions that reduce crop losses, improve yields, lower production costs, and decrease dependence on chemical pesticides. These innovations help farmers adapt to changing climatic conditions while improving livelihoods and ensuring sustainable agricultural production.',
+  },
+  {
+    Icon: FlaskConical,
+    title: 'Centre of Excellence in Crop Biotechnology',
+    description:
+      "Develop a world-class Centre of Excellence in Crop Biotechnology at RAB that serves as Rwanda\u2019s hub for biotechnology research, scientific training, biosafety communication, and innovation partnerships. Guided by the vision of \u201cAfrican crops, developed by African scientists, for African farmers,\u201d the Centre will support current and future biotechnology solutions that enhance food security, competitiveness, and agricultural resilience across Africa.",
+  },
+  {
+    Icon: Scale,
+    title: 'Regulatory Advancement',
+    description:
+      "Support science-based biosafety systems and strengthen Rwanda\u2019s regulatory capacity for the safe development, testing, evaluation, and deployment of biotechnology innovations. BioCap promotes transparent, evidence-based decision-making and contributes to efficient regulatory pathways that meet national, regional, and international biosafety standards.",
+  },
+  {
+    Icon: Handshake,
+    title: 'Strategic Partnerships',
+    description:
+      'Foster strong partnerships among national institutions, international research organizations, universities, development partners, regulators, and private sector actors to accelerate biotechnology innovation in Africa. Through collaboration, BioCap supports the development, stewardship, and deployment of climate-smart crop technologies while strengthening the role of local scientists, seed companies, and the Centre of Excellence in Crop Biotechnology as drivers of agricultural transformation.',
+  },
+];
 
 export default function AboutPage() {
   const pillars = [
@@ -524,7 +566,7 @@ export default function AboutPage() {
             ))}
           </ul>
           <Link
-            href="#"
+            href="#objectives"
             className="bg-[#E8185A] text-white px-8 py-4 rounded-xl font-bold hover:bg-[#1B3A5C] transition-all inline-block shadow-lg"
           >
             Discover More →
@@ -546,6 +588,442 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      {/* ================================================================== */}
+      {/* ===================  PROGRAMME VISION & OBJECTIVES  ============== */}
+      {/* ================================================================== */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+        .obj-page {
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+          color: #334155;
+          background: #ffffff;
+        }
+
+        /* ── Hero ── */
+        .obj-hero {
+          background: linear-gradient(135deg, #0f2240 0%, #254a7a 55%, #1e4976 100%);
+          position: relative;
+          overflow: hidden;
+          padding: 5rem 2rem 4.5rem;
+          text-align: center;
+        }
+        .obj-hero::before {
+          content: '';
+          position: absolute;
+          top: -80px; right: -80px;
+          width: 360px; height: 360px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(233,30,99,0.18) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .obj-hero::after {
+          content: '';
+          position: absolute;
+          bottom: -60px; left: -60px;
+          width: 280px; height: 280px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .obj-hero-dots {
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+          background-size: 28px 28px;
+          pointer-events: none;
+        }
+        .obj-hero-inner {
+          position: relative;
+          z-index: 1;
+          max-width: 680px;
+          margin: 0 auto;
+        }
+        .obj-hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(233,30,99,0.15);
+          border: 1px solid rgba(233,30,99,0.35);
+          border-radius: 99px;
+          padding: 0.35rem 1rem;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #ff6ba3;
+          margin-bottom: 1.4rem;
+        }
+        .obj-hero-badge-dot {
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: #ff4d8b;
+          animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50%       { transform: scale(1.5); opacity: 0.6; }
+        }
+        .obj-hero h2 {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(2.1rem, 5vw, 3.2rem);
+          font-weight: 400;
+          color: #ffffff;
+          line-height: 1.12;
+          letter-spacing: -0.03em;
+          margin-bottom: 1.1rem;
+        }
+        .obj-hero h2 em { font-style: normal; color: #ff4d8b; }
+        .obj-hero-sub {
+          font-size: 1.05rem;
+          font-weight: 400;
+          color: rgba(255,255,255,0.72);
+          line-height: 1.65;
+          max-width: 540px;
+          margin: 0 auto;
+          text-align: justify;
+        }
+
+        /* ── Vision / Goal cards ── */
+        .obj-vg-section {
+          background: #f7f9fc;
+          padding: 4.5rem 2rem;
+        }
+        .obj-vg-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.75rem;
+        }
+        @media (max-width: 760px) { .obj-vg-inner { grid-template-columns: 1fr; } }
+
+        .obj-vg-card {
+          background: #ffffff;
+          border-radius: 18px;
+          padding: 2.25rem 2rem;
+          border: 1.5px solid #e2e8f3;
+          box-shadow: 0 2px 20px rgba(26,54,93,0.06);
+          transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s;
+        }
+        .obj-vg-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 8px 36px rgba(26,54,93,0.12);
+        }
+        .obj-vg-card-header {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+        .obj-vg-icon {
+          width: 40px; height: 40px;
+          border-radius: 10px;
+          background: #f0f4fa;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .obj-vg-card.vision .obj-vg-icon { background: #e8f0fb; color: #1a365d; }
+        .obj-vg-card.goal   .obj-vg-icon { background: #fff0f5; color: #e91e63; }
+
+        .obj-vg-card-title {
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: #1a365d;
+          letter-spacing: -0.01em;
+        }
+        .obj-vg-card p {
+          font-size: 0.94rem;
+          line-height: 1.7;
+          color: #64748b;
+          text-align: justify;
+        }
+        .obj-vg-card ul {
+          list-style: none;
+          padding: 0;
+          margin-top: 0.6rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .obj-vg-card ul li {
+          font-size: 0.91rem;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          gap: 0.55rem;
+          line-height: 1.55;
+        }
+        .obj-vg-card ul li::before {
+          content: '';
+          width: 6px; height: 6px;
+          border-radius: 50%;
+          background: #e91e63;
+          flex-shrink: 0;
+        }
+
+        /* ── Objectives grid ── */
+        .obj-grid-section {
+          padding: 5rem 2rem 5.5rem;
+          background: #ffffff;
+        }
+        .obj-grid-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+        }
+        .obj-section-header {
+          text-align: center;
+          margin-bottom: 3.5rem;
+        }
+        .obj-section-label {
+          display: inline-block;
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: #e91e63;
+          margin-bottom: 0.8rem;
+        }
+        .obj-section-title {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(1.85rem, 4vw, 2.6rem);
+          font-weight: 400;
+          color: #1a365d;
+          letter-spacing: -0.035em;
+          line-height: 1.15;
+          margin-bottom: 0.9rem;
+        }
+        .obj-section-underline {
+          width: 52px; height: 4px;
+          border-radius: 99px;
+          background: linear-gradient(90deg, #e91e63, #ff4d8b);
+          margin: 0 auto;
+        }
+
+        .obj-cards {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+        }
+        @media (max-width: 960px) { .obj-cards { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 580px) { .obj-cards { grid-template-columns: 1fr; } }
+
+        .obj-card {
+          background: #ffffff;
+          border: 1.5px solid #e2e8f3;
+          border-radius: 16px;
+          padding: 1.9rem 1.75rem;
+          position: relative;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s, border-color 0.28s;
+        }
+        .obj-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 3px;
+          background: linear-gradient(90deg, #1a365d, #e91e63);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+        }
+        .obj-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 40px rgba(26,54,93,0.11);
+          border-color: transparent;
+        }
+        .obj-card:hover::before { transform: scaleX(1); }
+
+        .obj-card-icon {
+          width: 48px; height: 48px;
+          border-radius: 12px;
+          background: #f0f4fa;
+          display: flex; align-items: center; justify-content: center;
+          color: #1a365d;
+          margin-bottom: 1.1rem;
+          flex-shrink: 0;
+          transition: background 0.25s, transform 0.25s, color 0.25s;
+        }
+        .obj-card:hover .obj-card-icon {
+          background: #fff0f5;
+          color: #e91e63;
+          transform: scale(1.08) rotate(-4deg);
+        }
+
+        .obj-card-title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #1a365d;
+          margin-bottom: 0.65rem;
+          letter-spacing: -0.01em;
+        }
+        .obj-card-desc {
+          font-size: 0.9rem;
+          line-height: 1.7;
+          color: #64748b;
+          flex: 1;
+          text-align: justify;
+        }
+
+        /* ── CTA strip ── */
+        .obj-cta-strip {
+          background: linear-gradient(135deg, #0f2240 0%, #254a7a 100%);
+          padding: 4rem 2rem;
+          text-align: center;
+          position: relative;
+          overflow: hidden;
+        }
+        .obj-cta-strip::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+          background-size: 24px 24px;
+        }
+        .obj-cta-inner { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; }
+        .obj-cta-strip h2 {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+          font-weight: 400;
+          color: #ffffff;
+          letter-spacing: -0.03em;
+          margin-bottom: 0.75rem;
+        }
+        .obj-cta-strip p {
+          font-size: 0.97rem;
+          color: rgba(255,255,255,0.68);
+          line-height: 1.65;
+          margin-bottom: 2rem;
+        }
+        .obj-cta-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.55rem;
+          text-decoration: none;
+          font-size: 0.82rem;
+          font-weight: 800;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          background: #e91e63;
+          color: #ffffff;
+          padding: 0.85rem 2rem;
+          border-radius: 99px;
+          transition: background 0.25s, box-shadow 0.25s, transform 0.25s;
+          box-shadow: 0 4px 20px rgba(233,30,99,0.35);
+        }
+        .obj-cta-btn:hover {
+          background: #ff4d8b;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 30px rgba(233,30,99,0.50);
+        }
+      `}</style>
+
+      <div className="obj-page">
+
+        {/* ── Vision / Goal Hero ── */}
+        <section className="obj-hero" id="objectives">
+          <div className="obj-hero-dots" />
+          <div className="obj-hero-inner">
+            <div className="obj-hero-badge">
+              <span className="obj-hero-badge-dot" />
+              Programme Direction
+            </div>
+            <h2>
+              Programme <em>Vision</em> &amp; Goals
+            </h2>
+            <p className="obj-hero-sub">
+              Transforming Rwanda&apos;s agriculture through safe, strategic deployment
+              of biotechnology \u2014 building capacity, increasing yields, and securing
+              food for future generations.
+            </p>
+          </div>
+        </section>
+
+        {/* ── Vision / Goal ── */}
+        <section className="obj-vg-section">
+          <div className="obj-vg-inner">
+
+            <div className="obj-vg-card vision">
+              <div className="obj-vg-card-header">
+                <div className="obj-vg-icon">
+                  <Telescope size={20} />
+                </div>
+                <span className="obj-vg-card-title">Our Vision</span>
+              </div>
+              <p>
+                To catalyze sustainable agricultural development in Rwanda through the
+                safe and strategic deployment of biotech crops that meet local needs
+                and global standards \u2014 positioning Rwanda as a leader in African
+                agri-biotech innovation.
+              </p>
+            </div>
+
+            <div className="obj-vg-card goal">
+              <div className="obj-vg-card-header">
+                <div className="obj-vg-icon">
+                  <Target size={20} />
+                </div>
+                <span className="obj-vg-card-title">Our Goal</span>
+              </div>
+              <p style={{ marginBottom: '0.65rem' }}>
+                By 2029, BioCap aims to achieve regulatory approval, release, initial
+                commercialization, and improved awareness of:
+              </p>
+              <ul>
+                <li>Cassava varieties resistant to brown streak virus</li>
+                <li>Potato varieties resistant to late blight</li>
+                <li>Maize varieties resistant to drought, stem borer, and fall armyworm</li>
+              </ul>
+            </div>
+
+          </div>
+        </section>
+
+        {/* ── Programme Objectives ── */}
+        <section className="obj-grid-section">
+          <div className="obj-grid-inner">
+            <div className="obj-section-header">
+              <span className="obj-section-label">What We&apos;re Building</span>
+              <h2 className="obj-section-title">Programme Objectives</h2>
+              <div className="obj-section-underline" />
+            </div>
+
+            <div className="obj-cards">
+              {objectives.map(({ Icon, title, description }) => (
+                <div key={title} className="obj-card">
+                  <div className="obj-card-icon">
+                    <Icon size={22} strokeWidth={1.75} />
+                  </div>
+                  <h3 className="obj-card-title">{title}</h3>
+                  <p className="obj-card-desc">{description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA Strip ── */}
+        <section className="obj-cta-strip">
+          <div className="obj-cta-inner">
+            <h2>Ready to Learn More?</h2>
+            <p>
+              Explore our biotechnology initiatives, field research, and the science
+              driving Rwanda&apos;s agricultural transformation.
+            </p>
+            <Link href="/Biotech" className="obj-cta-btn">
+              Explore Biotechnology
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+
+      </div>
 
       <Footer />
     </div>
