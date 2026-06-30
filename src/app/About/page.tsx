@@ -38,22 +38,22 @@ export default function AboutPage() {
   const pillars = [
     {
       id: '01',
-      title: 'Accelerated Development',
-      desc: 'RAB scientists, trained in molecular markers, bioinformatics, sequencing, RNAi and CRISPR gene-editing, are building Rwanda\u2019s first in-country pipeline for disease-resistant crop varieties.',
+      title: 'Accelerated Research & Innovation',
+      desc: "The Rwanda BioCap Project strengthens Rwanda\u2019s scientific capacity to develop climate-resilient, farmer-preferred crop varieties through modern biotechnology. The project trains RAB scientists in molecular breeding, genomics, bioinformatics, DNA sequencing, RNA interference, genome editing, and biosafety research. It is building Rwanda\u2019s first in-country biotechnology innovation pipeline to support food security, farmer livelihoods, and agricultural competitiveness.",
       bgImage: '/image/LABDY3_1.jpg',
       border: 'bg-[#E8185A]',
     },
     {
       id: '02',
-      title: 'Deregulation',
-      desc: 'With REMA and MINAGRI, BioCap strengthens the biosafety and regulatory frameworks that underpin a safe, transparent pathway for biotech crop approvals in Rwanda and across the East African Community.',
+      title: 'Biosafety, Regulation & Responsible Innovation',
+      desc: "The BioCap Project advances responsible biotechnology by strengthening biosafety governance, regulatory capacity, and transparent stakeholder engagement. In collaboration with RICA, REMA, MINAGRI, and regional and international partners, the project supports an efficient, science-based regulatory pathway. This pathway ensures that biotechnology innovations are developed, assessed, and deployed safely, ethically, and transparently.",
       bgImage: '/image/DSC06556(1).jpg',
       border: 'bg-[#2D6A7F]',
     },
     {
       id: '03',
-      title: 'Deployment',
-      desc: 'Improved Kinigi, Cyerekezo, Injagi and Sukali Ndiizi varieties are delivered to smallholder farmers through extension systems, cutting pesticide reliance and stabilizing harvests nationwide.',
+      title: 'Delivering Innovation to Farmers',
+      desc: "BioCap turns scientific innovation into practical solutions for Rwanda\u2019s smallholder farmers. It advances improved farmer-preferred cassava, potato, banana cooking, and sweet banana varieties with stronger resistance to major pests and diseases. It also preserves the traits farmers and consumers value. Through research partnerships, seed systems, extension services, and farmer engagement, the project supports higher productivity, reduced crop losses, lower pesticide use, stronger climate resilience, and more stable harvests.",
       bgImage: '/image/DSC_6510.jpg',
       border: 'bg-[#7B2D8B]',
     },
@@ -250,28 +250,33 @@ export default function AboutPage() {
             <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Focus
           </div>
           <h2 className="text-4xl lg:text-5xl font-serif text-[#1B3A5C] leading-tight">
-            Three pillars driving <br />
-            <span className="text-[#E8185A]">Rwanda&apos;s</span> crop innovation
+            Three Objectives Driving <br />
+            <span className="text-[#E8185A]">Rwanda&apos;s</span> BioCap crop innovation
           </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-8 items-stretch">
           {pillars.map((p) => (
             <div
               key={p.id}
-              className="relative rounded-3xl p-8 overflow-hidden group h-[400px] flex flex-col justify-end transition-all duration-500 hover:-translate-y-2 shadow-xl border border-slate-100"
+              className="relative rounded-3xl overflow-hidden group flex flex-col transition-all duration-500 hover:-translate-y-2 shadow-xl border border-slate-100"
             >
               <img
                 src={p.bgImage}
                 alt={p.title}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-[#1B3A5C]/75 group-hover:bg-[#1B3A5C]/65 transition-colors duration-300" />
-              <div className="relative z-10">
-                <span className="text-white/20 font-serif text-6xl font-black block mb-2">{p.id}</span>
-                <h3 className="text-2xl font-bold text-white mb-4 leading-tight">{p.title}</h3>
-                <p className="text-white/80 text-sm leading-relaxed mb-6">{p.desc}</p>
-                <div className={`h-[4px] w-16 rounded-full ${p.border}`} />
+              <div className="absolute inset-0 bg-[#1B3A5C]/80 group-hover:bg-[#1B3A5C]/70 transition-colors duration-300" />
+
+              <div className="relative z-10 flex flex-col flex-1 p-8 pb-8">
+                <span className="text-white/20 font-serif text-6xl font-black leading-none h-[60px] flex items-center">
+                  {p.id}
+                </span>
+                <h3 className="text-xl font-bold text-white mb-4 mt-2 leading-tight">{p.title}</h3>
+                <p className="text-white/85 text-sm leading-relaxed text-justify flex-1">
+                  {p.desc}
+                </p>
+                <div className={`h-[4px] w-16 rounded-full ${p.border} mt-6`} />
               </div>
             </div>
           ))}
@@ -291,7 +296,7 @@ export default function AboutPage() {
             Late blight, CBSD/CMD, and BXW/Fusarium wilt each threaten yields by up to 80 percent.
             BioCap pairs proven genetics with the specific science needed to beat each one.
           </p>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 items-stretch">
             {focusCrops.map((c) => (
               <div
                 key={c.name}
@@ -310,7 +315,7 @@ export default function AboutPage() {
                 >
                   {c.trait}
                 </span>
-                <p className="text-xs text-slate-500 leading-relaxed pt-1">{c.stat}</p>
+                <p className="text-xs text-slate-500 leading-relaxed pt-1 text-justify flex-1">{c.stat}</p>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pt-2 border-t border-slate-100 w-full mt-2">
                   Target varieties: {c.varieties}
                 </p>
@@ -342,18 +347,18 @@ export default function AboutPage() {
             <h2 className="text-4xl font-serif text-[#1B3A5C] leading-tight mb-6">
               Empowering Rwandan scientists and farmers
             </h2>
-            <p className="text-slate-600 mb-6 leading-relaxed">
+            <p className="text-slate-600 mb-6 leading-relaxed text-justify">
               The Rwanda Biotech Capacity Building (BioCap) Project is a landmark initiative to elevate
               Rwanda&apos;s scientific capacity to develop genetically improved potato, cassava, and
               banana varieties \u2014 strengthening national food security, crop protection, and climate
               resilience.
             </p>
-            <p className="text-slate-600 mb-6 leading-relaxed">
+            <p className="text-slate-600 mb-6 leading-relaxed text-justify">
               RAB scientists are being trained in molecular markers, bioinformatics, sequencing, RNAi,
               and CRISPR gene-editing, enabling them to independently build a pipeline of disease-resistant
               crops tailored to Rwanda&apos;s needs.
             </p>
-            <p className="text-slate-600 mb-10 leading-relaxed">
+            <p className="text-slate-600 mb-10 leading-relaxed text-justify">
               By pairing local scientific expertise with stronger regulatory institutions, BioCap
               positions Rwanda not just as a consumer of global agricultural innovation, but as a
               continental hub for safe, climate-smart biotechnology.
@@ -380,14 +385,14 @@ export default function AboutPage() {
           <h2 className="text-3xl font-serif text-[#1B3A5C] mb-10">
             Voices from 15 December 2025
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 items-stretch">
             {quotes.map((q) => (
               <div
                 key={q.name}
-                className="bg-[#f7f6f4] rounded-2xl p-8 border border-slate-100 relative"
+                className="bg-[#f7f6f4] rounded-2xl p-8 border border-slate-100 relative flex flex-col"
               >
                 <Quote className="w-8 h-8 text-[#E8185A]/30 mb-4" />
-                <p className="text-lg font-serif text-[#1B3A5C] leading-snug mb-6">
+                <p className="text-lg font-serif text-[#1B3A5C] leading-snug mb-6 text-justify flex-1">
                   &ldquo;{q.text}&rdquo;
                 </p>
                 <div className="text-sm font-bold text-[#1B3A5C]">{q.name}</div>
@@ -407,16 +412,16 @@ export default function AboutPage() {
           <h2 className="text-3xl font-serif text-white mb-12">
             What BioCap stands for
           </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
             {coreMessages.map(({ icon: Icon, text }) => (
               <div
                 key={text}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors"
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors flex flex-col"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#E8185A]/15 border border-[#E8185A]/30 flex items-center justify-center mb-4">
                   <Icon className="w-5 h-5 text-[#ff6ba3]" />
                 </div>
-                <p className="text-sm text-white/80 leading-relaxed">{text}</p>
+                <p className="text-sm text-white/80 leading-relaxed text-justify">{text}</p>
               </div>
             ))}
           </div>
@@ -498,7 +503,7 @@ export default function AboutPage() {
             A strategic investment in <br />
             <span className="text-[#E8185A]">farmers and food systems</span>
           </h2>
-          <p className="text-slate-600 mb-8 leading-relaxed">
+          <p className="text-slate-600 mb-8 leading-relaxed text-justify">
             BioCap is not only about science \u2014 it is a strategic investment in Rwanda&apos;s economy,
             built on partnership with MINAGRI, REMA, and Rwanda&apos;s growing ecosystem of research
             institutions and homegrown scientists.

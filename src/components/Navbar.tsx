@@ -10,10 +10,6 @@ const navLinks = [
   {
     href: '/About',
     label: 'About',
-    dropdown: [
-      { href: '/About',      label: 'About'  },
-      { href: '/Objectives', label: 'Objectives'    },
-    ],
   },
   { href: '/Biotech',     label: 'Biotechnology' },
   // { href: '/Milestones',  label: 'Milestones'    },
