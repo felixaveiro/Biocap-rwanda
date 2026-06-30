@@ -77,7 +77,7 @@ const ecoProjects: Project[] = [
   },
   {
     title: "Risk Assessment & Stewardship",
-    img: "/image/2R0A9989.jpg",
+    img: "/image/Risk-ssessment.jpg",
     tag: "Biosafety",
     excerpt:
       "A two-day workshop in Kigali strengthened scientists' and regulators' understanding of how biotech crop risks are identified, evaluated, and managed — from hazard analysis through to stewardship and field-level safety.",
@@ -132,7 +132,7 @@ const ecoProjects: Project[] = [
   },
   {
     title: "Communication & Advocacy",
-    img: "/image/IMG_101.jpg",
+    img: "/image/dna-communication-advocacy.jpg",
     tag: "Public Engagement",
     excerpt:
       "Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging — and how Rwanda's regulatory bodies work together to register and approve new technologies.",
