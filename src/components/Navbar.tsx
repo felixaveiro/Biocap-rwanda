@@ -235,7 +235,7 @@ export default function Navbar() {
               />
             </div>
             <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
-              Rwanda Biotech Capacity <br />Building Project
+              Rwanda Biotech Capacity <br />(BIOCAP) Building Project
             </span>
           </Link>
 
