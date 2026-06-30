@@ -32,6 +32,7 @@ interface CropData {
   key: CropKey;
   label: string;
   Icon: React.ElementType;
+  image?: string;
   color: string;
   colorLight: string;
   status: 'approved' | 'trials';
@@ -46,6 +47,7 @@ const CROPS: CropData[] = [
     key: 'cassava',
     label: 'Biotech Cassava',
     Icon: Leaf,
+    image: '/image/cassava.png',
     color: '#E8185A',
     colorLight: '#fde8ef',
     status: 'approved',
@@ -78,6 +80,7 @@ const CROPS: CropData[] = [
   {
     key: 'potato',
     label: 'Biotech Potato',
+    image: '/image/potato.png',
     Icon: CircleDot,
     color: '#1E4D6B',
     colorLight: '#e2edf4',
@@ -112,6 +115,7 @@ const CROPS: CropData[] = [
     key: 'banana',
     label: 'Biotech Banana',
     Icon: Banana,
+    image: '/image/banana.png',
     color: '#7B3FA0',
     colorLight: '#f3eaf8',
     status: 'trials',
@@ -143,6 +147,32 @@ const CROPS: CropData[] = [
   },
 ];
 
+// ─── Crop icon/image helper ────────────────────────────────────────
+
+function CropMark({
+  crop,
+  size,
+  iconColor = '#fff',
+}: {
+  crop: CropData;
+  size: number;
+  iconColor?: string;
+}) {
+  if (crop.image) {
+    return (
+      <img
+        src={crop.image}
+        alt={crop.label}
+        style={{
+          width: size,
+          height: size,
+          objectFit: 'contain',
+        }}
+      />
+    );
+  }
+  return <crop.Icon size={size} color={iconColor} aria-hidden="true" />;
+}
 
 // ─── Sub-components ────────────────────────────────────────────────
 
@@ -161,7 +191,7 @@ function CropTab({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
+        gap: '8px',
         padding: '8px 22px',
         borderRadius: '999px',
         border: `2px solid ${crop.color}`,
@@ -174,7 +204,7 @@ function CropTab({
         transition: 'all 0.2s ease',
       }}
     >
-      <crop.Icon size={15} aria-hidden="true" />
+      <CropMark crop={crop} size={16} iconColor={active ? '#fff' : crop.color} />
       {crop.label}
     </button>
   );
@@ -258,9 +288,10 @@ function CropPanel({ crop }: { crop: CropData }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              overflow: 'hidden',
             }}
           >
-            <crop.Icon size={22} color="#fff" aria-hidden="true" />
+            <CropMark crop={crop} size={crop.image ? 30 : 22} />
           </div>
           <div>
             <p

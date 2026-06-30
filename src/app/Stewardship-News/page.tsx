@@ -208,7 +208,7 @@ export default function EnvironmentPage() {
       <section className="relative h-[500px] flex items-center justify-center text-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="/image/2R0A9989.jpg"
+            src="/image/IMG_149.jpg"
             alt="BioCap Environment"
             className="w-full h-full object-cover"
           />
