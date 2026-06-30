@@ -132,7 +132,7 @@ const ecoProjects: Project[] = [
   },
   {
     title: "Communication & Advocacy",
-    img: "/image/2R0A0175.jpg",
+    img: "/image/IMG_101.jpg",
     tag: "Public Engagement",
     excerpt:
       "Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging — and how Rwanda's regulatory bodies work together to register and approve new technologies.",
