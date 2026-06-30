@@ -33,7 +33,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
   {
     id: 1,
     src: '/image/DSC_5973.JPG',
-    alt: 'Huye confined field trial cassava',
+    alt: 'HUYE Eating and Believing of Cassava',
     title: 'HUYE Confined Field Trial — Cassava',
     caption: 'Regulatory confined field trial assessments of biotech cassava varieties conducted at the Huye research station, evaluating agronomic performance and biosafety compliance.',
     category: 'field',

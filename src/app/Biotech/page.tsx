@@ -143,6 +143,7 @@ const CROPS: CropData[] = [
   },
 ];
 
+
 // ─── Sub-components ────────────────────────────────────────────────
 
 function CropTab({

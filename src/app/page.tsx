@@ -69,7 +69,7 @@ const FEATURES = [
     body: "Direct collaboration with cooperatives across Rwanda's 30 districts, ensuring innovation reaches those who need it most — on the ground.",
     color: COLORS.navy,
     href: '/About',
-    img: '/image/image-10.jpg',
+    img: '/image/IMG_126.jpg',
   },
   {
     Icon: BarChart2,

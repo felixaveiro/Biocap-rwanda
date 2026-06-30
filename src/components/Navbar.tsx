@@ -376,19 +376,22 @@ export default function Navbar() {
       <nav className={`bc-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="bc-nav-inner">
 
-          {/* Logo */}
-          <Link href="/" className="bc-logo">
-            <div className="bc-logo-img-wrap">
-              <Image
-                src="/image/biocap-logo.png"
-                alt="BioCap Logo"
-                fill
-                style={{ objectFit: 'contain' }}
-                sizes="35px"
-                priority
-              />
-            </div>
-          </Link>
+         {/* Logo */}
+<Link href="/" className="bc-logo flex items-center gap-2">
+  <div className="bc-logo-img-wrap">
+    <Image
+      src="/image/rab-logo.png"
+      alt="BioCap Logo"
+      fill
+      style={{ objectFit: 'contain' }}
+      sizes="35px"
+      priority
+    />
+  </div>
+  <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
+    RWANDA BIOCAPACITY CROPS
+  </span>
+</Link>
 
           {/* Desktop nav */}
           <ul className="bc-links">

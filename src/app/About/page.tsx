@@ -20,6 +20,7 @@ import {
   GraduationCap,
   Leaf,
   FlaskConical,
+  Quote,
 } from 'lucide-react';
 
 interface Partner {
@@ -38,37 +39,61 @@ export default function AboutPage() {
     {
       id: '01',
       title: 'Accelerated Development',
-      desc: "Speeding up the research and creation of resilient crop varieties using modern biotechnology and precision breeding techniques tailored to Rwanda's unique agro-climatic zones.",
+      desc: 'RAB scientists, trained in molecular markers, bioinformatics, sequencing, RNAi and CRISPR gene-editing, are building Rwanda\u2019s first in-country pipeline for disease-resistant crop varieties.',
       bgImage: '/image/LABDY3_1.jpg',
       border: 'bg-[#E8185A]',
     },
     {
       id: '02',
       title: 'Deregulation',
-      desc: 'Navigating and shaping regulatory frameworks to ensure the safe, transparent, and legally compliant pathway for biotech crop approvals within Rwanda and the East African region.',
-      bgImage: '/image/image-04.jpg',
+      desc: 'With REMA and MINAGRI, BioCap strengthens the biosafety and regulatory frameworks that underpin a safe, transparent pathway for biotech crop approvals in Rwanda and across the East African Community.',
+      bgImage: '/image/DSC06556(1).jpg',
       border: 'bg-[#2D6A7F]',
     },
     {
       id: '03',
       title: 'Deployment',
-      desc: 'Getting enhanced seeds and agricultural innovations directly into the hands of Rwandan smallholder farmers through robust extension systems and farmer training programs.',
+      desc: 'Improved Kinigi, Cyerekezo, Injagi and Sukali Ndiizi varieties are delivered to smallholder farmers through extension systems, cutting pesticide reliance and stabilizing harvests nationwide.',
       bgImage: '/image/DSC_6510.jpg',
-      border: 'bg-[#7B2D8B]', 
+      border: 'bg-[#7B2D8B]',
     },
   ];
 
   const focusCrops = [
-    { icon: Wheat, name: 'Potato', trait: 'Late blight resistance', color: '#E8185A', bg: '#fde8ef' },
-    { icon: Leaf, name: 'Cassava', trait: 'CMD & CBSD resistance', color: '#2A7F8C', bg: '#e6f4f6' },
-    { icon: Sprout, name: 'Banana', trait: 'BXW & Fusarium wilt resistance', color: '#7B3FA0', bg: '#f3e8f9' },
+    {
+      icon: Wheat,
+      name: 'Potato',
+      trait: '3R gene stack \u00b7 late blight resistance',
+      stat: 'Up to 80% yield loss from late blight; farmers spray fungicide 8+ times a season',
+      varieties: 'Kinigi & Cyerekezo',
+      color: '#E8185A',
+      bg: '#fde8ef',
+    },
+    {
+      icon: Leaf,
+      name: 'Cassava',
+      trait: 'Molecular breeding \u00b7 CBSD & CMD resistance',
+      stat: 'All cassava varieties currently grown in Rwanda are susceptible to both viral diseases',
+      varieties: 'RNAi-based resistant lines',
+      color: '#2A7F8C',
+      bg: '#e6f4f6',
+    },
+    {
+      icon: Sprout,
+      name: 'Banana',
+      trait: 'CRISPR gene editing \u00b7 BXW & Fusarium wilt resistance',
+      stat: 'Rwanda\u2019s first in-country gene-editing pipeline, built with IITA',
+      varieties: 'Injagi & Sukali Ndiizi',
+      color: '#7B3FA0',
+      bg: '#f3e8f9',
+    },
   ];
 
   const coreMessages = [
-    { icon: ShieldCheck, text: 'Biotechnology is safe, regulated, and science-driven' },
-    { icon: Sprout, text: 'Improved crops protect farmers from climate and disease losses' },
-    { icon: CheckCircle2, text: 'Reduced pesticide use benefits health and the environment' },
-    { icon: Users, text: "Rwandan scientists are leading innovation for Rwanda's future" },
+    { icon: ShieldCheck, text: 'Biotechnology is safe, regulated, and grounded in Rwanda\u2019s biosafety frameworks' },
+    { icon: Sprout, text: 'Disease-resistant crops protect farmers from climate and pest losses' },
+    { icon: CheckCircle2, text: 'Less fungicide and chemical use means cleaner soils, water, and healthier farmers' },
+    { icon: Users, text: 'Rwandan scientists are leading the innovation, not just adopting it' },
   ];
 
   const audiences = [
@@ -87,11 +112,24 @@ export default function AboutPage() {
     { icon: Globe, label: 'Podcasts & social media content' },
   ];
 
+  const quotes = [
+    {
+      text: 'A new chapter for Rwanda\u2019s agricultural innovation ecosystem.',
+      name: 'Dr. Patrick Karangwa',
+      role: 'Director of Agriculture Modernization, MINAGRI',
+    },
+    {
+      text: 'Cements Rwanda\u2019s position as a regional leader in science-driven agriculture.',
+      name: 'Pacifique Nshimiyimana',
+      role: 'Country Director, Alliance for Science Rwanda',
+    },
+  ];
+
   const partners: Partner[] = [
     {
       name: 'CIP',
       fullName: 'International Potato Center',
-      role: 'Primary Grantee & Lead',
+      role: 'Lead Implementing Partner',
       description: 'A CGIAR research centre dedicated to reducing poverty and hunger through scientific innovation in potato and sweetpotato systems across the developing world.',
       url: 'https://cipotato.org',
       initials: 'CIP',
@@ -111,8 +149,8 @@ export default function AboutPage() {
     {
       name: 'IITA',
       fullName: 'Intl. Institute of Tropical Agriculture',
-      role: 'Banana Gene Editing Lead',
-      description: 'A world-class research-for-development organisation improving livelihoods in Africa by enhancing crop systems using cutting-edge gene-editing and biotechnology tools.',
+      role: 'Banana Gene-Editing Lead',
+      description: 'A world-class research-for-development organisation supporting RAB\u2019s deployment of CRISPR tools to knock out key susceptibility genes in banana varieties.',
       url: 'https://www.iita.org',
       initials: 'IITA',
       accent: '#2A7F8C',
@@ -122,7 +160,7 @@ export default function AboutPage() {
       name: 'DDPSC',
       fullName: 'Donald Danforth Plant Science Center',
       role: 'Cassava Molecular Analysis',
-      description: 'An independent, not-for-profit research institute advancing plant science to improve human health, food security, and agricultural sustainability through molecular innovation.',
+      description: 'An independent, not-for-profit research institute advancing molecular markers, bioinformatics, and sequencing capacity for disease-resistant cassava lines.',
       url: 'https://www.danforthcenter.org',
       initials: 'DDPSC',
       accent: '#7B3FA0',
@@ -153,11 +191,11 @@ export default function AboutPage() {
   return (
     <div className="bg-white min-h-screen font-sans">
 
-      {/* ── HERO ── */}
+      {/* \u2500\u2500 HERO \u2500\u2500 */}
       <section className="relative overflow-hidden min-h-[550px] flex items-center px-6 lg:px-12">
         <div className="absolute inset-0 z-0">
           <img
-            src="/image/image-02.jpg"
+            src="/image/IMG_79.jpg"
             alt="BioCap Rwanda Nature"
             className="w-full h-full object-cover"
           />
@@ -166,13 +204,14 @@ export default function AboutPage() {
 
         <div className="relative z-20 max-w-4xl">
           <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-4 drop-shadow-md">
-            ABOUT OUR INITIATIVE
+            Rwanda Biotech Capacity Building Project
           </p>
           <h1 className="text-6xl lg:text-8xl font-serif text-white leading-tight mb-6 italic drop-shadow-lg">
             About <span className="text-[#E8185A]">BioCap</span>
           </h1>
           <p className="text-white/90 text-xl max-w-xl leading-relaxed font-medium drop-shadow-md">
-            Building Rwandan Capacity for Accelerated Development, Deregulation, and Deployment of Enhanced Crops — launched December 15, 2025.
+            Building Rwandan capacity to develop genetically improved potato, cassava, and banana
+            varieties \u2014 launched 15 December 2025 at the Park Inn by Radisson Kigali.
           </p>
         </div>
 
@@ -186,12 +225,12 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── PARTNERS ── */}
+      {/* \u2500\u2500 PARTNERS \u2500\u2500 */}
       <section className="py-20 border-b border-gray-100 px-6 lg:px-12 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-2">
-              Trusted &amp; supported by
+              Convened at launch with MINAGRI &amp; REMA, implemented by
             </p>
             <p className="text-xs text-slate-400">Click any partner to visit their website</p>
           </div>
@@ -204,7 +243,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── THREE PILLARS ── */}
+      {/* \u2500\u2500 THREE PILLARS \u2500\u2500 */}
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto">
         <div className="mb-16">
           <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-4">
@@ -239,20 +278,24 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── FOCUS CROPS ── */}
+      {/* \u2500\u2500 FOCUS CROPS \u2500\u2500 */}
       <section className="py-16 bg-[#f7f6f4] px-6 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-4">
             <div className="w-6 h-[2px] bg-[#E8185A]" /> Focus Crops
           </div>
-          <h2 className="text-3xl font-serif text-[#1B3A5C] mb-10">
-            Three crops, three critical challenges
+          <h2 className="text-3xl font-serif text-[#1B3A5C] mb-2">
+            Three crops, three urgent disease threats
           </h2>
+          <p className="text-slate-500 text-sm mb-10 max-w-2xl">
+            Late blight, CBSD/CMD, and BXW/Fusarium wilt each threaten yields by up to 80 percent.
+            BioCap pairs proven genetics with the specific science needed to beat each one.
+          </p>
           <div className="grid md:grid-cols-3 gap-6">
             {focusCrops.map((c) => (
               <div
                 key={c.name}
-                className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center gap-4"
+                className="bg-white rounded-2xl p-8 border border-slate-100 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center gap-3"
               >
                 <div
                   className="w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -267,38 +310,27 @@ export default function AboutPage() {
                 >
                   {c.trait}
                 </span>
+                <p className="text-xs text-slate-500 leading-relaxed pt-1">{c.stat}</p>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider pt-2 border-t border-slate-100 w-full mt-2">
+                  Target varieties: {c.varieties}
+                </p>
               </div>
             ))}
           </div>
-          <p className="text-sm text-slate-500 mt-6 text-center">
-            REMA granted environmental release approvals for Potato, Cassava &amp; Banana — Rwanda&apos;s first-ever approval of biotech food crops, September 3, 2025.
-          </p>
         </div>
       </section>
 
-      {/* ── MISSION ── */}
+      {/* \u2500\u2500 MISSION \u2500\u2500 */}
       <section className="py-24 px-6 lg:px-12 bg-white">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <div className="relative">
             <div className="bg-[#1B3A5C] aspect-[4/3] rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">
-              <img src="/image/image-01.jpg" className="w-full h-full object-cover opacity-70" />
-              {/* <svg
-                width="160"
-                height="160"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeOpacity="0.2"
-                className="absolute"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-              </svg> */}
+              <img src="/image/lounch.jpg" className="w-full h-full object-cover opacity-70" />
             </div>
             <div className="absolute bottom-[-20px] right-[-20px] bg-white p-6 rounded-2xl shadow-xl z-20">
-              <div className="font-serif text-3xl font-black text-[#E8185A]">2025</div>
+              <div className="font-serif text-3xl font-black text-[#E8185A]">15 Dec 2025</div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Programme Launch
+                Launched in Kigali
               </div>
             </div>
           </div>
@@ -311,34 +343,62 @@ export default function AboutPage() {
               Empowering Rwandan scientists and farmers
             </h2>
             <p className="text-slate-600 mb-6 leading-relaxed">
-              BioCap is a flagship initiative dedicated to transforming Rwanda&apos;s agricultural landscape
-              through science-based innovation. We work at the intersection of biotechnology, policy, and
-              farmer empowerment.
+              The Rwanda Biotech Capacity Building (BioCap) Project is a landmark initiative to elevate
+              Rwanda&apos;s scientific capacity to develop genetically improved potato, cassava, and
+              banana varieties \u2014 strengthening national food security, crop protection, and climate
+              resilience.
             </p>
             <p className="text-slate-600 mb-6 leading-relaxed">
-              A core objective is enabling Rwandan scientists to independently develop a pipeline of
-              genetically enhanced crops tailored to national needs — anchored at the Centre of Excellence
-              for Crop Biotechnology at RAB Rubona.
+              RAB scientists are being trained in molecular markers, bioinformatics, sequencing, RNAi,
+              and CRISPR gene-editing, enabling them to independently build a pipeline of disease-resistant
+              crops tailored to Rwanda&apos;s needs.
             </p>
             <p className="text-slate-600 mb-10 leading-relaxed">
-              By building local scientific expertise and strengthening regulatory institutions, BioCap
-              ensures Rwanda is not just a consumer of global agricultural innovations — but a creator
-              and leader in its own right.
+              By pairing local scientific expertise with stronger regulatory institutions, BioCap
+              positions Rwanda not just as a consumer of global agricultural innovation, but as a
+              continental hub for safe, climate-smart biotechnology.
             </p>
             <div className="flex items-center gap-4 pt-8 border-t border-slate-200">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#7B2D8B] to-[#E8185A] flex items-center justify-center text-white font-bold">
-                PM
+                CIP
               </div>
               <div>
-                <div className="font-bold text-[#1B3A5C]">Dr. Pascal Mutabazi</div>
-                <div className="text-xs text-slate-500 font-medium">Program Director, BioCap Initiative</div>
+                <div className="font-bold text-[#1B3A5C]">International Potato Center (CIP)</div>
+                <div className="text-xs text-slate-500 font-medium">Lead Implementing Partner, BioCap Project</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── CORE MESSAGING ── */}
+      {/* \u2500\u2500 VOICES FROM THE LAUNCH \u2500\u2500 */}
+      <section className="py-20 bg-white px-6 lg:px-12 border-y border-slate-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-4">
+            <div className="w-6 h-[2px] bg-[#E8185A]" /> From The Launch
+          </div>
+          <h2 className="text-3xl font-serif text-[#1B3A5C] mb-10">
+            Voices from 15 December 2025
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            {quotes.map((q) => (
+              <div
+                key={q.name}
+                className="bg-[#f7f6f4] rounded-2xl p-8 border border-slate-100 relative"
+              >
+                <Quote className="w-8 h-8 text-[#E8185A]/30 mb-4" />
+                <p className="text-lg font-serif text-[#1B3A5C] leading-snug mb-6">
+                  &ldquo;{q.text}&rdquo;
+                </p>
+                <div className="text-sm font-bold text-[#1B3A5C]">{q.name}</div>
+                <div className="text-xs text-slate-500">{q.role}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* \u2500\u2500 CORE MESSAGING \u2500\u2500 */}
       <section className="py-20 bg-[#1B3A5C] px-6 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-4">
@@ -363,7 +423,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── TARGET AUDIENCES ── */}
+      {/* \u2500\u2500 TARGET AUDIENCES \u2500\u2500 */}
       <section className="py-20 bg-[#f7f6f4] px-6 lg:px-12">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
@@ -428,26 +488,27 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── EXPERIENCE SECTION ── */}
+      {/* \u2500\u2500 ECONOMIC OPPORTUNITY / WHY BIOCAP \u2500\u2500 */}
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <div>
           <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-4">
             <div className="w-6 h-[2px] bg-[#E8185A]" /> Why BioCap
           </div>
           <h2 className="text-4xl font-serif text-[#1B3A5C] leading-tight mb-6">
-            A decade of agricultural <br />
-            <span className="text-[#E8185A]">science in Rwanda</span>
+            A strategic investment in <br />
+            <span className="text-[#E8185A]">farmers and food systems</span>
           </h2>
           <p className="text-slate-600 mb-8 leading-relaxed">
-            BioCap draws on Rwanda&apos;s growing ecosystem of research institutions, progressive policy
-            frameworks, and a new generation of homegrown scientists committed to food sovereignty.
+            BioCap is not only about science \u2014 it is a strategic investment in Rwanda&apos;s economy,
+            built on partnership with MINAGRI, REMA, and Rwanda&apos;s growing ecosystem of research
+            institutions and homegrown scientists.
           </p>
           <ul className="space-y-4 mb-10">
             {[
-              'Partnership with Rwanda Agriculture and Animal Resources Development Board (RAB)',
-              'Integration with East African Community biosafety harmonization agenda',
-              'Locally adapted crop development rooted in smallholder farmer needs',
-              'Transparent stakeholder engagement at every programme stage',
+              'Higher national yields and reduced pesticide-related expenses for farmers',
+              'Stronger regional market competitiveness for potato, cassava, and banana value chains',
+              'Cleaner soils and waterways, lower emissions, and greater biodiversity from reduced chemical use',
+              'Biosafety and regulatory foundations led by REMA and MINAGRI, built for EAC harmonization',
             ].map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-600">
                 <span className="w-5 h-5 rounded-full bg-[#fce4ed] flex-shrink-0 flex items-center justify-center text-[#E8185A] font-bold mt-0.5">
@@ -467,15 +528,15 @@ export default function AboutPage() {
 
         <div className="relative h-[500px] rounded-3xl overflow-hidden shadow-2xl group">
           <img
-            src="/image/image-06.jpg"
+            src="/image/IMG_37.jpg"
             alt="Nature Research"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#1B3A5C] via-transparent to-transparent opacity-70" />
           <div className="absolute bottom-10 left-10 text-white z-10">
-            <div className="text-8xl font-serif font-black mb-2">10+</div>
+            <div className="text-8xl font-serif font-black mb-2">3</div>
             <p className="text-xs uppercase tracking-[4px] font-bold text-[#E8185A]">
-              Years of Local Expertise
+              Staple Crops, One National Pipeline
             </p>
           </div>
         </div>
@@ -486,7 +547,7 @@ export default function AboutPage() {
   );
 }
 
-/* ── Reusable Partner Card ── */
+/* \u2500\u2500 Reusable Partner Card \u2500\u2500 */
 function PartnerCard({ p }: { p: Partner }) {
   return (
     <a

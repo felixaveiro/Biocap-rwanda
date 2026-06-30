@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react';
 import Footer from '@/components/Footer';
+import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
 
-// ── Project data with full modal content ───────────────────────────
-const ecoProjects = [
+// ── Project data ────────────────────────────────────────────────────
+const ecoProjects: Project[] = [
   {
     title: "DNA Week",
     img: "/image/image-04.jpg",
@@ -75,198 +76,130 @@ const ecoProjects = [
     },
   },
   {
-    title: "Soil Regeneration",
-    img: "/image/image-07.jpg",
-    tag: "Nature",
+    title: "Risk Assessment & Stewardship",
+    img: "/image/2R0A9989.jpg",
+    tag: "Biosafety",
     excerpt:
-      "Field initiatives focused on rebuilding soil health and fertility across farming communities, supporting long-term resilience and reducing dependence on chemical inputs.",
+      "A two-day workshop in Kigali strengthened scientists' and regulators' understanding of how biotech crop risks are identified, evaluated, and managed — from hazard analysis through to stewardship and field-level safety.",
     modal: {
-      date: "Ongoing",
-      organizer: "BioCAP Rwanda",
-      partners: "RAB · Local Farming Cooperatives",
+      date: "16–17 June 2026",
+      organizer: "Rwanda Agriculture and Animal Resources Development Board (RAB)",
+      partners: "AATF · Michigan State University · BioCAP · OFAB Rwanda · Alliance for Science Rwanda · CIP",
       intro:
-        "Soil regeneration efforts focus on restoring degraded farmland through improved crop varieties, reduced chemical dependency, and sustainable land management practices that help farmers build healthier, more productive soil over time.",
+        "Held at Park Inn Hotel, Kigali, this workshop brought together scientists, regulators, and project stakeholders to deepen understanding of the practical risk assessment and risk management approaches applied throughout biotech crop development, with emphasis on stewardship, biosafety, and evidence-based decision-making.",
       objectives: [
-        "Improve long-term soil fertility for smallholder farmers",
-        "Reduce reliance on synthetic chemical inputs",
-        "Pair biotech crop resistance with sustainable land practices",
+        "Strengthen practical understanding of risk assessment in agricultural biotechnology",
+        "Apply the risk = hazard × exposure framework to real product decisions",
+        "Review the current status of biotech cassava, potato, and maize in Rwanda",
+        "Build stewardship capacity for responsible deployment of biotech crops",
       ],
-      sessions: [],
-      collaboration: [],
-      quote: "",
-      quoteSource: "",
+      sessions: [
+        {
+          name: "Rob",
+          role: "Risk Analysis in Decision-Making",
+          summary:
+            "Walked participants through hazard identification, level of harm, and likelihood of exposure, and the risk management options of accepting, managing, avoiding, or monitoring risk.",
+        },
+        {
+          name: "Dr. Athanase",
+          role: "Biotech Product Overview",
+          summary:
+            "Reviewed the status of RNAi-enhanced cassava (four completed field trial seasons), R-gene potato varieties, and TELA maize under evaluation for fall armyworm resistance.",
+        },
+        {
+          name: "Technical Panel",
+          role: "Risk Assessment & Management of Biotech Products",
+          summary:
+            "Covered molecular characterization, protein expression and toxicity testing, and safety evaluation of cassava and maize proteins against internationally recognized standards.",
+        },
+        {
+          name: "Technical Panel",
+          role: "Risk Management & Stewardship",
+          summary:
+            "Defined stewardship as balancing human needs and plant productivity, and outlined how stewardship practices protect product effectiveness and the environment.",
+        },
+      ],
+      collaboration: [
+        "Joint regulatory training",
+        "Cross-institutional risk communication",
+        "Future commodity-specific workshops (potato, cassava)",
+        "Stakeholder capacity building",
+      ],
+      quote:
+        "Biotechnology should not be viewed as fundamentally different from other crop improvement approaches, but as an important tool that contributes to sustainable agricultural development.",
+      quoteSource: "Ms. Florence, Acting Director, RAB — Opening Remarks",
     },
   },
   {
-    title: "Climate Resilience",
-    img: "/image/image-09.jpg",
-    tag: "Future",
+    title: "Communication & Advocacy",
+    img: "/image/2R0A0175.jpg",
+    tag: "Public Engagement",
     excerpt:
-      "Research and farmer programs aimed at preparing Rwandan agriculture for shifting weather patterns, with crops bred to withstand drought, disease, and changing growing conditions.",
+      "Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging — and how Rwanda's regulatory bodies work together to register and approve new technologies.",
     modal: {
-      date: "Ongoing",
-      organizer: "BioCAP Rwanda",
-      partners: "RAB · International Research Partners",
+      date: "16–17 June 2026",
+      organizer: "Rwanda Agriculture and Animal Resources Development Board (RAB)",
+      partners: "AATF · Michigan State University · BioCAP · OFAB Rwanda · Alliance for Science Rwanda · CIP",
       intro:
-        "Climate resilience work prepares Rwandan agriculture for shifting weather patterns through crop varieties bred to withstand drought, disease pressure, and unpredictable growing seasons — protecting yields as conditions change.",
+        "A core part of the workshop focused on effective communication and advocacy strategies for agricultural biotechnology — simplifying scientific information, countering misinformation, and building public trust through transparent, consistent messaging.",
       objectives: [
-        "Develop crop varieties tolerant to drought and heat stress",
-        "Support farmers adapting to shifting rainfall patterns",
-        "Strengthen food security under changing climate conditions",
+        "Equip communicators to simplify complex biotech science for general audiences",
+        "Address common misconceptions about GMOs with evidence-based responses",
+        "Clarify the roles of REMA and RICA in registering and approving biotech products",
+        "Harmonize messaging across institutions and stakeholders",
       ],
-      sessions: [],
-      collaboration: [],
-      quote: "",
-      quoteSource: "",
+      sessions: [
+        {
+          name: "Communication Facilitators",
+          role: "Communication & Advocacy of Biotech Crops",
+          summary:
+            "Addressed the frequently asked question \"Are GMOs safe?\", framing GMOs as a technology rather than a single product, with current evidence supporting its safety.",
+        },
+        {
+          name: "REMA Representative",
+          role: "Q&A: Regulation & Registration",
+          summary:
+            "Explained REMA's role supporting registration processes and acting as a custodian regulatory body for biotech products.",
+        },
+        {
+          name: "RICA Representative",
+          role: "Q&A: Consumer Evaluation",
+          summary:
+            "Outlined RICA's role conducting consumer evaluations and approving and monitoring compliance requirements.",
+        },
+        {
+          name: "Stakeholder Panel",
+          role: "Stakeholder Discussions",
+          summary:
+            "Representatives across Rwanda's four focal biotech crops discussed harmonizing communication approaches and strengthening science-communication skills nationally.",
+        },
+      ],
+      collaboration: [
+        "Coordinated cross-institution messaging",
+        "Public engagement campaigns",
+        "Science communication skills training",
+        "Continued REMA/RICA stakeholder dialogue",
+      ],
+      quote:
+        "Trust is built not only through scientific evidence but also through clear, consistent, and responsible communication.",
+      quoteSource: "Workshop Communication & Advocacy Session",
     },
   },
 ];
 
-type Project = typeof ecoProjects[number];
-
-// ── Modal ───────────────────────────────────────────────────────────
-function ProjectModal({ project, onClose }: { project: Project; onClose: () => void }) {
-  const m = project.modal;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-8"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-3xl max-w-3xl w-full max-h-[88vh] overflow-y-auto shadow-2xl relative"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-5 right-5 z-10 w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center text-[#1a3a5c] font-bold shadow-md"
-          aria-label="Close"
-        >
-          ✕
-        </button>
-
-        {/* Header image */}
-        <div className="h-56 relative">
-          <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-[#1a3a5c]/55"></div>
-          <div className="absolute top-5 left-5 bg-white/90 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-[#e8185e]">
-            {project.tag}
-          </div>
-          <div className="absolute bottom-5 left-6 right-6">
-            <h2 className="text-3xl font-serif font-bold italic text-white drop-shadow-lg">
-              {project.title}
-            </h2>
-            {m.date && (
-              <p className="text-white/80 text-xs uppercase tracking-widest font-semibold mt-1">
-                {m.date}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="p-8 space-y-8">
-          {/* Organizer / partners */}
-          {(m.organizer || m.partners) && (
-            <div className="grid md:grid-cols-2 gap-4 bg-slate-50 rounded-2xl p-5">
-              {m.organizer && (
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#e8185e] mb-1">
-                    Organized by
-                  </p>
-                  <p className="text-[#1a3a5c] font-semibold text-sm">{m.organizer}</p>
-                </div>
-              )}
-              {m.partners && (
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[#e8185e] mb-1">
-                    Partners
-                  </p>
-                  <p className="text-[#1a3a5c] font-semibold text-sm">{m.partners}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Intro */}
-          <p className="text-gray-600 leading-relaxed">{m.intro}</p>
-
-          {/* Objectives */}
-          {m.objectives.length > 0 && (
-            <div>
-              <p className="text-[#e8185e] font-bold uppercase tracking-widest text-xs mb-3">
-                Objectives
-              </p>
-              <ul className="space-y-2">
-                {m.objectives.map((o, i) => (
-                  <li key={i} className="flex items-start gap-3 text-[#1a3a5c] text-sm font-medium">
-                    <span className="w-1.5 h-1.5 mt-1.5 rounded-full bg-[#e8185e] flex-shrink-0"></span>
-                    {o}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Sessions / speakers */}
-          {m.sessions.length > 0 && (
-            <div>
-              <p className="text-[#e8185e] font-bold uppercase tracking-widest text-xs mb-4">
-                Sessions & Speakers
-              </p>
-              <div className="grid md:grid-cols-2 gap-4">
-                {m.sessions.map((s, i) => (
-                  <div key={i} className="border border-slate-100 rounded-2xl p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[#e8185e] mb-1">
-                      {s.role}
-                    </p>
-                    <p className="text-[#1a3a5c] font-bold text-sm mb-1">{s.name}</p>
-                    <p className="text-gray-500 text-xs leading-relaxed">{s.summary}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Collaboration tags */}
-          {m.collaboration.length > 0 && (
-            <div>
-              <p className="text-[#e8185e] font-bold uppercase tracking-widest text-xs mb-3">
-                Collaboration Opportunities
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {m.collaboration.map((c, i) => (
-                  <span
-                    key={i}
-                    className="bg-[#1a3a5c] text-white text-xs font-semibold px-3 py-1.5 rounded-full"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Quote */}
-          {m.quote && (
-            <div className="bg-[#1a3a5c] rounded-2xl p-6 text-center">
-              <p className="text-white font-serif italic text-lg leading-relaxed mb-3">
-                "{m.quote}"
-              </p>
-              <p className="text-white/50 text-[10px] uppercase tracking-widest font-semibold">
-                {m.quoteSource}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Page ─────────────────────────────────────────────────────────────
 export default function EnvironmentPage() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+
+  // If a project is selected, render its detail page instead
+  if (activeProject) {
+    return (
+      <ProjectDetailPage
+        project={activeProject}
+        onBack={() => setActiveProject(null)}
+      />
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen font-sans">
@@ -275,7 +208,7 @@ export default function EnvironmentPage() {
       <section className="relative h-[500px] flex items-center justify-center text-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="/image/image-02.jpg"
+            src="/image/2R0A9989.jpg"
             alt="BioCap Environment"
             className="w-full h-full object-cover"
           />
@@ -300,7 +233,7 @@ export default function EnvironmentPage() {
       <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
         <div className="relative">
           <div className="rounded-3xl overflow-hidden shadow-2xl h-[450px]">
-             <img src="/image/image-06.jpg" className="w-full h-full object-cover" alt="Sustainable Farming" />
+            <img src="/image/IMG_101.jpg" className="w-full h-full object-cover" alt="Sustainable Farming" />
           </div>
           <div className="absolute bottom-[-20px] right-[-20px] bg-[#e8185e] text-white p-8 rounded-2xl shadow-xl max-w-[280px]">
             <p className="font-bold italic text-lg leading-snug">"Changing how we grow food and take care of our environment."</p>
@@ -309,8 +242,8 @@ export default function EnvironmentPage() {
 
         <div className="space-y-8">
           <div className="flex items-center gap-3">
-             <div className="w-12 h-[2px] bg-[#e8185e]"></div>
-             <span className="text-[#e8185e] font-bold uppercase tracking-widest text-xs">Our Commitment & Stewardship Activities</span>
+            <div className="w-12 h-[2px] bg-[#e8185e]"></div>
+            <span className="text-[#e8185e] font-bold uppercase tracking-widest text-xs">Our Commitment & Stewardship Activities</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-serif text-[#1a3a5c] font-bold leading-tight">
             Sustainable Agriculture for <span className="italic text-[#e8185e]">Rwanda.</span>
@@ -335,8 +268,8 @@ export default function EnvironmentPage() {
             {ecoProjects.map((p, i) => (
               <div key={i} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
                 <div className="h-64 overflow-hidden relative">
-                   <img src={p.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.title} />
-                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black uppercase text-[#e8185e]">{p.tag}</div>
+                  <img src={p.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.title} />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black uppercase text-[#e8185e]">{p.tag}</div>
                 </div>
                 <div className="p-8">
                   <h3 className="text-xl font-bold text-[#1a3a5c] mb-3">{p.title}</h3>
@@ -377,10 +310,6 @@ export default function EnvironmentPage() {
       </section>
 
       <Footer />
-
-      {activeProject && (
-        <ProjectModal project={activeProject} onClose={() => setActiveProject(null)} />
-      )}
     </div>
   );
 }
