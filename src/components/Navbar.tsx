@@ -12,7 +12,7 @@ const navLinks = [
   // { href: '/Milestones',     label: 'Milestones'       },
   { href: '/Stewardship-News',  label: 'Stewardship News' },
   { href: '/Gallery',           label: 'Gallery'          },
-  // { href: '/Resource',          label: 'Resource'         },
+  { href: '/Resource',          label: 'Resource'         },
 ];
 
 export default function Navbar() {

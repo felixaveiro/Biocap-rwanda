@@ -15,7 +15,7 @@ const QUICK_LINKS = [
   { label: 'Biotechnology', href: '/Biotech'     },
   { label: 'Stewardship News',   href: '/Stewardship-News' },
   { label: 'Gallery',      href: '/Gallery'      },
-  // { label: 'Resource',      href: '/Resource'    },
+  { label: 'Resource',      href: '/Resource'    },
   { label: 'Dashboard',      href: '/auth/login'    },
 
   

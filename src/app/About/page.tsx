@@ -845,10 +845,10 @@ export default function AboutPage() {
                 <span className="obj-vg-card-title">Our Vision</span>
               </div>
               <p>
-                To catalyze sustainable agricultural development in Rwanda through the
-                safe and strategic deployment of biotech crops that meet local needs
-                and global standards positioning Rwanda as a leader in African
-                agri-biotech innovation.
+                A Rwanda where a nationally recognized Centre of Excellence in Crop Biotechnology
+                 drives responsible scientific innovation, 
+                delivering climate-resilient, farmer-preferred crop varieties that improve food security,
+                 farmer prosperity, and environmental sustainability across Africa.
               </p>
             </div>
 
@@ -859,15 +859,14 @@ export default function AboutPage() {
                 </div>
                 <span className="obj-vg-card-title">Our Goal</span>
               </div>
-              <p style={{ marginBottom: '0.5rem' }}>
-                By 2029, BioCap aims to achieve regulatory approval, release, initial
-                commercialization, and improved awareness of:
-              </p>
-              <ul>
-                <li>Cassava varieties resistant to brown streak virus</li>
-                <li>Potato varieties resistant to late blight</li>
-                <li>Maize varieties resistant to drought, stem borer, and fall armyworm</li>
-              </ul>
+             <p style={{ marginBottom: '0.5rem' }}>
+  By 2029, BioCap will establish Rwanda's Centre of Excellence in Crop
+  Biotechnology as a regional hub for research, biosafety, and innovation,
+  with the scientific, regulatory, and institutional capacity to develop,
+  evaluate, and advance the deployment of biotechnology-enhanced potato,
+  cassava, and banana varieties that address Rwanda's most pressing
+  agricultural challenges.
+</p>
             </div>
 
           </div>
