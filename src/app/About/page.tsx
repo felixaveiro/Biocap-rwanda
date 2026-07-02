@@ -140,14 +140,24 @@ export default function AboutPage() {
 
   const quotes = [
     {
-      text: 'A new chapter for Rwanda"s agricultural innovation ecosystem.',
-      name: 'Dr. Patrick Karangwa',
-      role: 'Director of Agriculture Modernization, MINAGRI',
+      text: 'Today’s launch is for the people of Rwanda. It is about ensuring that our farmers have access to better, safer, and more resilient crops, and that our families can rely on food that is sufficient, nutritious, and affordable. By strengthening national capacity in agricultural biotechnology, this initiative places science in the service of the public good supporting livelihoods, protecting the environment, and building a more food-secure future for Rwanda',
+      name: 'Dr. Solange Uwituze',
+      role: 'Minister of State, Ministry of Agriculture and Animal Resources',
     },
     {
-      text: 'Cements Rwanda"s position as a regional leader in science-driven agriculture.',
-      name: 'Pacifique Nshimiyimana',
-      role: 'Country Director, Alliance for Science Rwanda',
+      text: 'affirmed that the launch reflects the depth and continuity of Rwanda’s long-standing partnership with international agricultural research. He recalled that CIP’s collaboration with Rwanda began in 1978, when the center was invited to support the National Potato Improvement Program. Over the past 47 years, this collaboration has evolved into a trusted alliance involving Rwandan scientists, research institutions, universities, enterprises, and farmers, formalized through a Host Country Agreement signed in 2015. He described Rwanda as a regional and increasingly global leader in science, innovation, and biotechnology, noting that BioCap exemplifies the country’s commitment to nationally led, responsibly governed biotechnology systems that deliver tangible benefits for farmers, the environment, and regional food systems.',
+      name: 'Dr. Simon Heck',
+      role: 'Director General of CIP',
+    },
+    {
+      text: 'By reducing dependence on fungicides, stabilizing yields, and strengthening value chains, the project is expected to lower production costs, increase farmer incomes, and enhance Rwanda’s competitiveness in regional markets. Reduced chemical use will also deliver environmental benefits, including cleaner soils and waterways, lower greenhouse gas emissions, and stronger biodiversity conservation outcomes closely aligned with Rwanda’s national climate adaptation goals.',
+      name: ' Dr. Eric Magembe',
+      role: 'BioCap Project Lead',
+    },
+     {
+      text: 'BioCap represents a new kind of agricultural revolution one that boosts yields, cuts losses and pesticide use, strengthens competitiveness, and raises farmer incomes through science-driven solutions,”',
+      name: ' Dr. Hugo Campos',
+      role: 'Deputy Director General, CIP',
     },
   ];
 
