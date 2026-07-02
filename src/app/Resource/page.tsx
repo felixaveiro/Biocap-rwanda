@@ -110,7 +110,7 @@ const newsItems: NewsItem[] = [
     title: 'BioCap Communication Induction & Stakeholder Consultation Workshop',
     excerpt:
       'A two-day workshop brought RAB, CIP, and international BioCap partners together to align on the 2026 work plan and co-develop Rwanda\'s Crop Biotechnology Communication Strategy.',
-    image: '/image/Communication-Induction.jpg',
+    image: '/image/Communication-induction.jpg',
     accent: '#E8185A',
     accentBg: '#fde8ef',
     intro:
