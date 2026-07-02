@@ -16,14 +16,14 @@ import {
   Clock,
   Microscope,
   Sprout,
+  ChevronRight,
 } from 'lucide-react';
 
-// ─── BioCap Brand Colors ───────────────────────────────────────────
-// Pink/Magenta : #E8185A  (from "Bio" wordmark + DNA strand)
-// Navy         : #1E4D6B  (from "Cap" wordmark + farm)
-// Purple       : #7B3FA0  (upper DNA helix)
-// Teal         : #2A7F8C  (molecular structure nodes)
-// Light bg     : #F7F4FB
+// ─── BioCap Brand Colors (shared with About / Environment pages) ──
+// Navy   : #1B3A5C
+// Pink   : #E8185A
+// Purple : #7B3FA0
+// Teal   : #2A7F8C
 // ──────────────────────────────────────────────────────────────────
 
 type CropKey = 'cassava' | 'potato' | 'banana';
@@ -82,7 +82,7 @@ const CROPS: CropData[] = [
     label: 'Biotech Potato',
     image: '/image/potato.png',
     Icon: CircleDot,
-    color: '#1E4D6B',
+    color: '#1B3A5C',
     colorLight: '#e2edf4',
     status: 'approved',
     statusLabel: 'REMA 2025',
@@ -163,11 +163,7 @@ function CropMark({
       <img
         src={crop.image}
         alt={crop.label}
-        style={{
-          width: size,
-          height: size,
-          objectFit: 'contain',
-        }}
+        style={{ width: size, height: size, objectFit: 'contain' }}
       />
     );
   }
@@ -188,20 +184,12 @@ function CropTab({
   return (
     <button
       onClick={onClick}
+      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-200"
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px',
-        padding: '8px 22px',
-        borderRadius: '999px',
         border: `2px solid ${crop.color}`,
         background: active ? crop.color : 'transparent',
         color: active ? '#fff' : crop.color,
-        fontFamily: 'inherit',
-        fontSize: '0.875rem',
-        fontWeight: 600,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        boxShadow: active ? `0 8px 24px ${crop.color}40` : 'none',
       }}
     >
       <CropMark crop={crop} size={16} iconColor={active ? '#fff' : crop.color} />
@@ -214,47 +202,32 @@ function InfoCard({
   title,
   body,
   color,
+  colorLight,
   SectionIcon,
 }: {
   title: string;
   body: string;
   color: string;
+  colorLight: string;
   SectionIcon: React.ElementType;
 }) {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid #e8e4f0',
-        borderRadius: '10px',
-        padding: '1.1rem 1.25rem',
-      }}
-    >
-      <p
-        style={{
-          margin: '0 0 0.5rem',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          letterSpacing: '0.5px',
-          color,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}
-      >
-        <SectionIcon size={14} aria-hidden="true" />
-        {title}
-      </p>
-      <p
-        style={{
-          margin: 0,
-          fontSize: '0.85rem',
-          color: '#444',
-          lineHeight: 1.6,
-          textAlign: 'justify',
-        }}
-      >
+    <div className="bc-card bg-white rounded-2xl border border-slate-100 p-5 h-full">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: colorLight, color }}
+        >
+          <SectionIcon size={15} aria-hidden="true" />
+        </div>
+        <p
+          className="m-0 text-[0.72rem] font-bold uppercase tracking-wider"
+          style={{ color }}
+        >
+          {title}
+        </p>
+      </div>
+      <p className="m-0 text-[0.88rem] text-slate-500 leading-relaxed text-justify">
         {body}
       </p>
     </div>
@@ -263,186 +236,69 @@ function InfoCard({
 
 function CropPanel({ crop }: { crop: CropData }) {
   return (
-    <div>
+    <div className="max-w-6xl mx-auto px-4 lg:px-6">
       {/* Header banner */}
       <div
-        style={{
-          margin: '1rem 1rem 0',
-          borderRadius: '10px',
-          padding: '1.25rem 1.5rem',
-          background: crop.color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-        }}
+        className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg"
+        style={{ background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div
-            style={{
-              width: 46,
-              height: 46,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }}
-          >
-            <CropMark crop={crop} size={crop.image ? 30 : 22} />
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <CropMark crop={crop} size={crop.image ? 34 : 24} />
           </div>
           <div>
-            <p
-              style={{
-                margin: 0,
-                fontFamily: 'Georgia, serif',
-                color: '#fff',
-                fontSize: '1.15rem',
-                fontWeight: 700,
-              }}
-            >
-              {crop.label}
-            </p>
-            <p
-              style={{
-                margin: '2px 0 0',
-                color: 'rgba(255,255,255,0.8)',
-                fontSize: '0.78rem',
-              }}
-            >
-              {crop.subtitle}
-            </p>
+            <p className="bc-serif m-0 text-white text-xl font-bold">{crop.label}</p>
+            <p className="m-0 mt-1 text-white/75 text-[0.8rem]">{crop.subtitle}</p>
           </div>
         </div>
 
-        {/* Status badge */}
         {crop.status === 'approved' ? (
-          <div style={{ textAlign: 'right' }}>
-            <span
-              style={{
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '1rem',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-            >
+          <div className="text-right">
+            <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
               <CheckCircle size={16} aria-hidden="true" /> Approved
             </span>
-            <span
-              style={{
-                display: 'block',
-                color: 'rgba(255,255,255,0.7)',
-                fontSize: '0.7rem',
-              }}
-            >
-              {crop.statusLabel}
-            </span>
+            <span className="block text-white/70 text-[0.7rem]">{crop.statusLabel}</span>
           </div>
         ) : (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'rgba(255,255,255,0.18)',
-              border: '1px solid rgba(255,255,255,0.4)',
-              borderRadius: '999px',
-              padding: '4px 12px',
-              fontSize: '0.72rem',
-              color: '#fff',
-              fontWeight: 600,
-            }}
-          >
+          <span className="inline-flex items-center gap-1.5 bg-white/20 border border-white/40 rounded-full px-3.5 py-1.5 text-[0.72rem] text-white font-semibold">
             <Clock size={13} aria-hidden="true" /> {crop.statusLabel}
           </span>
         )}
       </div>
 
-      {/* 2-col info grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '0.75rem',
-          margin: '0.75rem 1rem',
-        }}
-      >
+      {/* Info grid */}
+      <div className="grid gap-4 my-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
         {crop.sections.map((s) => (
-          <InfoCard key={s.title} title={s.title} body={s.body} color={crop.color} SectionIcon={s.SectionIcon} />
+          <InfoCard
+            key={s.title}
+            title={s.title}
+            body={s.body}
+            color={crop.color}
+            colorLight={crop.colorLight}
+            SectionIcon={s.SectionIcon}
+          />
         ))}
       </div>
 
       {/* Documents */}
-      <div
-        style={{
-          margin: '0 1rem 1rem',
-          background: '#fff',
-          border: '1px solid #e8e4f0',
-          borderRadius: '10px',
-          padding: '1rem 1.25rem',
-        }}
-      >
-        <p
-          style={{
-            margin: '0 0 0.75rem',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            color: '#333',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-          }}
-        >
-          <FileText size={14} aria-hidden="true" /> {crop.label} Documents{' '}
+      <div className="bc-card bg-white rounded-2xl border border-slate-100 p-5 mb-10">
+        <p className="m-0 mb-3 text-[0.85rem] font-bold text-[#1B3A5C] flex items-center gap-2">
+          <FileText size={15} aria-hidden="true" /> {crop.label} Documents
           <span
-            style={{
-              background: crop.color,
-              color: '#fff',
-              borderRadius: '999px',
-              padding: '1px 8px',
-              fontSize: '0.7rem',
-            }}
+            className="rounded-full text-white text-[0.7rem] px-2.5 py-0.5"
+            style={{ background: crop.color }}
           >
             1
           </span>
         </p>
-        <div
-          style={{
-            background: '#f7f4fb',
-            borderRadius: 6,
-            padding: '0.7rem 0.9rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div className="bg-[#f7f6f4] rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: '#333' }}>
-              {crop.docName}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.72rem', color: '#888' }}>{crop.docName}</p>
+            <p className="m-0 text-[0.82rem] font-semibold text-[#1B3A5C]">{crop.docName}</p>
+            <p className="m-0 text-[0.72rem] text-slate-400">{crop.docName}</p>
           </div>
           <button
-            style={{
-              padding: '6px 14px',
-              borderRadius: 6,
-              background: crop.color,
-              color: '#fff',
-              border: 'none',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              whiteSpace: 'nowrap',
-            }}
+            className="flex items-center gap-1.5 rounded-lg text-white text-[0.78rem] font-bold px-4 py-2 whitespace-nowrap transition-transform hover:-translate-y-0.5"
+            style={{ background: crop.color, boxShadow: `0 6px 18px ${crop.color}45` }}
           >
             <Download size={13} aria-hidden="true" /> Download PDF
           </button>
@@ -459,73 +315,75 @@ export default function BiotechCropsPage() {
   const activeCrop = CROPS.find((c) => c.key === active)!;
 
   return (
-    <div
-      style={{
-        fontFamily: "'Source Sans 3', 'Segoe UI', sans-serif",
-        background: '#F7F4FB',
-        minHeight: '100vh',
-      }}
-    >
-      {/* Hero */}
-      <section
-        style={{
-          background: '#1E4D6B',
-          padding: '2.5rem 2rem 2rem',
-          textAlign: 'center',
-        }}
-      >
-        <p
-          style={{
-            color: '#2A7F8C',
-            fontSize: '11px',
-            letterSpacing: '3px',
-            textTransform: 'uppercase',
-            margin: '0 0 0.75rem',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-          }}
-        >
-          Home <Sprout size={11} aria-hidden="true" /> Biotech Crops
-        </p>
-        <h1
-          style={{
-            fontFamily: 'Georgia, serif',
-            color: '#fff',
-            fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
-            fontWeight: 700,
-            margin: '0 0 0.5rem',
-          }}
-        >
-          Three Food Security Crops in Pipeline
-        </h1>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', margin: 0 }}>
-          {/* Cassava, Potato &amp; Banana — REMA-approved environmental release, September 2025 */}
-        </p>
-      </section>
+    <div className="bg-white min-h-screen font-sans">
+      {/* Shared type system + hero pattern with About / Environment pages */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-      {/* Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '0.75rem',
-          padding: '1.5rem 1rem 0',
-          flexWrap: 'wrap',
-        }}
-      >
-        {CROPS.map((crop) => (
-          <CropTab
-            key={crop.key}
-            crop={crop}
-            active={active === crop.key}
-            onClick={() => setActive(crop.key)}
-          />
-        ))}
+        .bc-page { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; color: #334155; }
+        .bc-serif { font-family: 'DM Serif Display', Georgia, serif; }
+
+        .bc-card {
+          transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
+        }
+        .bc-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 12px 32px rgba(27,58,92,0.10);
+        }
+      `}</style>
+
+      <div className="bc-page">
+        {/* ── HERO ── */}
+        <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/image/LABDY3_1.jpg"
+              alt="BioCap Biotech Crops"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
+          </div>
+
+          <div className="relative z-20 max-w-4xl py-10">
+            <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
+              Rwanda Biotech Capacity Building Project
+            </p>
+            <h1 className="bc-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
+              Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
+            </h1>
+            <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
+              Cassava, potato &amp; banana — advancing through Rwanda's national biotechnology
+              pipeline with REMA-approved environmental releases and active field trials.
+            </p>
+          </div>
+
+          <div className="absolute bottom-[-1px] left-0 w-full z-30 leading-[0]">
+            <svg className="relative block w-full h-[40px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path
+                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z"
+                fill="#f7f6f4"
+              />
+            </svg>
+          </div>
+        </section>
+
+        {/* ── TABS + PANEL ── */}
+        <section className="bg-[#f7f6f4] pt-10 pb-14">
+          <div className="flex justify-center gap-3 px-4 flex-wrap mb-8">
+            {CROPS.map((crop) => (
+              <CropTab
+                key={crop.key}
+                crop={crop}
+                active={active === crop.key}
+                onClick={() => setActive(crop.key)}
+              />
+            ))}
+          </div>
+
+          <CropPanel crop={activeCrop} />
+        </section>
       </div>
 
-      {/* Active crop panel */}
-      <CropPanel crop={activeCrop} />
       <Footer />
     </div>
   );

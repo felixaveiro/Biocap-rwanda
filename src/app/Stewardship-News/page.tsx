@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
+import { Sprout, ShieldCheck, Megaphone } from 'lucide-react';
 
 // ── Project data ────────────────────────────────────────────────────
 const ecoProjects: Project[] = [
@@ -187,6 +188,14 @@ const ecoProjects: Project[] = [
   },
 ];
 
+// Visual accents per card — kept separate from the Project type on purpose,
+// so this file doesn't require editing ProjectDetailPage.tsx's Project shape.
+const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
+  "DNA Week": { icon: Sprout, accent: "#2A7F8C", accentBg: "#e6f4f6" },
+  "Risk Assessment & Stewardship": { icon: ShieldCheck, accent: "#7B3FA0", accentBg: "#f3e8f9" },
+  "Communication & Advocacy": { icon: Megaphone, accent: "#E8185A", accentBg: "#fde8ef" },
+};
+
 // ── Page ─────────────────────────────────────────────────────────────
 export default function EnvironmentPage() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -203,111 +212,205 @@ export default function EnvironmentPage() {
 
   return (
     <div className="bg-white min-h-screen font-sans">
+      {/* Shared type system with the About page */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-      {/* ── HERO SECTION ── */}
-      <section className="relative h-[500px] flex items-center justify-center text-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/image/IMG_149.jpg"
-            alt="BioCap Environment"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-[#1a3a5c]/65"></div>
-        </div>
+        .env-page { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; color: #334155; }
+        .env-serif { font-family: 'DM Serif Display', Georgia, serif; }
 
-        <div className="relative z-10 text-white px-6">
-          <p className="text-xs font-bold tracking-[5px] uppercase mb-4 text-[#e8185e]">Nature & Science</p>
-          <h1 className="text-5xl md:text-7xl font-serif font-bold italic leading-tight drop-shadow-lg">
-            Protecting Our <br/> Environment
-          </h1>
-        </div>
+        .env-dots {
+          position: absolute;
+          inset: 0;
+          background-image: radial-gradient(rgba(255,255,255,0.07) 1px, transparent 1px);
+          background-size: 28px 28px;
+          pointer-events: none;
+        }
 
-        <div className="absolute bottom-[-1px] left-0 w-full z-20 leading-[0]">
-          <svg className="relative block w-full h-[60px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
-            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z" fill="#ffffff"></path>
-          </svg>
-        </div>
-      </section>
+        .env-card {
+          background: #ffffff;
+          border: 1.5px solid #e2e8f3;
+          border-radius: 24px;
+          overflow: hidden;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.28s, border-color 0.28s;
+        }
+        .env-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0;
+          width: 100%; height: 3px;
+          background: linear-gradient(90deg, #1B3A5C, #E8185A);
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+          z-index: 10;
+        }
+        .env-card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 16px 44px rgba(27,58,92,0.14);
+          border-color: transparent;
+        }
+        .env-card:hover::before { transform: scaleX(1); }
 
-      {/* ── CORE CONTENT ── */}
-      <section className="py-24 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
-        <div className="relative">
-          <div className="rounded-3xl overflow-hidden shadow-2xl h-[450px]">
-            <img src="/image/IMG_101.jpg" className="w-full h-full object-cover" alt="Sustainable Farming" />
+        .env-card-icon {
+          width: 44px; height: 44px;
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 0.85rem;
+          flex-shrink: 0;
+          transition: transform 0.25s;
+        }
+        .env-card:hover .env-card-icon { transform: scale(1.08) rotate(-4deg); }
+      `}</style>
+
+      <div className="env-page">
+        {/* ── HERO SECTION ── */}
+        <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/image/IMG_149.jpg"
+              alt="BioCap Environment"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
           </div>
-          <div className="absolute bottom-[-20px] right-[-20px] bg-[#e8185e] text-white p-8 rounded-2xl shadow-xl max-w-[280px]">
-            <p className="font-bold italic text-lg leading-snug">"Changing how we grow food and take care of our environment."</p>
-          </div>
-        </div>
 
-        <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-[2px] bg-[#e8185e]"></div>
-            <span className="text-[#e8185e] font-bold uppercase tracking-widest text-xs">Our Commitment & Stewardship Activities</span>
-          </div>
-          <h2 className="text-4xl md:text-5xl font-serif text-[#1a3a5c] font-bold leading-tight">
-            Sustainable Agriculture for <span className="italic text-[#e8185e]">Rwanda.</span>
-          </h2>
-          <p className="text-gray-500 text-lg leading-relaxed">
-            Stronger crops can reduce the need for too many chemicals, and better seeds can
-            grow well even in tough conditions. This supports sustainable agriculture and
-            helps us use our land more wisely.
-          </p>
-        </div>
-      </section>
-
-      {/* ── PROJECT GRID ── */}
-      <section className="py-24 bg-slate-50 px-6 lg:px-12">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16 space-y-4">
-            <h2 className="text-4xl font-serif font-bold text-[#1a3a5c]">Biotech Stewardship News</h2>
-            <div className="w-20 h-1 bg-[#e8185e] mx-auto"></div>
+          <div className="relative z-20 max-w-4xl py-10">
+            <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
+              Nature &amp; Science
+            </p>
+            <h1 className="env-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
+              Infrastructure  <span className="text-[#E8185A]">development</span>
+            </h1>
+            <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
+              BioCap Project emphasizes human capacity development, 
+              regulatory strengthening, and stewardship, 
+              ensuring that innovations move efficiently and safely
+               from the laboratory to farmers’ fields.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {ecoProjects.map((p, i) => (
-              <div key={i} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
-                <div className="h-64 overflow-hidden relative">
-                  <img src={p.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.title} />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black uppercase text-[#e8185e]">{p.tag}</div>
-                </div>
-                <div className="p-8">
-                  <h3 className="text-xl font-bold text-[#1a3a5c] mb-3">{p.title}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed mb-5 line-clamp-4">
-                    {p.excerpt}
-                  </p>
-                  <button
-                    onClick={() => setActiveProject(p)}
-                    className="text-[#e8185e] font-bold text-xs uppercase tracking-widest hover:gap-3 flex items-center gap-2 transition-all"
-                  >
-                    Learn More <span>→</span>
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="absolute bottom-[-1px] left-0 w-full z-30 leading-[0]">
+            <svg className="relative block w-full h-[40px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
+              <path
+                d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z"
+                fill="#ffffff"
+              />
+            </svg>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── TESTIMONIAL ── */}
-      <section className="py-24 bg-[#1a3a5c] text-white text-center px-6 overflow-hidden relative">
-        <div className="absolute opacity-5 right-[-50px] top-0">
-          <svg width="400" height="400" viewBox="0 0 24 24" fill="white"><path d="M12 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        </div>
-        <div className="max-w-3xl mx-auto relative z-10">
-          <div className="text-4xl mb-8">"</div>
-          <p className="text-2xl md:text-3xl font-serif italic leading-relaxed mb-10">
-            Science is the best tool we have to protect our hills and valleys while ensuring no Rwandan goes hungry.
-          </p>
-          <div className="flex items-center justify-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-[#e8185e] flex items-center justify-center font-bold">BC</div>
-            <div className="text-left">
-              <p className="font-bold text-sm">BioCap Research Team</p>
-              <p className="text-white/50 text-[10px] uppercase tracking-widest">Kigali, Rwanda</p>
+        {/* ── CORE CONTENT ── */}
+        <section className="py-16 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center bg-white">
+          <div className="relative">
+            <div className="bg-[#1B3A5C] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl">
+              <img src="/image/IMG_101.jpg" className="w-full h-full object-cover" alt="Sustainable Farming" />
+            </div>
+            <div className="absolute bottom-[-20px] right-[-20px] bg-white p-6 rounded-2xl shadow-xl max-w-[260px] border border-slate-100">
+              <p className="env-serif italic text-[#1B3A5C] text-lg leading-snug">
+                &ldquo;Changing how we grow food and take care of our environment.&rdquo;
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest">
+              <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Commitment &amp; Stewardship Activities
+            </div>
+            <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] leading-tight">
+              Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
+            </h2>
+            <p className="text-slate-600 text-base leading-relaxed text-justify">
+              Stronger crops can reduce the need for too many chemicals, and better seeds can
+              grow well even in tough conditions. This supports sustainable agriculture and
+              helps us use our land more wisely.
+            </p>
+          </div>
+        </section>
+
+        {/* ── STEWARDSHIP / PROJECT GRID ── */}
+        <section className="py-16 bg-[#f7f6f4] px-6 lg:px-12">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-10">
+              <div className="flex items-center justify-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-3">
+                <div className="w-6 h-[2px] bg-[#E8185A]" /> What We're Building
+                <div className="w-6 h-[2px] bg-[#E8185A]" />
+              </div>
+              <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] mb-3">
+                Biotech Stewardship News
+              </h2>
+              <div className="w-14 h-1 rounded-full mx-auto" style={{ background: 'linear-gradient(90deg, #E8185A, #ff4d8b)' }} />
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 items-stretch">
+              {ecoProjects.map((p, i) => {
+                const style = cardStyles[p.title];
+                const Icon = style?.icon;
+                return (
+                  <div key={i} className="env-card shadow-sm">
+                    <div className="h-56 overflow-hidden relative">
+                      <img
+                        src={p.img}
+                        className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+                        alt={p.title}
+                      />
+                      <div
+                        className="absolute top-4 left-4 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black uppercase"
+                        style={{ background: 'rgba(255,255,255,0.9)', color: style?.accent ?? '#E8185A' }}
+                      >
+                        {p.tag}
+                      </div>
+                    </div>
+                    <div className="p-6 flex flex-col flex-1">
+                      {Icon && (
+                        <div className="env-card-icon" style={{ background: style.accentBg, color: style.accent }}>
+                          <Icon size={22} strokeWidth={1.75} />
+                        </div>
+                      )}
+                      <h3 className="text-lg font-bold text-[#1B3A5C] mb-2">{p.title}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed mb-5 text-justify flex-1">
+                        {p.excerpt}
+                      </p>
+                      <button
+                        onClick={() => setActiveProject(p)}
+                        className="text-[#E8185A] font-bold text-xs uppercase tracking-widest hover:gap-3 flex items-center gap-2 transition-all mt-auto"
+                      >
+                        Learn More <span>→</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* ── TESTIMONIAL ── */}
+        <section className="py-16 px-6 lg:px-12 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f2240 0%, #254a7a 55%, #1e4976 100%)' }}>
+          <div className="env-dots" />
+          <div className="max-w-3xl mx-auto relative z-10 text-center text-white">
+            <svg className="w-8 h-8 mx-auto mb-6 text-[#E8185A]/40" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            <p className="env-serif italic text-2xl md:text-3xl leading-relaxed mb-8 text-justify">
+              Science is the best tool we have to protect our hills and valleys while ensuring no
+              Rwandan goes hungry.
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-[#E8185A] flex items-center justify-center font-bold text-sm">
+                BC
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm">BioCap Research Team</p>
+                <p className="text-white/50 text-[10px] uppercase tracking-widest">Kigali, Rwanda</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
 
       <Footer />
     </div>
