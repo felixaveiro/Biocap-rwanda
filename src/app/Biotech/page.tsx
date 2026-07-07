@@ -52,7 +52,7 @@ const CROPS: CropData[] = [
     colorLight: '#fde8ef',
     status: 'approved',
     statusLabel: 'REMA 2025',
-    subtitle: '4 information sections · REMA environmental release approved September 2025',
+    subtitle: '6 Virus-Resistant cassava varieties, under sister project "RABP-CMP" received environmental release ',
     sections: [
       {
         title: 'Molecular Marker Training',
@@ -86,7 +86,7 @@ const CROPS: CropData[] = [
     colorLight: '#e2edf4',
     status: 'approved',
     statusLabel: 'REMA 2025',
-    subtitle: '4 information sections · REMA environmental release approved September 2025',
+    subtitle: '2 Biotech Potato varieties (Victoria & Ndamira), under sister project "RABP-CMP" received environmental release ',
     sections: [
       {
         title: 'Training & Transformation Pipeline',
@@ -120,7 +120,7 @@ const CROPS: CropData[] = [
     colorLight: '#f3eaf8',
     status: 'trials',
     statusLabel: 'In Trials',
-    subtitle: '4 information sections · Under confined field trial evaluation',
+    subtitle: 'With Rwanda BioCap Project, RAB and partners are using gene editing to develop disease-resistant Injagi and Kamara varieties.',
     sections: [
       {
         title: 'Gene Editing Training Pipeline',
@@ -350,6 +350,9 @@ export default function BiotechCropsPage() {
             </p>
             <h1 className="bc-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
               Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
+            </h1>
+             <h1 className="bc-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
+              Under RAB' <span className="text-[#E8185A]">Center of Excellence in </span>Crop Biotechnology
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
               Cassava, potato &amp; banana — advancing through Rwanda's national biotechnology

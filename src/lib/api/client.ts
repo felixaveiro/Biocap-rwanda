@@ -19,7 +19,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
   /** Set true for endpoints that require the Bearer token (most non-public routes). */
   auth?: boolean;
@@ -36,7 +36,6 @@ export async function apiRequest<T>(
   const { method = "GET", body, auth = false } = options;
 
   if (!BASE_URL) {
-    // Fails loudly and early instead of a confusing "Failed to fetch" later.
     throw new ApiError(
       "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
       500
@@ -62,6 +61,72 @@ export async function apiRequest<T>(
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new ApiError(
+      "Could not reach the server. Check your connection.",
+      0
+    );
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+  const data = isJson ? await response.json().catch(() => null) : null;
+
+  if (!response.ok) {
+    const message =
+      (data && (data.message || data.error)) ||
+      `Request failed with status ${response.status}`;
+    throw new ApiError(message, response.status);
+  }
+
+  return data as T;
+}
+
+interface FormRequestOptions {
+  method?: "POST" | "PUT";
+  formData: FormData;
+  auth?: boolean;
+}
+
+/**
+ * Like apiRequest, but for multipart/form-data endpoints (file uploads).
+ * Used by blog create/update, which require an actual image file plus
+ * a JSON-stringified "modal" field — matches the backend's uploadBlogFiles
+ * + parseBlogBody middleware exactly.
+ */
+export async function apiFormRequest<T>(
+  path: string,
+  options: FormRequestOptions
+): Promise<T> {
+  const { method = "POST", formData, auth = true } = options;
+
+  if (!BASE_URL) {
+    throw new ApiError(
+      "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
+      500
+    );
+  }
+
+  const headers: Record<string, string> = {};
+  // Deliberately no Content-Type here — the browser sets the correct
+  // multipart boundary automatically when you pass a FormData body.
+
+  if (auth) {
+    const token = authCookies.getToken();
+    if (!token) {
+      throw new ApiError("You must be logged in to do this.", 401);
+    }
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: formData,
     });
   } catch {
     throw new ApiError(

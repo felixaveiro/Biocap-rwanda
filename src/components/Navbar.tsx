@@ -12,7 +12,7 @@ const navLinks = [
   // { href: '/Milestones',     label: 'Milestones'       },
   { href: '/Stewardship-News',  label: 'Stewardship News' },
   { href: '/Gallery',           label: 'Gallery'          },
-  { href: '/Resource',          label: 'Resource'         },
+  { href: '/Resource',          label: 'Resource & Activities'         },
 ];
 
 export default function Navbar() {
@@ -105,7 +105,7 @@ export default function Navbar() {
         .bc-link-item a {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
-          font-size: 0.78rem;
+          font-size: 0.75rem;
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -235,7 +235,7 @@ export default function Navbar() {
               />
             </div>
             <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">
-              Rwanda Biotech Capacity <br />(BIOCAP) Building Project
+              Rwanda Biotech Capacity <br />Building (BioCap) Project
             </span>
           </Link>
 

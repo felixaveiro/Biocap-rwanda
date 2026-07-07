@@ -39,7 +39,7 @@ export interface Blog {
 /** Body shape for creating a blog — matches the ProjectModal frontend shape per the API docs. */
 export interface BlogPayload {
   title: string;
-  img: string;
+  img: string;      // ← expects an image URL string
   tag: string;
   modal: BlogModal;
 }

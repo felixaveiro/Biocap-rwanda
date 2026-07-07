@@ -280,16 +280,15 @@ export default function EnvironmentPage() {
 
           <div className="relative z-20 max-w-4xl py-10">
             <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
-              Nature &amp; Science
+              Agriculture  &amp; Science
             </p>
             <h1 className="env-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
               Infrastructure  <span className="text-[#E8185A]">development</span>
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-              BioCap Project emphasizes human capacity development, 
-              regulatory strengthening, and stewardship, 
-              ensuring that innovations move efficiently and safely
-               from the laboratory to farmers’ fields.
+              Rwanda BioCap Project emphasizes on the role of human capacity development, 
+              laboratory infrastructure and stewardship; 
+              to ensure a sustained deployment of innovations in crop biotechnology for farmers’ field productivity and environmental stewardship.
             </p>
           </div>
 
@@ -318,16 +317,19 @@ export default function EnvironmentPage() {
 
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest">
-              <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Commitment &amp; Stewardship Activities
+              <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Commitment &amp; Stewardship Program
             </div>
-            <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] leading-tight">
-              Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
-            </h2>
-            <p className="text-slate-600 text-base leading-relaxed text-justify">
-              Stronger crops can reduce the need for too many chemicals, and better seeds can
-              grow well even in tough conditions. This supports sustainable agriculture and
-              helps us use our land more wisely.
-            </p>
+           <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] leading-tight">
+  A Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
+</h2>
+<p className="text-slate-600 text-base leading-relaxed text-justify">
+  "We don't have time, We need faster and more effective delivery of solutions to our farmers, 
+  and we must establish strong partnership models. This is also the time to communicate science
+  effectively to build trust."
+</p>
+<p className="text-[#1B3A5C] text-sm font-bold mt-1">
+  — Dr. Joyce Maru, <span className="font-normal text-slate-500">Regional Director - CIP</span>
+</p>
           </div>
         </section>
 
