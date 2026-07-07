@@ -266,6 +266,33 @@ function CropPanel({ crop }: { crop: CropData }) {
         )}
       </div>
 
+      {/* Secondary banner — 80% width, mirrors header style with different content */}
+      <div className="flex justify-center">
+        <div
+          className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
+          style={{ width: '80%', background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <FlaskConical size={24} color="#fff" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="bc-serif m-0 text-white text-xl font-bold">Capacity Building Milestone</p>
+              <p className="m-0 mt-1 text-white/75 text-[0.8rem]">
+                RAB scientists complete advanced hands-on training under the {crop.label} component.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
+              <CheckCircle size={16} aria-hidden="true" /> Ongoing
+            </span>
+            <span className="block text-white/70 text-[0.7rem]">2025–2026 Cohort</span>
+          </div>
+        </div>
+      </div>
+
       {/* Info grid */}
       <div className="grid gap-4 my-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
         {crop.sections.map((s) => (
