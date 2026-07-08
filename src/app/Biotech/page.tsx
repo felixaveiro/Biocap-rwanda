@@ -357,16 +357,24 @@ export default function BiotechCropsPage() {
           transform: translateY(-3px);
           box-shadow: 0 12px 32px rgba(27,58,92,0.10);
         }
+
+        @media (max-width: 768px) {
+          .biotech-hero-bg { background-attachment: scroll !important; }
+        }
       `}</style>
 
       <div className="bc-page">
         {/* ── HERO ── */}
         <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
           <div className="absolute inset-0 z-0">
-            <img
-              src="/image/LABDY3_1.jpg"
-              alt="BioCap Biotech Crops"
-              className="w-full h-full object-cover"
+            <div
+              className="biotech-hero-bg w-full h-full"
+              style={{
+                backgroundImage: "url('/image/LABDY3_1.jpg')",
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
           </div>

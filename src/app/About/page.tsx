@@ -230,13 +230,23 @@ export default function AboutPage() {
       {/* ── HERO ── */}
       <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
         <div className="absolute inset-0 z-0">
-          <img
-            src="/image/IMG_79.jpg"
-            alt="BioCap Rwanda Nature"
-            className="w-full h-full object-cover"
+          <div
+            className="about-hero-bg w-full h-full"
+            style={{
+              backgroundImage: "url('/image/IMG_79.jpg')",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundAttachment: 'fixed',
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
         </div>
+
+        <style>{`
+          @media (max-width: 768px) {
+            .about-hero-bg { background-attachment: scroll !important; }
+          }
+        `}</style>
 
         <div className="relative z-20 max-w-4xl py-10">
           <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">

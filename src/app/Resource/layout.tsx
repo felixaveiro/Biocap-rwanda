@@ -1,14 +1,14 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'DNA Week News',
+  title: 'Resource & Activities',
   description:
-    'BIOCAP Rwanda DNA Week news and updates — latest insights on biotechnology, sustainable farming, crop innovation, and agricultural science in Rwanda.',
+    'BIOCAP Rwanda Resource & Activities and updates — latest insights on biotechnology, sustainable farming, crop innovation, and agricultural science in Rwanda.',
   openGraph: {
-    title: 'DNA Week News | BIOCAP Rwanda',
+    title: 'Resource & Activities | BIOCAP Rwanda',
     description:
-      'Latest news and articles from BIOCAP Rwanda on DNA Week — biotechnology, crop science, food security, and Rwanda\'s agricultural innovation.',
-    url: 'https://biocap-rwanda.afs-rwanda.org/Dna-week',
+      'Latest news and articles from BIOCAP Rwanda on Resource and Activities — biotechnology, crop science, food security, and Rwanda\'s agricultural innovation.',
+    url: 'https://biocap-rwanda.afs-rwanda.org/Resource',
   },
 }
 

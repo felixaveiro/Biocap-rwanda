@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView, useScroll, useTransform } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { Variants } from 'framer-motion';
@@ -166,8 +166,6 @@ function Section({
 ══════════════════════════════════════════════════════ */
 export default function HomePage() {
   const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
 
   const [email, setEmail] = useState('');
 
@@ -213,7 +211,7 @@ export default function HomePage() {
         }
         .bc-hero-inner {
           position: relative;
-          z-index: 3;
+          z-index: 4;
           max-width: 640px;
           margin: 0;
           padding: 7rem 0 9rem;
@@ -363,14 +361,18 @@ export default function HomePage() {
         @media (max-width: 768px) {
           .bc-hero { padding: 0 1.5rem; }
           .bc-hero-inner { padding: 5rem 0 7rem; }
+          .bc-hero-bg > div { background-attachment: scroll !important; }
         }
       `}</style>
 
       {/* ════════ HERO ════════ */}
       <section className="bc-hero" ref={heroRef}>
 
-        {/* Sliding parallax backgrounds */}
-        <motion.div style={{ y: heroY, position: 'absolute', inset: '-15%', zIndex: 1 }}>
+        {/* Fixed-look background — image appears pinned while scrolling
+            through the hero, but stays clipped to this section's box
+            (via overflow:hidden on .bc-hero + position:absolute here),
+            so it can never bleed into the sections below. */}
+        <div className="bc-hero-bg" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
           {HERO_SLIDES.map((src, i) => (
             <div
               key={src}
@@ -380,12 +382,24 @@ export default function HomePage() {
                 backgroundImage: `url('${src}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
                 opacity: i === slide ? 1 : 0,
                 transition: 'opacity 1.4s ease',
               }}
             />
           ))}
-        </motion.div>
+        </div>
+
+        {/* White wash — lightens the fixed image so it reads softer/brighter */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 2,
+            pointerEvents: 'none',
+            background: 'rgba(255,255,255,0.45)',
+          }}
+        />
 
         {/* ── Overlay: matches About page exactly ──
             About uses: from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent (left-to-right)
@@ -394,9 +408,9 @@ export default function HomePage() {
           style={{
             position: 'absolute',
             inset: 0,
-            zIndex: 2,
+            zIndex: 3,
             pointerEvents: 'none',
-            background: 'linear-gradient(to right, rgba(27,58,92,1) 0%, rgba(27,58,92,0.85) 50%, rgba(27,58,92,0.35) 100%)',
+            background: 'linear-gradient(to right, rgba(27,58,92,0.75) 0%, rgba(27,58,92,0.55) 50%, rgba(27,58,92,0.15) 100%)',
           }}
         />
 
@@ -473,7 +487,7 @@ export default function HomePage() {
       </div>
 
       {/* ════════ STATS ════════ */}
-      <section style={{ padding: '5rem 2.5rem', background: 'var(--off)' }}>
+      <section style={{ padding: '3rem 2.5rem', background: 'var(--off)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
           {STATS.map(({ Icon, val, label }, i) => (
             <motion.div
@@ -500,8 +514,8 @@ export default function HomePage() {
       </section>
 
       {/* ════════ FEATURES ════════ */}
-      <section style={{ padding: '6rem 2.5rem', background: '#fff' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto 4rem' }}>
+      <section style={{ padding: '3.5rem 2.5rem', background: '#fff' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto 2.5rem' }}>
           <span style={{ color: COLORS.pink, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             What We Do
           </span>
@@ -545,7 +559,7 @@ export default function HomePage() {
       </section>
 
       {/* ════════ CROP PROGRESS ════════ */}
-      <Section className="bc-crops" dark style={{ padding: '6rem 2.5rem' }}>
+      <Section className="bc-crops" dark style={{ padding: '3.5rem 2.5rem' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
           <div>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
@@ -580,8 +594,8 @@ export default function HomePage() {
       </Section>
 
       {/* ════════ NEWS ════════ */}
-      <section style={{ padding: '6rem 2.5rem', background: 'var(--off)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto 4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
+      <section style={{ padding: '3.5rem 2.5rem', background: 'var(--off)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span style={{ color: COLORS.pink, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
               Press & Research
@@ -615,8 +629,8 @@ export default function HomePage() {
       </section>
 
       {/* ════════ NEWSLETTER ════════ */}
-      <section style={{ padding: '6rem 2.5rem', background: '#fff', textAlign: 'center' }}>
-        <div style={{ maxWidth: '520px', margin: '0 auto' }}>
+      <section style={{ padding: '3.5rem 2.5rem 0', background: '#fff', textAlign: 'center' }}>
+        <div style={{ maxWidth: '520px', margin: '0 auto', paddingBottom: '3.5rem' }}>
           <span style={{ color: COLORS.pink, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
             Stay Updated
           </span>
@@ -639,7 +653,7 @@ export default function HomePage() {
               onMouseEnter={e => (e.currentTarget.style.background = COLORS.navyLight)}
               onMouseLeave={e => (e.currentTarget.style.background = COLORS.navy)}
             >
-              Join
+             Join
             </button>
           </div>
         </div>
