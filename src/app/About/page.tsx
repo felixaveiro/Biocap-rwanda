@@ -610,12 +610,15 @@ export default function AboutPage() {
           transform: translateY(-4px);
           box-shadow: 0 8px 36px rgba(26,54,93,0.12);
         }
-        .obj-vg-card-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-bottom: 0.75rem;
-        }
+       .obj-vg-card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
         .obj-vg-icon {
           width: 40px; height: 40px;
           border-radius: 10px;
