@@ -1,9 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
 import { Sprout, ShieldCheck, Megaphone } from 'lucide-react';
+
+// Maps each project title to the slug used in the footer's "Recent News" links
+// e.g. /Stewardship-News?project=dna-week
+const PROJECT_SLUGS: Record<string, string> = {
+  'DNA Week': 'dna-week',
+  'Risk Assessment & Stewardship': 'risk-assessment-stewardship',
+  'Communication & Advocacy': 'communication-advocacy',
+};
 
 // ── Project data ────────────────────────────────────────────────────
 const ecoProjects: Project[] = [
@@ -196,9 +205,20 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Communication & Advocacy": { icon: Megaphone, accent: "#E8185A", accentBg: "#fde8ef" },
 };
 
-// ── Page ─────────────────────────────────────────────────────────────
-export default function EnvironmentPage() {
+// ── Inner content component (uses useSearchParams) ─────────────────
+function StewardshipNewsContent() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const searchParams = useSearchParams();
+
+  // If the URL carries ?project=<slug> (e.g. from the footer's Recent News
+  // links), automatically open that story on load.
+  useEffect(() => {
+    const slug = searchParams.get('project');
+    if (!slug) return;
+
+    const match = ecoProjects.find(p => PROJECT_SLUGS[p.title] === slug);
+    if (match) setActiveProject(match);
+  }, [searchParams]);
 
   // If a project is selected, render its detail page instead
   if (activeProject) {
@@ -406,7 +426,7 @@ export default function EnvironmentPage() {
                 BC
               </div>
               <div className="text-left">
-                <p className="font-bold text-sm">BioCap Research Team</p>
+                <p className="font-bold text-sm">Rwanda BioCap Research Team</p>
                 <p className="text-white/50 text-[10px] uppercase tracking-widest">Kigali, Rwanda</p>
               </div>
             </div>
@@ -416,5 +436,14 @@ export default function EnvironmentPage() {
 
       <Footer />
     </div>
+  );
+}
+
+// ── Page (wraps content in Suspense so useSearchParams works at build time) ──
+export default function EnvironmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <StewardshipNewsContent />
+    </Suspense>
   );
 }

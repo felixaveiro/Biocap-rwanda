@@ -128,9 +128,9 @@ const CROPS: CropData[] = [
         body: 'At least five RAB early-career scientists will receive hands-on training at IITA\'s Gene Editing Platform at the BecA/ILRI Hub in Nairobi. The full pipeline is covered: target gene identification, guide RNA design, construct development, embryogenic cell suspension, Agrobacterium-mediated transformation, transgene-free editing, sequencing validation, and phenotypic evaluation.',
       },
       {
-        title: 'BXW Resistance: Sukali Ndiizi',
+        title: 'BXW Resistance: Kamara ',
         SectionIcon: ShieldAlert,
-        body: 'Training focuses on BXW resistance targets MusaPUB22 and MusaPUB23, already successfully knocked out in dessert banana cultivar Sukali Ndiizi using CRISPR-Cas9. The resulting transgene-free events have been validated for mutation accuracy and absence of foreign DNA, and are now ready for field evaluation in Rwanda — led by a RAB scientist returning from her PhD at IITA in 2025.',
+        body: 'Training focuses on BXW resistance targets MusaPUB22 and MusaPUB23, already successfully knocked out in dessert banana cultivar Kamara/Sukali Ndiizi using CRISPR-Cas9. The resulting transgene-free events have been validated for mutation accuracy and absence of foreign DNA, and are now ready for field evaluation in Rwanda — led by a RAB scientist returning from her PhD at IITA in 2025.',
       },
       {
         title: 'Injagi Editing & FULCRUM™ System',
@@ -267,19 +267,19 @@ function CropPanel({ crop }: { crop: CropData }) {
       </div>
 
       {/* Secondary banner — 80% width, mirrors header style with different content */}
-      <div className="flex justify-center">
+      <div className="flex justify-end">
         <div
           className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
-          style={{ width: '80%', background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
+          style={{ width: '95%', background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
         >
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
               <FlaskConical size={24} color="#fff" aria-hidden="true" />
             </div>
             <div>
-              <p className="bc-serif m-0 text-white text-xl font-bold">Capacity Building Milestone</p>
+              <p className="bc-serif m-0 text-white text-ml font-bold">Rwanda BioCap Project Intended Objective</p>
               <p className="m-0 mt-1 text-white/75 text-[0.8rem]">
-                RAB scientists complete advanced hands-on training under the {crop.label} component.
+                Researchers at RAB Build Capacity to Develop and Deploy Improved Farmer-preferred  {crop.label} Varieties.
               </p>
             </div>
           </div>

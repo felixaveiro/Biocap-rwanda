@@ -81,21 +81,21 @@ export default function AboutPage() {
     {
       id: '01',
       title: 'Accelerated Research & Innovation',
-      desc: "The Rwanda BioCap Project strengthens Rwanda's scientific capacity to develop climate-resilient, farmer-preferred crop varieties through modern biotechnology. The project trains RAB scientists in molecular breeding, genomics, bioinformatics, DNA sequencing, RNA interference, genome editing, and biosafety research. It is building Rwanda's first in-country biotechnology innovation pipeline to support food security, farmer livelihoods, and agricultural competitiveness.",
+      desc: "Rwanda BioCap Project strengthens Rwanda's scientific capacity to develop climate-resilient, farmer-preferred crop varieties through modern biotechnology. The project trains RAB scientists in molecular breeding, genomics, bioinformatics, DNA sequencing, RNA interference, genome editing, and biosafety research. It is building Rwanda's first in-country biotechnology innovation pipeline to support food security, farmer livelihoods, and agricultural competitiveness.",
       bgImage: '/image/LABDY3_1.jpg',
       border: 'bg-[#E8185A]',
     },
     {
       id: '02',
       title: 'Biosafety, Regulation & Responsible Innovation',
-      desc: "The BioCap Project advances responsible biotechnology by strengthening biosafety governance, regulatory capacity, and transparent stakeholder engagement. In collaboration with RICA, REMA, MINAGRI, and regional and international partners, the project supports an efficient, science-based regulatory pathway. This pathway ensures that biotechnology innovations are developed, assessed, and deployed safely, ethically, and transparently.",
+      desc: "Rwanda BioCap Project advances responsible biotechnology by strengthening biosafety governance, regulatory capacity, and transparent stakeholder engagement. In collaboration with RICA, REMA, MINAGRI, and regional and international partners, the project supports an efficient, science-based regulatory pathway. This pathway ensures that biotechnology innovations are developed, assessed, and deployed safely, ethically, and transparently.",
       bgImage: '/image/DSC06556(1).jpg',
       border: 'bg-[#2D6A7F]',
     },
     {
       id: '03',
       title: 'Delivering Innovation to Farmers',
-      desc: "BioCap turns scientific innovation into practical solutions for Rwanda's smallholder farmers. It advances improved farmer-preferred cassava, potato, banana cooking, and sweet banana varieties with stronger resistance to major pests and diseases. It also preserves the traits farmers and consumers value. Through research partnerships, seed systems, extension services, and farmer engagement, the project supports higher productivity, reduced crop losses, lower pesticide use, stronger climate resilience, and more stable harvests.",
+      desc: "Rwanda BioCap Project is turning scientific innovation into practical solutions for Rwanda's smallholder farmers. It advances improved farmer-preferred cassava, potato, banana cooking, and sweet banana varieties with stronger resistance to major pests and diseases. It also preserves the traits farmers and consumers value. Through research partnerships, seed systems, extension services, and farmer engagement, the project supports higher productivity, reduced crop losses, lower pesticide use, stronger climate resilience, and more stable harvests.",
       bgImage: '/image/DSC_6510.jpg',
       border: 'bg-[#7B2D8B]',
     },
@@ -140,24 +140,24 @@ export default function AboutPage() {
 
   const quotes = [
     {
-      text: 'Today’s launch is for the people of Rwanda. It is about ensuring that our farmers have access to better, safer, and more resilient crops, and that our families can rely on food that is sufficient, nutritious, and affordable. By strengthening national capacity in agricultural biotechnology, this initiative places science in the service of the public good supporting livelihoods, protecting the environment, and building a more food-secure future for Rwanda',
+      text: 'The aim of this project is to strengthen our research capacity by enhancing the knowledge and skills of our scientists and increasing their numbers. This will contribute to higher agricultural productivity, reduce the use of chemical inputs, and mitigate losses caused by extreme weather conditions such as excessive heat.',
       name: 'Dr. Solange Uwituze',
       role: 'Minister of State, Ministry of Agriculture and Animal Resources',
     },
     {
-      text: 'affirmed that the launch reflects the depth and continuity of Rwanda’s long-standing partnership with international agricultural research. He recalled that CIP’s collaboration with Rwanda began in 1978, when the center was invited to support the National Potato Improvement Program. Over the past 47 years, this collaboration has evolved into a trusted alliance involving Rwandan scientists, research institutions, universities, enterprises, and farmers, formalized through a Host Country Agreement signed in 2015. He described Rwanda as a regional and increasingly global leader in science, innovation, and biotechnology, noting that BioCap exemplifies the country’s commitment to nationally led, responsibly governed biotechnology systems that deliver tangible benefits for farmers, the environment, and regional food systems.',
-      name: 'Dr. Simon Heck',
-      role: 'Director General of CIP',
+      text: 'We don’t have time,” she said. “We need faster and more effective delivery of solutions to our farmers, and we must establish strong partnership models. This is also the time to communicate science effectively to build trust.”',
+      name: 'Dr. Joyce Maru',
+      role: 'Regional Director at CIP',
     },
     {
-      text: 'By reducing dependence on fungicides, stabilizing yields, and strengthening value chains, the project is expected to lower production costs, increase farmer incomes, and enhance Rwanda’s competitiveness in regional markets. Reduced chemical use will also deliver environmental benefits, including cleaner soils and waterways, lower greenhouse gas emissions, and stronger biodiversity conservation outcomes closely aligned with Rwanda’s national climate adaptation goals.',
+      text: 'The BioCap project is designed to strengthen Rwanda’s biotechnology capacity by building skills, improving research infrastructure, and fostering strong national and international partnerships. The initiative focuses on enabling researchers to safely and efficiently develop and test improved crop varieties that respond to national agricultural priorities.',
       name: ' Dr. Eric Magembe',
       role: 'BioCap Project Lead',
     },
      {
-      text: 'BioCap represents a new kind of agricultural revolution one that boosts yields, cuts losses and pesticide use, strengthens competitiveness, and raises farmer incomes through science-driven solutions,”',
-      name: ' Dr. Hugo Campos',
-      role: 'Deputy Director General, CIP',
+      text: 'On behalf of the Government of Rwanda, at and RAB we are committed to doing our best to achieve our goals. And I believe that together we will succeed. The Rwanda BioCap Project is here presenting to us an opportunity to leverage on.',
+      name: ' Dr. Florence Uwamahoro',
+      role: 'Acting DG, RAB',
     },
   ];
 
@@ -252,12 +252,11 @@ export default function AboutPage() {
           <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
             Rwanda Biotech Capacity Building Project
           </p>
-          <h1 className="text-5xl lg:text-7xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg">
-            About <span className="text-[#E8185A]">BioCap</span>
+          <h1 className="text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg">
+            About Rwanda <span className="text-[#E8185A]">BioCap Project</span>
           </h1>
           <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-            Building Rwandan capacity to develop genetically improved potato, cassava, and banana
-            varieties launched 15 December 2025 at the Park Inn by Radisson Kigali.
+            The Rwanda BioCap Project is here to build Rwanda's biotechnology capacity to develop improved potato, cassava, and banana varieties. It strengthens food security through innovative, disease-resistant, and climate-resilient crops.
           </p>
         </div>
 
@@ -297,7 +296,7 @@ export default function AboutPage() {
           </div>
           <h2 className="text-3xl lg:text-4xl font-serif text-[#1B3A5C] leading-tight">
             Three Objectives Driving <br />
-            <span className="text-[#E8185A]">Rwanda&apos;s</span> BioCap crop innovation
+            <span className="text-[#E8185A]">Rwanda&apos;s</span> BioCap Project Crop Innovation
           </h2>
         </div>
 
@@ -339,7 +338,7 @@ export default function AboutPage() {
             Three Food-Security Crops. Five Major Disease Challenges.
           </h2>
           <p className="text-slate-500 text-sm mb-6 w-full text-justify">
-            The BioCap Project is helping Rwanda's farmers increase productivity, improve profitability, 
+            Rwanda BioCap Project is helping Rwanda's farmers increase productivity, improve profitability, 
             and strengthen climate resilience through responsible biotechnology innovation. 
             By developing disease-resistant, farmer-preferred crop varieties, the project reduces crop losses,
              lowers pesticide use, and supports more sustainable farming systems.
@@ -446,7 +445,7 @@ export default function AboutPage() {
             <span className="text-[#E8185A]">farmers and food systems</span>
           </h2>
           <p className="text-slate-600 mb-5 leading-relaxed text-justify">
-            BioCap is not only about science it is a strategic investment in Rwanda&apos;s economy,
+            Rwanda BioCap Project is not only about science it is a strategic investment in Rwanda&apos;s economy,
             built on partnership with MINAGRI, REMA, and Rwanda&apos;s growing ecosystem of research
             institutions and homegrown scientists.
           </p>
@@ -870,7 +869,7 @@ export default function AboutPage() {
                 <span className="obj-vg-card-title">Our Goal</span>
               </div>
              <p style={{ marginBottom: '0.5rem' }}>
-  By 2029, BioCap will establish Rwanda's Centre of Excellence in Crop
+  By 2029, Rwanda BioCap Project will have established Rwanda's Centre of Excellence in Crop
   Biotechnology as a regional hub for research, biosafety, and innovation,
   with the scientific, regulatory, and institutional capacity to develop,
   evaluate, and advance the deployment of biotechnology-enhanced potato,

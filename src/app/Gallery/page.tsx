@@ -6,15 +6,18 @@ import {
   ExternalLink,
   Search,
   Images,
-  Microscope,
   Leaf,
   Users,
   FlaskConical,
   FolderOpen,
+  GraduationCap,
+  Presentation,
+  Megaphone,
+  Dna,
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 
-type Category = 'all' | 'field' | 'lab' | 'community' | 'crops';
+type Category = 'all' | 'field' | 'lab' | 'community' | 'crops' | 'workshop' | 'conference' | 'outreach' | 'dna';
 
 interface GalleryItem {
   id: number;
@@ -34,7 +37,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
     id: 1,
     src: '/image/DSC_5973.JPG',
     alt: 'HUYE Eating and Believing of Cassava',
-    title: 'HUYE Confined Field Trial — Cassava',
+    title: 'Eating is Believing  — Cassava',
     caption: 'Regulatory confined field trial assessments of biotech cassava varieties conducted at the Huye research station, evaluating agronomic performance and biosafety compliance.',
     category: 'field',
     href: 'https://biotechnology.pixieset.com/cassava01/',
@@ -59,7 +62,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: 'OFAB media and influencer engagement',
     title: 'OFAB Media & Influencer Engagement',
     caption: 'Strategic science communication sessions bringing together journalists and digital influencers to strengthen public understanding of agricultural biotechnology research and its implications for food security.',
-    category: 'community',
+    category: 'outreach',
     href: 'https://biotechnology.pixieset.com/ofabday02/',
     itemCount: 29,
     date: 'May 19, 2026',
@@ -71,7 +74,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: 'DNA Day public science outreach',
     title: 'DNA Day — Science Outreach',
     caption: 'Annual DNA Day celebrations engaging students, educators, and the public in hands-on molecular biology activities, fostering scientific literacy and interest in biotechnology careers.',
-    category: 'lab',
+    category: 'dna',
     href: 'https://biotechnology.pixieset.com/biocapdnaday/',
     itemCount: 28,
     date: 'May 6, 2026',
@@ -94,7 +97,7 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: 'BIOCAP project launch and presentations',
     title: 'BIOCAP Project Launch & Presentations',
     caption: 'Official launch of the BIOCAP initiative, featuring technical presentations to government representatives, research institutions, and development partners on project objectives, methodology, and anticipated impact on Rwanda\'s agricultural biotechnology capacity.',
-    category: 'community',
+    category: 'conference',
     href: 'https://biotechnology.pixieset.com/biocap-launch/',
     itemCount: 77,
     date: 'January 02, 2026',
@@ -115,12 +118,21 @@ const GALLERY_ITEMS: GalleryItem[] = [
 ];
 
 const CATEGORIES: { key: Category; label: string; Icon: React.ElementType }[] = [
-  { key: 'all',       label: 'All Collections',        Icon: Images       },
-  { key: 'field',     label: 'Field Research',          Icon: Leaf         },
-  { key: 'lab',       label: 'Laboratory Science',      Icon: Microscope   },
-  { key: 'community', label: 'Stakeholder Engagement',  Icon: Users        },
-  { key: 'crops',     label: 'Crop Development',        Icon: FlaskConical },
+  { key: 'all',        label: 'All Collections',                    Icon: Images        },
+  { key: 'field',      label: 'Confined Field Trials (CFTs)',       Icon: Leaf          },
+  { key: 'workshop',   label: 'Capacity-Building & Training',       Icon: GraduationCap },
+  { key: 'conference', label: 'Regulatory & Launch Proceedings',    Icon: Presentation  },
+  { key: 'outreach',   label: 'Science Communication & Advocacy',  Icon: Megaphone     },
+  { key: 'dna',        label: 'Molecular Biology & DNA Week',       Icon: Dna           },
+  { key: 'community',  label: 'Farmer Extension & Stakeholder Consultation', Icon: Users },
+  { key: 'crops',      label: 'Biotech Crop Pipeline',              Icon: FlaskConical  },
 ];
+
+// Maps each category key to its technical label, reused for the pill badge on each card
+const CATEGORY_LABELS: Record<Category, string> = CATEGORIES.reduce(
+  (acc, c) => ({ ...acc, [c.key]: c.label }),
+  {} as Record<Category, string>
+);
 function CollectionCard({ item }: { item: GalleryItem }) {
   const [hovered, setHovered] = useState(false);
 
@@ -256,18 +268,20 @@ function CollectionCard({ item }: { item: GalleryItem }) {
         position: 'absolute',
         top: '0.75rem',
         left: '0.75rem',
+        maxWidth: 'calc(100% - 3.25rem)',
         background: 'rgba(232,24,90,0.85)',
         backdropFilter: 'blur(4px)',
-        borderRadius: '999px',
-        padding: '2px 10px',
-        fontSize: '0.65rem',
+        borderRadius: '12px',
+        padding: '3px 10px',
+        fontSize: '0.62rem',
         fontWeight: 700,
         color: '#fff',
-        letterSpacing: '0.06em',
+        letterSpacing: '0.04em',
+        lineHeight: 1.35,
         textTransform: 'uppercase' as const,
         fontFamily: 'Syne, sans-serif',
       }}>
-        {item.category}
+        {CATEGORY_LABELS[item.category]}
       </div>
     </a>
   );
@@ -475,7 +489,7 @@ export default function GalleryPage() {
           <p className="hero-breadcrumb">Home › Gallery</p>
           <h1 className="hero-title">Photo <span>Collections</span></h1>
           <p className="hero-sub">
-            Documenting Rwanda&apos;s biotech agriculture journey — from laboratory to field to community.
+            Documenting Rwanda&apos;s biotech agriculture journey, from laboratory to the field and communities.
           </p>
           <div className="hero-count">
             <Images size={13} />

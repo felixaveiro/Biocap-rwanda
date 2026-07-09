@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex h-16 items-center border-b px-6">
-          <span className="text-lg font-bold text-indigo-600">MyApp</span>
+          <span className="text-lg font-bold text-indigo-600">RWANDA BioCap</span>
         </div>
 
         {/* Nav links */}

@@ -22,15 +22,15 @@ const QUICK_LINKS = [
 ];
 
 const RECENT_NEWS_FOOTER = [
-  { date: 'Apr 28, 2025', title: 'Rwanda Approves First Biofortified Cassava Variety',        href: '/Stewardship-News' },
-  { date: 'Mar 15, 2025', title: 'New Biosafety Guidelines Open Doors for Gene-Edited Crops', href: '#' },
-  { date: 'Feb 4, 2025',  title: '34% Yield Gains Confirmed Under Drought Conditions',        href: '#' },
+  { date: 'June 16-17, 2026', title: 'Risk Assessment & Stewardship', href: '/Stewardship-News?project=risk-assessment-stewardship' },
+  { date: 'June 16-17, 2026',  title: 'Communication & Advocacy',        href: '/Stewardship-News?project=communication-advocacy' },
+  { date: 'May 06, 2026', title: 'DNA Week',        href: '/Stewardship-News?project=dna-week' },
 ];
 
 const CONTACT_ITEMS = [
   { icon: Phone,  text: '+250 733 389 450' },
   { icon: Mail,   text: 'bellancile.uzayisenga@rab.gov.rw' },
-  { icon: MapPin, text: 'GQ8C+W5, Ruhashya, huye' },
+  { icon: MapPin, text: 'GQ9C+JX8, Ruhashya' },
 ];
 
 // Inline SVG for LinkedIn since lucide-react v1.16.0 doesn't include it
@@ -169,14 +169,14 @@ export default function Footer() {
           {/* Col 1: Brand + Newsletter */}
           <div>
             <div style={{
-              fontFamily: 'Syne, sans-serif',
-              fontSize: '1.9rem',
+              fontFamily: 'sans-serif',
+              fontSize: '1.1rem',
               fontWeight: 800,
               marginBottom: '1rem',
-              letterSpacing: '-0.5px',
+              letterSpacing: '0.5px',
             }}>
-              <span style={{ color: COLORS.pink }}>Bio</span>
-              <span style={{ color: '#fff' }}>Cap</span>
+              <span style={{ color: '#fff' }}>Rwanda </span>
+              <span style={{ color: COLORS.pink }}>BioCap Project</span>
             </div>
             <p style={{
               color: 'rgba(255,255,255,0.55)',
