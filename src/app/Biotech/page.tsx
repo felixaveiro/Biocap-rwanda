@@ -387,7 +387,7 @@ export default function BiotechCropsPage() {
               Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
             </h1>
              <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
-              Under RAB's <span className="text-[#E8185A]">Center of Excellence in </span>Crop Biotechnology
+              Under RAB's <span className="text-[#E8185A]">Center of <br /> Excellence in </span>Crop <br />Biotechnology
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
               Starting with three main food-security crops: cassava, potato and banana;
