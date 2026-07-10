@@ -288,7 +288,7 @@ function CropPanel({ crop }: { crop: CropData }) {
             <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
               <CheckCircle size={16} aria-hidden="true" /> Ongoing
             </span>
-            <span className="block text-white/70 text-[0.7rem]">2025–2026 Cohort</span>
+            <span className="block text-white/70 text-[0.7rem]">2025–2030 Cohort</span>
           </div>
         </div>
       </div>
@@ -383,15 +383,16 @@ export default function BiotechCropsPage() {
             <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
               Rwanda Biotech Capacity Building Project
             </p>
-            <h1 className="bc-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
+            <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
               Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
             </h1>
-             <h1 className="bc-serif text-5xl lg:text-7xl text-white leading-tight mb-4 italic drop-shadow-lg">
-              Under RAB' <span className="text-[#E8185A]">Center of Excellence in </span>Crop Biotechnology
+             <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
+              Under RAB's <span className="text-[#E8185A]">Center of Excellence in </span>Crop Biotechnology
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-              Cassava, potato &amp; banana — advancing through Rwanda's national biotechnology
-              pipeline with REMA-approved environmental releases and active field trials.
+              Starting with three main food-security crops: cassava, potato and banana;
+               RAB is advancing its national biotechnology pipeline for an accelerated development and 
+              deployment of climate-smart, and improved farmer-preferred varieties.
             </p>
           </div>
 
