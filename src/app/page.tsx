@@ -16,7 +16,7 @@ import {
   TrendingUp,
   Users,
   Building2,
-  MapPin,
+  Wheat,
 } from 'lucide-react';
 
 const COLORS = {
@@ -49,10 +49,10 @@ const FEATURES = [
   },
   {
     Icon: Leaf,
-    title: 'Environmental Stewardship',
+    title: 'Communication & Social Engagement',
     body: 'Regenerative agriculture integrated with modern biosystems science — protecting biodiversity while dramatically boosting smallholder yield.',
     color: COLORS.teal,
-    href: '/Environment',
+    href: '/Stewardship-News',
     img: '/image/IMG_155.jpg',
   },
   {
@@ -65,7 +65,7 @@ const FEATURES = [
   },
   {
     Icon: Handshake,
-    title: 'Farmer Partnerships',
+    title: 'Farmer Participation',
     body: "Direct collaboration with cooperatives across Rwanda's 30 districts, ensuring innovation reaches those who need it most — on the ground.",
     color: COLORS.navy,
     href: '/About',
@@ -73,7 +73,7 @@ const FEATURES = [
   },
   {
     Icon: BarChart2,
-    title: 'Data-Driven Research',
+    title: 'Condunsive Research Infrastracture',
     body: 'Real-time field data collection and analysis across multiple crop varieties, enabling rapid iteration and evidence-based recommendations.',
     color: COLORS.purple,
     href: '/Biotech',
@@ -92,37 +92,43 @@ const FEATURES = [
 const STATS = [
   { Icon: TrendingUp, val: '34%',  label: 'Average Yield Increase' },
   { Icon: Users,      val: '40K+', label: 'Farmers Targeted'        },
-  { Icon: Building2,  val: '12+',  label: 'Research Partners'       },
-  { Icon: MapPin,     val: '3',    label: 'Active Districts'         },
+  { Icon: Building2,  val: '6',  label: 'Partner Institutions'       },
+  { Icon: Wheat,     val: '3',    label: 'Crops'         },
 ];
 
 const CROPS = [
-  { name: 'Cassava', pct: 90, tag: 'Vitamin-A Biofortified' },
-  { name: 'Potato',  pct: 87, tag: 'Drought Tolerant'       },
-  { name: 'Banana',  pct: 80, tag: 'Nitrogen-Fixing'        },
+  { name: 'Cassava', pct: 45, tag: 'Virus-Resistance' },
+  { name: 'Potato',  pct: 37, tag: 'Late Bright Resistance'       },
+  { name: 'Banana',  pct: 21, tag: 'BXW Resistance'        },
 ];
 
+// Mirrors the ecoProjects data from Stewardship-News.tsx, along with the
+// slug map used there, so clicking a card opens that exact project story
+// via /Stewardship-News?project=<slug>
 const NEWS = [
   {
-    tag: 'Biotechnology',
-    date: 'Apr 28, 2025',
-    title: 'Rwanda Approves First Biofortified Cassava Variety',
-    body: 'NAEB greenlit a new vitamin-A enriched cassava strain developed in partnership with regional research institutes — a landmark for food security.',
-    img: '/image/IMG_51(1).jpg',
+    tag: 'Sustainability',
+    date: '6 May 2026',
+    title: 'DNA Week',
+    body: "UR-CST and partners marked the third DNA Week with a seminar on biotechnology in agriculture, medicine, and the environment — featuring experts from RBC, RAB, REMA, and BioCAP.",
+    img: '/image/image-04.jpg',
+    slug: 'dna-week',
   },
   {
-    tag: 'Policy',
-    date: 'Mar 15, 2025',
-    title: 'New Biosafety Guidelines Open Doors for Gene-Edited Crops',
-    body: "REMA's updated guidelines represent a risk-proportionate shift toward modern oversight of agricultural biotech innovations.",
-    img: '/image/image-06.jpg',
+    tag: 'Biosafety',
+    date: '16–17 June 2026',
+    title: 'Risk Assessment & Stewardship',
+    body: "A two-day workshop in Kigali strengthened scientists' and regulators' understanding of how biotech crop risks are identified, evaluated, and managed.",
+    img: '/image/Risk-ssessment.jpg',
+    slug: 'risk-assessment-stewardship',
   },
   {
-    tag: 'Field Trials',
-    date: 'Feb 4, 2025',
-    title: '34% Yield Gains Confirmed Under Drought Conditions',
-    body: 'Mid-season data from three districts confirms enhanced sorghum varieties significantly outperform conventional seeds under water stress.',
-    img: '/image/IMG_79.jpg',
+    tag: 'Public Engagement',
+    date: '16–17 June 2026',
+    title: 'Communication & Advocacy',
+    body: 'Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging.',
+    img: '/image/dna-communication-advocacy.jpg',
+    slug: 'communication-advocacy',
   },
 ];
 
@@ -368,10 +374,8 @@ export default function HomePage() {
       {/* ════════ HERO ════════ */}
       <section className="bc-hero" ref={heroRef}>
 
-        {/* Fixed-look background — image appears pinned while scrolling
-            through the hero, but stays clipped to this section's box
-            (via overflow:hidden on .bc-hero + position:absolute here),
-            so it can never bleed into the sections below. */}
+        {/* Background slideshow — position shifted so faces stay visible,
+            image crops from the bottom instead of the top */}
         <div className="bc-hero-bg" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
           {HERO_SLIDES.map((src, i) => (
             <div
@@ -381,7 +385,7 @@ export default function HomePage() {
                 inset: 0,
                 backgroundImage: `url('${src}')`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                backgroundPosition: 'center 15%',
                 backgroundAttachment: 'fixed',
                 opacity: i === slide ? 1 : 0,
                 transition: 'opacity 1.4s ease',
@@ -390,31 +394,19 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* White wash — lightens the fixed image so it reads softer/brighter */}
+        {/* Overlay — matches About page exactly:
+            bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent */}
         <div
           style={{
             position: 'absolute',
             inset: 0,
             zIndex: 2,
             pointerEvents: 'none',
-            background: 'rgba(255,255,255,0.45)',
+            background: 'linear-gradient(to right, #1B3A5C 0%, rgba(27,58,92,0.85) 55%, transparent 100%)',
           }}
         />
 
-        {/* ── Overlay: matches About page exactly ──
-            About uses: from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent (left-to-right)
-            We mirror that as a solid-left dark overlay so text pops the same way */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 3,
-            pointerEvents: 'none',
-            background: 'linear-gradient(to right, rgba(27,58,92,0.75) 0%, rgba(27,58,92,0.55) 50%, rgba(27,58,92,0.15) 100%)',
-          }}
-        />
-
-        {/* Copy */}
+        {/* Copy — same eyebrow / h1 / paragraph classes as About page */}
         <div className="bc-hero-inner">
           <motion.div
             initial="hidden"
@@ -422,27 +414,32 @@ export default function HomePage() {
             variants={{ show: { transition: { staggerChildren: 0.1 } } }}
             style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
           >
-            <motion.span
+            <motion.p
               variants={fadeUp}
-              style={{ color: COLORS.pink, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', fontSize: '0.75rem', display: 'block', marginBottom: '1.25rem' }}
+              className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md"
             >
               Rwanda Agricultural Biotech Initiative
-            </motion.span>
+            </motion.p>
 
-            <motion.h1 variants={fadeUp} className="bc-hero-h1">
-              The Science<br />of <em>Rwandan</em> Growth.
+            <motion.h1
+              variants={fadeUp}
+              className="text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg"
+            >
+              The Science of <span className="text-[#E8185A]">Rwandan</span> Growth.
             </motion.h1>
 
             <motion.p
               variants={fadeUp}
-              style={{ color: 'rgba(255,255,255,0.75)', marginTop: '1.75rem', marginBottom: '2.75rem', fontSize: '1.15rem', maxWidth: '580px', lineHeight: 1.75 }}
+              className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md"
             >
-              We unlock the genetic potential of crops to ensure food security and economic prosperity for every farmer across Rwanda's diverse agro-ecological zones.
+              We are unlocking the genetic potential of Rwandan farmer-preferred crops to ensure
+              food security and economic prosperity for every farmer across our diversified
+              agro-ecological zones.
             </motion.p>
 
-            <motion.div variants={fadeUp} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <motion.div variants={fadeUp} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '2rem' }}>
               <Link
-                href="/Dna-week"
+                href="/Resource"
                 style={{ background: COLORS.pink, color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', transition: 'filter 0.2s' }}
                 onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
                 onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
@@ -450,7 +447,7 @@ export default function HomePage() {
                 Explore Our Events
               </Link>
               <Link
-                href="/About"
+                href="/About#mission"
                 style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', transition: 'background 0.2s' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
@@ -480,7 +477,7 @@ export default function HomePage() {
         <div className="bc-ticker-track">
           {Array(10).fill(null).map((_, i) => (
             <span key={i}>
-              Gene Editing &nbsp;•&nbsp; Sustainable Yields &nbsp;•&nbsp; Rwanda First &nbsp;•&nbsp; CRISPR &nbsp;•&nbsp; Biofortification &nbsp;•&nbsp; Soil Health &nbsp;•&nbsp;
+              {NEWS.map(n => n.title).join(' \u2022 ')} &nbsp;•&nbsp;
             </span>
           ))}
         </div>
@@ -563,14 +560,15 @@ export default function HomePage() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5rem', alignItems: 'center' }}>
           <div>
             <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase', display: 'block', marginBottom: '1rem' }}>
-              Mid-Season Data
+              Science Driving Food Security
             </span>
             <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', fontWeight: 800, color: '#fff', lineHeight: 1.1 }}>
               Enhanced Varieties <br />
               <span style={{ color: COLORS.pink }}>Real Results.</span>
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.55)', marginTop: '1.5rem', lineHeight: 1.7, maxWidth: '380px' }}>
-              Confirmed mid-season gains across active Rwandan districts — data collected from over 40,000 smallholder plots.
+              Empowering Rwandan scientists with advanced biotechnology to develop resilient crop varieties that 
+              improve farmer livelihoods and agricultural sustainability.
             </p>
           </div>
 
@@ -604,26 +602,35 @@ export default function HomePage() {
               Latest Insights
             </h2>
           </div>
-          <Link href="/Dna-week" style={{ color: COLORS.pink, fontWeight: 700, textDecoration: 'none', borderBottom: `2px solid ${COLORS.pink}`, paddingBottom: '2px', fontSize: '0.9rem' }}>
+          <Link href="/Stewardship-News" style={{ color: COLORS.pink, fontWeight: 700, textDecoration: 'none', borderBottom: `2px solid ${COLORS.pink}`, paddingBottom: '2px', fontSize: '0.9rem' }}>
             View Archive
           </Link>
         </div>
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           {NEWS.map((n, i) => (
-            <motion.div key={i} className="bc-news-card" variants={fadeUp} initial="hidden" whileInView="show" viewport={{ once: true }} custom={i}>
-              <div style={{ height: '240px', overflow: 'hidden' }}>
-                <img src={n.img} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-              </div>
-              <div style={{ padding: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                  <span style={{ color: COLORS.pink, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{n.tag}</span>
-                  <span style={{ color: COLORS.gray, fontSize: '0.75rem' }}>{n.date}</span>
+            <Link key={i} href={`/Stewardship-News?project=${n.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+              <motion.div
+                className="bc-news-card"
+                variants={fadeUp}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                custom={i}
+              >
+                <div style={{ height: '240px', overflow: 'hidden' }}>
+                  <img src={n.img} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '0.75rem' }}>{n.title}</h3>
-                <p style={{ fontSize: '0.87rem', color: COLORS.gray, lineHeight: 1.65 }}>{n.body}</p>
-              </div>
-            </motion.div>
+                <div style={{ padding: '2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <span style={{ color: COLORS.pink, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{n.tag}</span>
+                    <span style={{ color: COLORS.gray, fontSize: '0.75rem' }}>{n.date}</span>
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '0.75rem' }}>{n.title}</h3>
+                  <p style={{ fontSize: '0.87rem', color: COLORS.gray, lineHeight: 1.65 }}>{n.body}</p>
+                </div>
+              </motion.div>
+            </Link>
           ))}
         </div>
       </section>

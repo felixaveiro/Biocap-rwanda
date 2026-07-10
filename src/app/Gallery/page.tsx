@@ -153,8 +153,8 @@ function CollectionCard({ item }: { item: GalleryItem }) {
         display: 'block',
         textDecoration: 'none',
         boxShadow: hovered
-          ? '0 16px 48px rgba(30,77,107,0.26)'
-          : '0 2px 14px rgba(30,77,107,0.09)',
+          ? '0 16px 48px rgba(27,58,92,0.26)'
+          : '0 2px 14px rgba(27,58,92,0.09)',
         transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
         transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease',
       }}
@@ -183,7 +183,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(to top, rgba(10,20,38,0.92) 0%, rgba(10,20,38,0.35) 50%, transparent 100%)',
+        background: 'linear-gradient(to top, rgba(27,58,92,0.92) 0%, rgba(27,58,92,0.35) 50%, transparent 100%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
@@ -199,7 +199,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
             color: '#fff',
             fontWeight: 700,
             fontSize: '0.92rem',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: "'Plus Jakarta Sans', 'Segoe UI', sans-serif",
             lineHeight: 1.3,
           }}>
             {item.title}
@@ -217,7 +217,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
               gap: '4px',
               color: 'rgba(255,255,255,0.65)',
               fontSize: '0.72rem',
-              fontFamily: 'Syne, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', 'Segoe UI', sans-serif",
               fontWeight: 600,
             }}>
               <FolderOpen size={11} />
@@ -233,7 +233,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
             <span style={{
               color: 'rgba(255,255,255,0.5)',
               fontSize: '0.72rem',
-              fontFamily: 'Syne, sans-serif',
+              fontFamily: "'Plus Jakarta Sans', 'Segoe UI', sans-serif",
             }}>
               {item.date}
             </span>
@@ -279,7 +279,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
         letterSpacing: '0.04em',
         lineHeight: 1.35,
         textTransform: 'uppercase' as const,
-        fontFamily: 'Syne, sans-serif',
+        fontFamily: "'Plus Jakarta Sans', 'Segoe UI', sans-serif",
       }}>
         {CATEGORY_LABELS[item.category]}
       </div>
@@ -302,12 +302,12 @@ export default function GalleryPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-        .gallery-page { font-family: 'DM Sans', sans-serif; background: #F7F4FB; min-height: 100vh; }
+        .gallery-page { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; background: #F7F4FB; min-height: 100vh; color: #334155; }
 
         .gallery-hero {
-          background: #1E4D6B;
+          background: #1B3A5C;
           padding: 3.5rem 2rem 3rem;
           text-align: center;
           position: relative;
@@ -332,33 +332,36 @@ export default function GalleryPage() {
           pointer-events: none;
         }
         .hero-breadcrumb {
-          color: #2A7F8C;
+          color: #E8185A;
           font-size: 11px;
-          letter-spacing: 3px;
+          letter-spacing: 4px;
           text-transform: uppercase;
           margin: 0 0 0.75rem;
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          font-family: 'Syne', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+          font-weight: 700;
         }
         .hero-title {
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-style: italic;
           color: #fff;
-          font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 800;
+          font-size: clamp(2.2rem, 5vw, 3.4rem);
+          font-weight: 400;
           margin: 0 0 0.6rem;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.02em;
         }
         .hero-title span { color: #E8185A; }
         .hero-sub {
-          color: rgba(255,255,255,0.6);
-          font-size: 0.95rem;
+          color: rgba(255,255,255,0.75);
+          font-size: 1rem;
+          font-weight: 500;
           margin: 0;
-          max-width: 500px;
+          max-width: 520px;
           margin-left: auto;
           margin-right: auto;
-          line-height: 1.6;
+          line-height: 1.7;
         }
         .hero-count {
           display: inline-flex;
@@ -371,8 +374,8 @@ export default function GalleryPage() {
           padding: 5px 14px;
           color: rgba(255,255,255,0.7);
           font-size: 0.78rem;
-          font-weight: 600;
-          font-family: 'Syne', sans-serif;
+          font-weight: 700;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
           letter-spacing: 0.04em;
         }
 
@@ -393,10 +396,10 @@ export default function GalleryPage() {
           gap: 6px;
           padding: 7px 16px;
           border-radius: 999px;
-          border: 1.5px solid rgba(30,77,107,0.15);
+          border: 1.5px solid rgba(27,58,92,0.15);
           background: #fff;
           color: #64748b;
-          font-family: 'Syne', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
           font-size: 0.75rem;
           font-weight: 700;
           letter-spacing: 0.05em;
@@ -404,21 +407,21 @@ export default function GalleryPage() {
           cursor: pointer;
           transition: all 0.2s ease;
         }
-        .filter-tab:hover { border-color: #1E4D6B; color: #1E4D6B; }
+        .filter-tab:hover { border-color: #1B3A5C; color: #1B3A5C; }
         .filter-tab.active {
-          background: #1E4D6B;
-          border-color: #1E4D6B;
+          background: #1B3A5C;
+          border-color: #1B3A5C;
           color: #fff;
-          box-shadow: 0 4px 14px rgba(30,77,107,0.25);
+          box-shadow: 0 4px 14px rgba(27,58,92,0.25);
         }
 
         .search-wrap { position: relative; display: flex; align-items: center; }
         .search-icon { position: absolute; left: 12px; color: #94a3b8; pointer-events: none; }
         .search-input {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
           font-size: 0.85rem;
           padding: 8px 14px 8px 36px;
-          border: 1.5px solid rgba(30,77,107,0.15);
+          border: 1.5px solid rgba(27,58,92,0.15);
           border-radius: 999px;
           background: #fff;
           color: #334155;
@@ -428,8 +431,8 @@ export default function GalleryPage() {
         }
         .search-input::placeholder { color: #94a3b8; }
         .search-input:focus {
-          border-color: #1E4D6B;
-          box-shadow: 0 0 0 3px rgba(30,77,107,0.1);
+          border-color: #1B3A5C;
+          box-shadow: 0 0 0 3px rgba(27,58,92,0.1);
         }
 
         .gallery-grid-wrap {
@@ -466,7 +469,7 @@ export default function GalleryPage() {
         }
         .empty-state p { margin: 0; font-size: 0.9rem; }
         .empty-state .empty-title {
-          font-family: 'Syne', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
           font-size: 1.1rem;
           font-weight: 700;
           color: #475569;
@@ -476,7 +479,7 @@ export default function GalleryPage() {
           font-size: 0.8rem;
           color: #94a3b8;
           margin-bottom: 1rem;
-          font-family: 'Syne', sans-serif;
+          font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
           font-weight: 600;
           letter-spacing: 0.04em;
         }
@@ -485,17 +488,44 @@ export default function GalleryPage() {
 
       <div className="gallery-page">
         {/* Hero */}
-        <section className="gallery-hero">
-          <p className="hero-breadcrumb">Home › Gallery</p>
-          <h1 className="hero-title">Photo <span>Collections</span></h1>
-          <p className="hero-sub">
-            Documenting Rwanda&apos;s biotech agriculture journey, from laboratory to the field and communities.
-          </p>
-          <div className="hero-count">
-            <Images size={13} />
-            {GALLERY_ITEMS.length} collections
-          </div>
-        </section>
+       {/* ── HERO — identical structure to Resource/DNA Week page ── */}
+<section className="relative min-h-[420px] flex items-center px-6 lg:px-12 overflow-hidden">
+  <div className="absolute inset-0 z-0">
+    <img
+      src="/image/IMG_101.jpg"
+      alt="BioCap Rwanda photo collections"
+      className="w-full h-full object-cover"
+    />
+    <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
+  </div>
+
+  <div className="relative z-20 max-w-4xl py-10">
+    <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
+      Home &rsaquo; Gallery
+    </p>
+    <h1
+      className="text-5xl lg:text-7xl text-white leading-tight mb-4 drop-shadow-lg"
+      style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontStyle: 'italic' }}
+    >
+      Photo <span className="text-[#E8185A]">Collections</span>
+    </h1>
+    <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
+      Documenting Rwanda's biotech agriculture journey, from laboratory to the field and communities.
+    </p>
+    <div className="inline-flex items-center gap-2 mt-6 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white/80 text-xs font-bold uppercase tracking-wider">
+      <Images size={13} /> {GALLERY_ITEMS.length} collections
+    </div>
+  </div>
+
+  <div className="absolute bottom-[-1px] left-0 w-full z-30 leading-[0]">
+    <svg className="relative block w-full h-[40px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
+      <path
+        d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z"
+        fill="#ffffff"
+      />
+    </svg>
+  </div>
+</section>
 
         {/* Controls */}
         <div className="gallery-controls">

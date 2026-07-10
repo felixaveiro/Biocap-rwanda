@@ -381,7 +381,7 @@ export default function AboutPage() {
       </section>
 
       {/* ── MISSION ── */}
-      <section className="py-12 px-6 lg:px-12 bg-white">
+      <section id="mission" className="py-12 px-6 lg:px-12 bg-white">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
           <div className="relative">
             <div className="bg-[#1B3A5C] aspect-[4/3] rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">

@@ -288,7 +288,7 @@ function CropPanel({ crop }: { crop: CropData }) {
             <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
               <CheckCircle size={16} aria-hidden="true" /> Ongoing
             </span>
-            <span className="block text-white/70 text-[0.7rem]">2025–2030 Cohort</span>
+            <span className="block text-white/70 text-[0.7rem]">2025–2030 </span>
           </div>
         </div>
       </div>
