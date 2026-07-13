@@ -125,7 +125,7 @@ const CROPS: CropData[] = [
       {
         title: 'Gene Editing Training Pipeline',
         SectionIcon: Dna,
-        body: 'At least five RAB early-career scientists will receive hands-on training at IITA\'s Gene Editing Platform at the BecA/ILRI Hub in Nairobi. The full pipeline is covered: target gene identification, guide RNA design, construct development, embryogenic cell suspension, Agrobacterium-mediated transformation, transgene-free editing, sequencing validation, and phenotypic evaluation.',
+        body: 'At least five RAB early-career scientists will receive hands-on training at IITA\'s Gene Editing Platform at the BecA/ILRI Hub in Nairobi. The full pipeline is covering: target gene identification, guide RNA design, construct development, embryogenic cell suspension, Agrobacterium-mediated transformation, transgene-free editing, sequencing validation, and phenotypic evaluation.',
       },
       {
         title: 'BXW Resistance: Kamara ',
