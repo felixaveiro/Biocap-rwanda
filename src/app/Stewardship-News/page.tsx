@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
-import { Sprout, ShieldCheck, Megaphone } from 'lucide-react';
+import { Sprout, ShieldCheck, Megaphone, Dna } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 // e.g. /Stewardship-News?project=dna-week
@@ -12,6 +12,7 @@ const PROJECT_SLUGS: Record<string, string> = {
   'DNA Week': 'dna-week',
   'Risk Assessment & Stewardship': 'risk-assessment-stewardship',
   'Communication & Advocacy': 'communication-advocacy',
+  'Precision Biotechnology': 'precision-biotechnology',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -195,6 +196,55 @@ const ecoProjects: Project[] = [
       quoteSource: "Workshop Communication & Advocacy Session",
     },
   },
+  {
+    title: "Precision Biotechnology",
+    img: "/image/precision-biotechnology.jpg",
+    tag: "Precision Breeding",
+    excerpt:
+      "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for gene editing and modern crop biotechnology at RAB's Centre of Excellence — using CRISPR genome editing to protect farmer-preferred banana varieties like Kamaramasenge and Ijangi from devastating diseases while preserving the traits farmers and consumers value most.",
+    modal: {
+      date: "2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Rwanda Agriculture and Animal Resources Development Board (RAB) · RAB Rubona Centre of Excellence in Crop Biotechnology",
+      intro:
+        "For centuries, crop improvement has relied on selecting plants with desirable traits and crossing them over many generations. While conventional breeding has transformed global agriculture, it often transfers both desirable and undesirable genes together, requiring many years of repeated breeding before improved varieties are ready for farmers. Today, Rwanda is embracing a new era of agricultural innovation through precision biotechnology, a science-based approach that enables researchers to improve crops with remarkable precision while preserving the qualities that farmers cultivate and consumers prefer. Through the Rwanda BioCap Project, Rwanda is establishing one of Africa's emerging hubs for gene editing and modern crop biotechnology at RAB's Centre of Excellence in Crop Biotechnology, positioning the country among the first on the continent to build national capacity in precision breeding for Africa's food security crops.",
+      objectives: [
+        "Build national capacity in precision breeding for Africa's food security crops through advanced laboratories, scientific expertise, and responsible regulatory systems",
+        "Apply CRISPR genome editing — first demonstrated as a programmable gene-editing tool in 2012 by Dr. Emmanuelle Charpentier and Dr. Jennifer A. Doudna, who received the 2020 Nobel Prize in Chemistry for the discovery",
+        "Protect banana, which occupies approximately 258,500 hectares and produces over 1.14 million metric tonnes annually in Rwanda according to the National Institute of Statistics of Rwanda (NISR)",
+        "Restore and protect farmer-preferred varieties rather than replace them, preserving taste, texture, aroma, and market value",
+      ],
+      sessions: [
+        {
+          name: "What is Precision Biotechnology?",
+          role: "The science of targeted improvement",
+          summary:
+            "Precision biotechnology combines modern genomic tools that allow scientists to make highly targeted improvements within a plant's own DNA. Unlike conventional breeding, which reshuffles thousands of genes simultaneously, precision breeding modifies only the specific gene associated with an important agricultural trait while leaving the rest of the plant's genetic makeup unchanged. Often described as molecular genetic scissors, CRISPR enables scientists to precisely edit naturally occurring genes responsible for disease resistance, climate resilience, improved nutrition, and yield potential.",
+        },
+        {
+          name: "Why Banana Matters to Rwanda",
+          role: "Food security, income, and heritage",
+          summary:
+            "Banana is far more than a crop in Rwanda; it is a pillar of food security, nutrition, rural livelihoods, and cultural heritage. Yet production is already under severe pressure from Banana Xanthomonas Wilt (BXW) and Fusarium Wilt Tropical Race 4 (TR4), alongside climate change. For dessert bananas such as Kamaramasenge (also known as Sukari Ndizi), disease pressure has undermined a variety farmers rely on for income and consumers value for its sweetness, aroma, and market appeal. Because bananas are propagated vegetatively rather than through seeds, conventional breeding is exceptionally slow and technically challenging.",
+        },
+        {
+          name: "Preserving What Farmers Prefer While Solving What They Do Not",
+          role: "Protecting Ijangi and Kamaramasenge",
+          summary:
+            "One of the greatest advantages of genome editing is its ability to improve a single characteristic without altering the identity of a farmer-preferred variety. Ijangi, a consumer-loved green cooking banana used in dishes such as matoke and chips, faces urgent BXW pressure, while Kamaramasenge (Kamara/Sukari Ndizi) has already lost production potential and cooperative income to disease. Rather than asking farmers and consumers to abandon Kamaramasenge for a genetically different substitute, Rwanda BioCap's approach aims to restore and protect the existing variety itself — the variety remains Kamaramasenge, only stronger, more resilient, and better protected against disease.",
+        },
+      ],
+      collaboration: [
+        "Advanced laboratories and genomics infrastructure",
+        "Bioinformatics and CRISPR genome editing capacity",
+        "Greenhouse evaluation and biosafety assessment",
+        "Variety registration and farmer deployment",
+      ],
+      quote:
+        "The ability to rewrite the code of life has immense potential for improving human health, agriculture and the environment.",
+      quoteSource: "Dr. Jennifer Doudna, 2020 Nobel Prize-winning biochemist",
+    },
+  },
 ];
 
 // Visual accents per card — kept separate from the Project type on purpose,
@@ -203,6 +253,7 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "DNA Week": { icon: Sprout, accent: "#2A7F8C", accentBg: "#e6f4f6" },
   "Risk Assessment & Stewardship": { icon: ShieldCheck, accent: "#7B3FA0", accentBg: "#f3e8f9" },
   "Communication & Advocacy": { icon: Megaphone, accent: "#E8185A", accentBg: "#fde8ef" },
+  "Precision Biotechnology": { icon: Dna, accent: "#2F8F5B", accentBg: "#e7f5ec" },
 };
 
 // ── Inner content component (uses useSearchParams) ─────────────────
