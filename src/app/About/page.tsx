@@ -249,16 +249,20 @@ export default function AboutPage() {
         `}</style>
 
         <div className="relative z-20 max-w-4xl py-10">
-          <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
-            Rwanda Biotech Capacity Building Project
-          </p>
-          <h1 className="text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg">
-            About Rwanda <span className="text-[#E8185A]">BioCap Project</span>
-          </h1>
-          <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-            The Rwanda BioCap Project is here to build Rwanda's biotechnology capacity to develop improved potato, cassava, and banana varieties. It strengthens food security through innovative, disease-resistant, and climate-resilient crops.
-          </p>
-        </div>
+  <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
+    Rwanda Biotech Capacity Building Project
+  </p>
+  <h1 className="text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg">
+    About Rwanda <span className="text-[#E8185A]">BioCap Project</span>
+  </h1>
+  <p className="text-white/90 text-lg max-w-3xl leading-relaxed font-medium drop-shadow-md text-justify">
+    At the heart of Rwanda's agricultural innovation agenda, the Rwanda BioCap Project
+    is establishing a Center of Excellence in Crop Biotechnology to cultivate world-class scientific
+    expertise, foster responsible innovation, and deliver improved and farmer-preferred banana, cassava,
+    and potato varieties that strengthen
+    food security, enhance climate resilience, and create lasting value for farmers and the nation.
+  </p>
+</div>
 
         <div className="absolute bottom-[-1px] left-0 w-full z-30 leading-[0]">
           <svg className="relative block w-full h-[40px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
