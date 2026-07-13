@@ -33,9 +33,9 @@ const COLORS = {
 const SW = 1.5; 
 
 const HERO_SLIDES = [
-  '/image/DSC06556(1).jpg',
+  '/image/IMG_150.jpg',
   '/image/IMG_36.jpg',
-  '/image/IMG_44(1).jpg',
+  '/image/DSC06556(1).jpg',
 ];
 
 const FEATURES = [
