@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
+import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyArticle';
 import { Sprout, ShieldCheck, Megaphone, Dna } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
@@ -271,8 +272,18 @@ function StewardshipNewsContent() {
     if (match) setActiveProject(match);
   }, [searchParams]);
 
-  // If a project is selected, render its detail page instead
+  // If a project is selected, render its detail page instead.
+  // Precision Biotechnology gets its own editorial article layout;
+  // the other three stewardship stories keep the shared modal.
   if (activeProject) {
+    if (activeProject.title === 'Precision Biotechnology') {
+      return (
+        <PrecisionBiotechnologyArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+        />
+      );
+    }
     return (
       <ProjectDetailPage
         project={activeProject}

@@ -44,8 +44,10 @@ const FEATURES = [
     title: 'Precision Biotechnology',
     body: "CRISPR-based crop improvements engineered for Rwanda's highland agro-ecological zones, from lab research to registered field varieties.",
     color: COLORS.purple,
-    href: '/Biotech',
-    img: '/image/IMG_79.jpg',
+    // Points straight at the Precision Biotechnology article on the
+    // Stewardship News page (same route the news cards there use).
+    href: '/Stewardship-News?project=precision-biotechnology',
+    img: '/image/precision-biotechnology.jpg',
   },
   {
     Icon: Leaf,
@@ -129,6 +131,14 @@ const NEWS = [
     body: 'Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging.',
     img: '/image/dna-communication-advocacy.jpg',
     slug: 'communication-advocacy',
+  },
+  {
+    tag: 'Precision Breeding',
+    date: '2026',
+    title: 'Precision Biotechnology',
+    body: "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for CRISPR genome editing — protecting farmer-preferred banana varieties like Kamaramasenge and Ijangi from disease while preserving the traits farmers and consumers value most.",
+    img: '/image/precision-biotechnology.jpg',
+    slug: 'precision-biotechnology',
   },
 ];
 
