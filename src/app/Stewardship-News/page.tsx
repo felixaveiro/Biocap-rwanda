@@ -198,7 +198,7 @@ const ecoProjects: Project[] = [
   },
   {
     title: "Precision Biotechnology",
-    img: "/image/precision-biotech.jpg",
+    img: "/image/Precision-decision.jpg",
     tag: "Precision Breeding",
     excerpt:
       "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for gene editing and modern crop biotechnology at RAB's Centre of Excellence — using CRISPR genome editing to protect farmer-preferred banana varieties like Kamaramasenge and Ijangi from devastating diseases while preserving the traits farmers and consumers value most.",
