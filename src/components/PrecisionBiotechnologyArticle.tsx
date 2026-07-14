@@ -3,11 +3,9 @@
 import React from 'react';
 import Footer from '@/components/Footer';
 import { type Project } from '@/components/ProjectDetailPage';
-import { ArrowLeft, Share2, Send, Link2, MessageCircle, CalendarDays, Users, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, Share2, Send, Link2, MessageCircle, CalendarDays, Users, ArrowUpRight, User } from 'lucide-react';
 
 // ── Inline markdown-style bold helper ───────────────────────────────
-// The source content uses **bold** to mark key terms/figures; this turns
-// those into <strong> without pulling in a markdown parser dependency.
 function renderInline(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, i) => {
@@ -19,8 +17,6 @@ function renderInline(text: string) {
 }
 
 // ── Article content ──────────────────────────────────────────────────
-// Sourced directly and only from "Precision Biotechnology - Blog.docx".
-// No invented objectives, sessions, or filler content.
 type Block =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
@@ -71,7 +67,7 @@ const blocks: Block[] = [
     src: '/image/DSC06556(1).jpg',
     caption: "RAB's Centre of Excellence in Crop Biotechnology",
   },
-  { type: 'h2', text: 'Why Banana Matters to Rwanda' },
+  { type: 'h2', text: 'Why Banana Matters to Rwanda ?' },
   {
     type: 'p',
     text: 'Banana is far more than a crop in Rwanda; it is a pillar of food security, nutrition, rural livelihoods and cultural heritage.',
@@ -104,7 +100,7 @@ const blocks: Block[] = [
   { type: 'emphasis', text: 'Genome editing changes this paradigm.' },
   {
     type: 'image',
-    src: '/image/IMG_149.jpg',
+    src: '/image/visit-biotech-laboratory.jpg',
     caption: 'Preserving Kamaramasenge and Ijangi through targeted genome editing',
   },
   {
@@ -121,17 +117,20 @@ const blocks: Block[] = [
   },
 ];
 
+interface ExtendedProject extends Project {
+  author?: string;
+  fullDate?: string; // Explicit support for full date formatting strings like '15/12/2026'
+}
+
 export default function PrecisionBiotechnologyArticle({
   project,
   onBack,
   allProjects = [],
   onSelectProject,
 }: {
-  project: Project;
+  project: ExtendedProject;
   onBack: () => void;
-  /** Full project list, used to populate the "More Stories" sidebar card. */
   allProjects?: Project[];
-  /** Called when a related story is clicked from the sidebar. */
   onSelectProject?: (project: Project) => void;
 }) {
   const shareIcons = [
@@ -141,8 +140,10 @@ export default function PrecisionBiotechnologyArticle({
     { Icon: Link2, label: 'Copy link' },
   ];
 
-  // Everything except the article currently being read, most-recent first.
   const relatedStories = allProjects.filter((p) => p.title !== project.title);
+
+  // Fallback structural helpers to extract details if props aren't uniformly structured
+  const displayDate = project.fullDate || project.modal?.date || '15/12/2026';
 
   return (
     <div className="bg-white min-h-screen font-sans">
@@ -212,32 +213,41 @@ export default function PrecisionBiotechnologyArticle({
 
       <div className="pba-page">
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden min-h-[420px] flex items-end px-6 lg:px-12 pb-14">
+        <section className="relative overflow-hidden min-h-[460px] flex items-end px-6 lg:px-12 pb-14">
           <div className="absolute inset-0 z-0">
             <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0f2240] via-[#0f2240]/75 to-[#0f2240]/25" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0f2240] via-[#0f2240]/85 to-[#0f2240]/30" />
           </div>
 
-          <div className="relative z-20 max-w-3xl">
+          <div className="relative z-20 max-w-4xl">
             <button
               onClick={onBack}
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-bold uppercase tracking-widest mb-5 transition-colors"
+              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-bold uppercase tracking-widest mb-6 transition-colors"
             >
               <ArrowLeft size={14} /> Back to Stewardship News
             </button>
+            
             <div className="flex flex-wrap items-center gap-3 mb-4">
               <span className="bg-[#E8185A] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md">
                 {project.tag}
               </span>
-              {project.modal?.date && (
-                <span className="inline-flex items-center gap-1.5 text-white/80 text-xs font-medium">
-                  <CalendarDays size={13} /> {project.modal.date}
-                </span>
-              )}
             </div>
-            <h1 className="pba-serif text-3xl lg:text-5xl text-white leading-tight italic">
+
+            <h1 className="pba-serif text-3xl lg:text-5xl text-white leading-tight italic mb-6">
               {ARTICLE_TITLE}
             </h1>
+
+            {/* ── BYLINE METADATA ROW WITH FULL DD/MM/YYYY FORMAT ── */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-white/20 text-white/90 text-sm font-medium">
+              <div className="inline-flex items-center gap-2">
+                <User size={15} className="text-[#E8185A]" />
+                <span>{project.author || 'By Nshimiyimana Pacifique'}</span>
+              </div>
+              <div className="inline-flex items-center gap-2">
+                <CalendarDays size={15} className="text-[#E8185A]" />
+                <span>{displayDate}</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -286,7 +296,7 @@ export default function PrecisionBiotechnologyArticle({
                     return (
                       <figure key={i} className="my-12">
                         <div className="rounded-2xl overflow-hidden shadow-xl">
-                          <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover" />
+                          <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
                         </div>
                         <figcaption className="text-xs text-slate-400 mt-3 text-center uppercase tracking-widest">
                           {block.caption}
@@ -317,18 +327,16 @@ export default function PrecisionBiotechnologyArticle({
 
             {/* Sidebar */}
             <aside className="lg:sticky lg:top-6 flex flex-col gap-5">
-              {(project.modal?.date || project.modal?.organizer || project.modal?.partners) && (
+              {(displayDate || project.modal?.organizer || project.modal?.partners) && (
                 <div className="pba-side-card">
                   <div className="pba-side-label">
                     <CalendarDays size={14} /> Details
                   </div>
                   <div className="space-y-3 text-sm">
-                    {project.modal?.date && (
-                      <div className="flex items-start gap-2 text-slate-600">
-                        <CalendarDays size={15} className="text-[#E8185A] mt-0.5 flex-shrink-0" />
-                        <span>{project.modal.date}</span>
-                      </div>
-                    )}
+                    <div className="flex items-start gap-2 text-slate-600">
+                      <CalendarDays size={15} className="text-[#E8185A] mt-0.5 flex-shrink-0" />
+                      <span>{displayDate}</span>
+                    </div>
                     {project.modal?.organizer && (
                       <div className="flex items-start gap-2 text-slate-600">
                         <Users size={15} className="text-[#E8185A] mt-0.5 flex-shrink-0" />

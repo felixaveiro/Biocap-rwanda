@@ -8,7 +8,6 @@ import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyAr
 import { Sprout, ShieldCheck, Megaphone, Dna } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
-// e.g. /Stewardship-News?project=dna-week
 const PROJECT_SLUGS: Record<string, string> = {
   'DNA Week': 'dna-week',
   'Risk Assessment & Stewardship': 'risk-assessment-stewardship',
@@ -204,7 +203,7 @@ const ecoProjects: Project[] = [
     excerpt:
       "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for gene editing and modern crop biotechnology at RAB's Centre of Excellence — using CRISPR genome editing to protect farmer-preferred banana varieties like Kamaramasenge and Ijangi from devastating diseases while preserving the traits farmers and consumers value most.",
     modal: {
-      date: "2026",
+      date: "15/12/2026",
       organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
       partners: "Rwanda Agriculture and Animal Resources Development Board (RAB) · RAB Rubona Centre of Excellence in Crop Biotechnology",
       intro:
@@ -248,8 +247,6 @@ const ecoProjects: Project[] = [
   },
 ];
 
-// Visual accents per card — kept separate from the Project type on purpose,
-// so this file doesn't require editing ProjectDetailPage.tsx's Project shape.
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
   "DNA Week": { icon: Sprout, accent: "#2A7F8C", accentBg: "#e6f4f6" },
   "Risk Assessment & Stewardship": { icon: ShieldCheck, accent: "#7B3FA0", accentBg: "#f3e8f9" },
@@ -257,13 +254,11 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Precision Biotechnology": { icon: Dna, accent: "#2F8F5B", accentBg: "#e7f5ec" },
 };
 
-// ── Inner content component (uses useSearchParams) ─────────────────
+// ── Inner content component ─────────────────────────────────────────
 function StewardshipNewsContent() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const searchParams = useSearchParams();
 
-  // If the URL carries ?project=<slug> (e.g. from the footer's Recent News
-  // links), automatically open that story on load.
   useEffect(() => {
     const slug = searchParams.get('project');
     if (!slug) return;
@@ -272,15 +267,15 @@ function StewardshipNewsContent() {
     if (match) setActiveProject(match);
   }, [searchParams]);
 
-  // If a project is selected, render its detail page instead.
-  // Precision Biotechnology gets its own editorial article layout;
-  // the other three stewardship stories keep the shared modal.
+  // Handle switching views directly between articles
   if (activeProject) {
     if (activeProject.title === 'Precision Biotechnology') {
       return (
         <PrecisionBiotechnologyArticle
           project={activeProject}
           onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected) => setActiveProject(selected)}
         />
       );
     }
@@ -294,7 +289,6 @@ function StewardshipNewsContent() {
 
   return (
     <div className="bg-white min-h-screen font-sans">
-      {/* Shared type system with the About page */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -401,17 +395,17 @@ function StewardshipNewsContent() {
             <div className="flex items-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest">
               <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Commitment &amp; Stewardship Program
             </div>
-           <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] leading-tight">
-  A Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
-</h2>
-<p className="text-slate-600 text-base leading-relaxed text-justify">
-  "We don't have time, We need faster and more effective delivery of solutions to our farmers, 
-  and we must establish strong partnership models. This is also the time to communicate science
-  effectively to build trust."
-</p>
-<p className="text-[#1B3A5C] text-sm font-bold mt-1">
-  — Dr. Joyce Maru, <span className="font-normal text-slate-500">Regional Director - CIP</span>
-</p>
+            <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] leading-tight">
+              A Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
+            </h2>
+            <p className="text-slate-600 text-base leading-relaxed text-justify">
+              "We don't have time, We need faster and more effective delivery of solutions to our farmers, 
+              and we must establish strong partnership models. This is also the time to communicate science
+              effectively to build trust."
+            </p>
+            <p className="text-[#1B3A5C] text-sm font-bold mt-1">
+              — Dr. Joyce Maru, <span className="font-normal text-slate-500">Regional Director - CIP</span>
+            </p>
           </div>
         </section>
 
@@ -501,7 +495,7 @@ function StewardshipNewsContent() {
   );
 }
 
-// ── Page (wraps content in Suspense so useSearchParams works at build time) ──
+// ── Page Wrapper ──
 export default function EnvironmentPage() {
   return (
     <Suspense fallback={null}>
