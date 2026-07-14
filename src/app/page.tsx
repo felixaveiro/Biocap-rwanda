@@ -47,7 +47,7 @@ const FEATURES = [
     // Points straight at the Precision Biotechnology article on the
     // Stewardship News page (same route the news cards there use).
     href: '/Stewardship-News?project=precision-biotechnology',
-    img: '/image/precision-biotechnology.jpg',
+    img: '/image/Precision-biotech.jpg',
   },
   {
     Icon: Leaf,
