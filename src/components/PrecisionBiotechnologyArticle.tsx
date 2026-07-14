@@ -65,7 +65,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/DSC06556(1).jpg',
-    caption: "RAB's Centre of Excellence in Crop Biotechnology",
+    caption: "Prof. Karim of MSU, and Dr. Eric of CIP posing for group picture with RAB Plant Pathology Team.",
   },
   { type: 'h2', text: 'Why Banana Matters to Rwanda ?' },
   {
@@ -101,7 +101,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/visit-biotech-laboratory.jpg',
-    caption: 'Preserving Kamaramasenge and Ijangi through targeted genome editing',
+    caption: "Dr. Eric of CIP and Dr. Nigel of DDPSC discussing as the BioCap Project partners reviewed RAB's Laboratory Equipment Capacity",
   },
   {
     type: 'p',
@@ -298,7 +298,7 @@ export default function PrecisionBiotechnologyArticle({
                         <div className="rounded-2xl overflow-hidden shadow-xl">
                           <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
                         </div>
-                        <figcaption className="text-xs text-slate-400 mt-3 text-center uppercase tracking-widest">
+                        <figcaption className="text-[9px] text-slate-400 mt-3 text-center uppercase tracking-widest">
                           {block.caption}
                         </figcaption>
                       </figure>
