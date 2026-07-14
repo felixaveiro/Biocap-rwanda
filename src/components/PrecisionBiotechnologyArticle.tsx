@@ -287,7 +287,7 @@ export default function PrecisionBiotechnologyArticle({
                     return (
                       <p
                         key={i}
-                        className="pba-serif italic text-xl lg:text-2xl text-[#E8185A] text-center my-10"
+                        className="pba-serif italic text-xl lg:text-2xl text-[#E8185A] text-left my-10"
                       >
                         {block.text}
                       </p>
@@ -298,7 +298,7 @@ export default function PrecisionBiotechnologyArticle({
                         <div className="rounded-2xl overflow-hidden shadow-xl">
                           <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
                         </div>
-                        <figcaption className="text-[9px] text-slate-400 mt-3 text-center uppercase tracking-widest">
+                        <figcaption className="text-[13px] text-slate-400 mt-3 text-center capitalize tracking-widest">
                           {block.caption}
                         </figcaption>
                       </figure>
