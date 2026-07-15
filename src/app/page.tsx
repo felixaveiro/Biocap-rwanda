@@ -132,14 +132,14 @@ const NEWS = [
     img: '/image/dna-communication-advocacy.jpg',
     slug: 'communication-advocacy',
   },
-  {
-    tag: 'Precision Breeding',
-    date: '2026',
-    title: 'Precision Biotechnology',
-    body: "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for CRISPR genome editing — protecting farmer-preferred banana varieties like Kamaramasenge and Ijangi from disease while preserving the traits farmers and consumers value most.",
-    img: '/image/precision-biotechnology.jpg',
-    slug: 'precision-biotechnology',
-  },
+  // {
+  //   tag: 'Precision Breeding',
+  //   date: '15 December 2026',
+  //   title: 'Precision Biotechnology',
+  //   body: "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for CRISPR genome editing — protecting farmer-preferred banana varieties like Kamaramasenge and Ijangi from disease while preserving the traits farmers and consumers value most.",
+  //   img: '/image/Precision-decision.jpg',
+  //   slug: 'precision-biotechnology',
+  // },
 ];
 
 /* ── ANIMATION VARIANTS ── */

@@ -249,7 +249,7 @@ const ecoProjects: Project[] = [
   },
   {
     title: "Communication & Social Engagement",
-    img: "/image/IMG_155.jpg",
+    img: "/image/IMG_136.jpg",
     tag: "Science Communication",
     excerpt:
       "The Rwanda BioCap Project is placing communication at the heart of responsible biotechnology — combating misinformation, empowering digital voices, reaching farmers through community radio, and using edutainment to build public trust in science.",

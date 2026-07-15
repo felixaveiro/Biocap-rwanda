@@ -56,7 +56,7 @@ const blocks: Block[] = [
   },
   {
     type: 'image',
-    src: '/image/Communication.jpg',
+    src: '/image/communication-image.jpg',
     caption: 'AfS-Rwanda and RAB strengthening science communication capacity among journalists and digital communicators',
   },
   { type: 'h2', text: 'Combating Misinformation in the Digital Age' },
@@ -241,29 +241,39 @@ export default function CommunicationSocialEngagementArticle({
 
       <div className="pba-page">
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden min-h-[220px] flex items-end px-1 lg:px-12 pb-10">
+        <section className="relative overflow-hidden min-h-[900px] flex items-end px-6 lg:px-12 pb-6">
           <div className="absolute inset-0 z-0">
-            <img src={project.img} alt={project.title} className="w-full h-full object-cover object-top" />
+            <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f2240] via-[#0f2240]/85 to-[#0f2240]/30" />
           </div>
 
           <div className="relative z-20 max-w-4xl">
             <button
               onClick={onBack}
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-bold uppercase tracking-widest mb-6 transition-colors"
+              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs font-bold uppercase tracking-widest mb-5 transition-colors"
             >
               <ArrowLeft size={14} /> Back to Stewardship News
             </button>
 
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center mb-4">
+              <MessageCircle size={22} className="text-white" strokeWidth={1.75} />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 mb-3">
               <span className="bg-[#E8185A] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-md">
                 {project.tag}
               </span>
             </div>
 
-            <h1 className="pba-serif text-3xl lg:text-5xl text-white leading-tight italic mb-6">
+            <h1 className="font-sans font-extrabold text-2xl lg:text-4xl text-white leading-tight mb-3">
               {ARTICLE_TITLE}
             </h1>
+
+            {project.excerpt && (
+              <p className="text-white/80 text-sm lg:text-base leading-relaxed max-w-2xl mb-5">
+                {project.excerpt}
+              </p>
+            )}
 
             {/* ── BYLINE METADATA ROW WITH FULL DD/MM/YYYY FORMAT ── */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-white/20 text-white/90 text-sm font-medium">
