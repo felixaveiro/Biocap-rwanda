@@ -241,7 +241,7 @@ export default function CommunicationSocialEngagementArticle({
 
       <div className="pba-page">
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden min-h-[900px] flex items-end px-6 lg:px-12 pb-6">
+        <section className="relative overflow-hidden min-h-[600px] flex items-end px-6 lg:px-12 pb-6">
           <div className="absolute inset-0 z-0">
             <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f2240] via-[#0f2240]/85 to-[#0f2240]/30" />
@@ -279,7 +279,7 @@ export default function CommunicationSocialEngagementArticle({
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-white/20 text-white/90 text-sm font-medium">
               <div className="inline-flex items-center gap-2">
                 <User size={15} className="text-[#E8185A]" />
-                <span>{project.author || 'By Rwanda BioCap Communication Team'}</span>
+                <span>{project.author || 'By Nshimiyimana Pacifique'}</span>
               </div>
               <div className="inline-flex items-center gap-2">
                 <CalendarDays size={15} className="text-[#E8185A]" />
