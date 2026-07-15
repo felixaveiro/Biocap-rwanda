@@ -49,14 +49,14 @@ const FEATURES = [
     href: '/Stewardship-News?project=precision-biotechnology',
     img: '/image/Precision-decision.jpg',
   },
-  {
-    Icon: Leaf,
-    title: 'Communication & Social Engagement',
-    body: 'Regenerative agriculture integrated with modern biosystems science — protecting biodiversity while dramatically boosting smallholder yield.',
-    color: COLORS.teal,
-    href: '/Stewardship-News',
-    img: '/image/IMG_155.jpg',
-  },
+{
+  Icon: Leaf,
+  title: 'Communication & Social Engagement',
+  body: 'Regenerative agriculture integrated with modern biosystems science — protecting biodiversity while dramatically boosting smallholder yield.',
+  color: COLORS.teal,
+  href: '/Stewardship-News?project=communication-social-engagement',
+  img: '/image/IMG_155.jpg',
+},
   {
     Icon: Scale,
     title: 'Regulatory Advocacy',

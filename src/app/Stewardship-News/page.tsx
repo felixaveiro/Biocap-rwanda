@@ -5,7 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
 import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyArticle';
-import { Sprout, ShieldCheck, Megaphone, Dna } from 'lucide-react';
+import CommunicationSocialEngagementArticle from '@/components/CommunicationSocialEngagementArticle';
+import { Sprout, ShieldCheck, Megaphone, Dna, Radio } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -13,6 +14,7 @@ const PROJECT_SLUGS: Record<string, string> = {
   'Risk Assessment & Stewardship': 'risk-assessment-stewardship',
   'Communication & Advocacy': 'communication-advocacy',
   'Precision Biotechnology': 'precision-biotechnology',
+  'Communication & Social Engagement': 'communication-social-engagement',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -245,6 +247,56 @@ const ecoProjects: Project[] = [
       quoteSource: "Dr. Jennifer Doudna, 2020 Nobel Prize-winning biochemist",
     },
   },
+  {
+    title: "Communication & Social Engagement",
+    img: "/image/dna-communication-advocacy.jpg",
+    tag: "Science Communication",
+    excerpt:
+      "The Rwanda BioCap Project is placing communication at the heart of responsible biotechnology — combating misinformation, empowering digital voices, reaching farmers through community radio, and using edutainment to build public trust in science.",
+    modal: {
+      date: "15/12/2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Alliance for Science Rwanda (AfS-Rwanda) · Rwanda Agriculture Board (RAB) · Open Forum on Agricultural Biotechnology (OFAB) · Rwanda Media Commission (RMC)",
+      intro:
+        "No matter how innovative a new crop variety may be, its impact depends on whether farmers understand it, consumers trust it, policymakers support it, and communities feel included in the conversation. Recognizing this, the Rwanda BioCap Project places Communication & Social Engagement at the heart of its mission to advance responsible crop biotechnology.",
+      objectives: [
+        "Shift from one-way communication to genuine public engagement and dialogue",
+        "Combat misinformation across social platforms with credible, fact-checked content",
+        "Empower digital voices — influencers, agripreneurs, and educators — as science communicators",
+        "Reach farmers through trusted traditional media, especially community radio",
+        "Use edutainment, including radio drama series, to make biotechnology relatable",
+      ],
+      sessions: [
+        {
+          name: "From One-Way Communication to Public Engagement",
+          role: "Building dialogue, not just messaging",
+          summary:
+            "Communication is treated as a continuous process connecting researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.",
+        },
+        {
+          name: "Combating Misinformation in the Digital Age",
+          role: "Evidence-based, fact-checked content",
+          summary:
+            "Working with AfS-Rwanda, RAB, OFAB, and the Rwanda Media Commission, BioCap strengthens science communication capacity among journalists and digital communicators to counter myths with credible information.",
+        },
+        {
+          name: "Leaving No Farmer Behind",
+          role: "Radio and inclusive outreach",
+          summary:
+            "Radio remains the most trusted and accessible platform in rural Rwanda. BioCap combines digital innovation with community radio, talk shows, and local-language programming to reach every farmer.",
+        },
+      ],
+      collaboration: [
+        "Journalist and digital communicator capacity building",
+        "Radio and drama series (edutainment) development",
+        "Farmer champion and influencer partnerships",
+        "Cross-institutional misinformation response",
+      ],
+      quote:
+        "The future of biotechnology will be shaped not only by scientific discoveries but also by how effectively science is communicated, understood and embraced by society.",
+      quoteSource: "Rwanda BioCap Project — Communication & Social Engagement",
+    },
+  },
 ];
 
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
@@ -252,6 +304,7 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Risk Assessment & Stewardship": { icon: ShieldCheck, accent: "#7B3FA0", accentBg: "#f3e8f9" },
   "Communication & Advocacy": { icon: Megaphone, accent: "#E8185A", accentBg: "#fde8ef" },
   "Precision Biotechnology": { icon: Dna, accent: "#2F8F5B", accentBg: "#e7f5ec" },
+  "Communication & Social Engagement": { icon: Radio, accent: "#D97706", accentBg: "#fef3e2" },
 };
 
 // ── Inner content component ─────────────────────────────────────────
@@ -276,6 +329,16 @@ function StewardshipNewsContent() {
           onBack={() => setActiveProject(null)}
           allProjects={ecoProjects}
           onSelectProject={(selected) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'Communication & Social Engagement') {
+      return (
+        <CommunicationSocialEngagementArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
         />
       );
     }
