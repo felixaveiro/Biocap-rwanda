@@ -57,7 +57,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/communication-image.jpg',
-    caption: 'AfS-Rwanda and RAB strengthening science communication capacity among journalists and digital communicators',
+    caption: 'Dr. Eric Magembe presenting during the Rwanda BioCap Project Launch',
   },
   { type: 'h2', text: 'Combating Misinformation in the Digital Age' },
   {
@@ -77,10 +77,15 @@ const blocks: Block[] = [
     text: 'This approach helps ensure that conversations about biotechnology are driven by evidence, transparency, and public interest.',
   },
   { type: 'h2', text: 'Empowering Digital Voices for Science' },
-  {
-    type: 'p',
-    text: "Today's audiences increasingly receive information from trusted online personalities rather than traditional institutions. Recognizing this shift, the Rwanda BioCap Project is embracing a new generation of science communicators.",
-  },
+ {
+  type: 'p',
+  text: "Today's audiences increasingly receive information from trusted online personalities rather than traditional institutions. Recognizing this shift, the Rwanda BioCap Project is embracing a new generation of science communicators.",
+},
+{
+  type: 'image',
+  src: '/image/afs-communication-image.jpg',
+  caption: 'Community radio outreach bringing biotechnology information to farmers across rural Rwanda',
+},
   {
     type: 'p',
     text: 'Social media influencers, agripreneurs, youth innovators, farmers, educators, and digital content creators are becoming powerful ambassadors for agricultural innovation. When equipped with accurate scientific knowledge, these trusted voices can translate complex biotechnology concepts into relatable stories that resonate with diverse audiences.',
@@ -102,7 +107,9 @@ const blocks: Block[] = [
     type: 'p',
     text: 'To ensure inclusive communication, BioCap combines digital innovation with traditional media outreach, using community radio, interactive talk shows, expert interviews, and local-language programming to reach farmers wherever they are.',
   },
-  { type: 'emphasis', text: 'This integrated communication strategy ensures that no community is excluded from the biotechnology conversation.' },
+  { type: 'quote',
+     text: 'This integrated communication strategy ensures that no community is excluded from the biotechnology conversation.',
+    source: 'AFS-Communication Team', },
   {
     type: 'image',
     src: '/image/IMG_149.jpg',
