@@ -56,7 +56,7 @@ const blocks: Block[] = [
   },
   {
     type: 'image',
-    src: '/image/dna-communication-advocacy.jpg',
+    src: '/image/Communication.jpg',
     caption: 'AfS-Rwanda and RAB strengthening science communication capacity among journalists and digital communicators',
   },
   { type: 'h2', text: 'Combating Misinformation in the Digital Age' },
@@ -241,9 +241,9 @@ export default function CommunicationSocialEngagementArticle({
 
       <div className="pba-page">
         {/* ── HERO ── */}
-        <section className="relative overflow-hidden min-h-[460px] flex items-end px-6 lg:px-12 pb-14">
+        <section className="relative overflow-hidden min-h-[220px] flex items-end px-1 lg:px-12 pb-10">
           <div className="absolute inset-0 z-0">
-            <img src={project.img} alt={project.title} className="w-full h-full object-cover" />
+            <img src={project.img} alt={project.title} className="w-full h-full object-cover object-top" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0f2240] via-[#0f2240]/85 to-[#0f2240]/30" />
           </div>
 
