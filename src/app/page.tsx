@@ -56,13 +56,14 @@ const FEATURES = [
   color: COLORS.teal,
   href: '/Stewardship-News?project=communication-social-engagement',
   img: '/image/IMG_155.jpg',
+  
 },
   {
     Icon: Scale,
     title: 'Regulatory Advocacy',
     body: "Evidence-driven policy reform enabling Rwanda's farmers and scientists to access the world's safest and most effective crop technologies.",
     color: COLORS.pink,
-    href: '/About',
+    href: '/Stewardship-News?project=regulatory-advocacy',
     img: '/image/DSC_6116.jpg',
   },
   {

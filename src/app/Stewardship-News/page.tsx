@@ -6,7 +6,8 @@ import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
 import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyArticle';
 import CommunicationSocialEngagementArticle from '@/components/CommunicationSocialEngagementArticle';
-import { Sprout, ShieldCheck, Megaphone, Dna, Radio } from 'lucide-react';
+import RegulatoryAdvocacyArticle from '@/components/RegulatoryAdvocacyArticle';
+import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -15,6 +16,7 @@ const PROJECT_SLUGS: Record<string, string> = {
   'Communication & Advocacy': 'communication-advocacy',
   'Precision Biotechnology': 'precision-biotechnology',
   'Communication & Social Engagement': 'communication-social-engagement',
+  'Regulatory Advocacy': 'regulatory-advocacy',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -297,6 +299,55 @@ const ecoProjects: Project[] = [
       quoteSource: "Rwanda BioCap Project — Communication & Social Engagement",
     },
   },
+  {
+    title: "Regulatory Advocacy",
+    img: "/image/regulatory-image.jpg",
+    tag: "Policy & Governance",
+    excerpt:
+      "Rwanda's evidence-driven regulatory system — anchored in the Biosafety Law, data transportability, and collaboration among RAB, RICA, REMA, and MINAGRI — is creating the enabling environment for CRISPR-based crop biotechnology to responsibly reach Rwandan farmers.",
+    modal: {
+      date: "15/12/2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Rwanda Agriculture Board (RAB) · Rwanda Inspectorate, Competition and Consumer Protection Authority (RICA) · Rwanda Environment Management Authority (REMA) · Ministry of Agriculture and Animal Resources (MINAGRI)",
+      intro:
+        "Scientific discoveries improve lives only when they are supported by sound public policy. The Rwanda BioCap Project recognizes that responsible innovation begins with evidence-driven regulatory advocacy: policies that are transparent, science-based, and responsive to the needs of farmers, consumers, researchers, and the nation.",
+      objectives: [
+        "Strengthen Rwanda's evidence-driven, science-based regulatory system for agricultural biotechnology, supported by the Biosafety Law and collaboration among RAB, RICA, REMA, and MINAGRI",
+        "Support the safe development, evaluation, and eventual deployment of precision biotechnology, including CRISPR-based genome editing",
+        "Apply data transportability to make timely, science-based regulatory decisions without duplicating scientifically validated studies",
+        "Build youth capacity in agricultural biotechnology, drawing on Rwanda's young population (16–30 years ≈ 27%; 14–35 years ≈ 39%, per NISR)",
+      ],
+      sessions: [
+        {
+          name: "Science at the Heart of Decision-Making",
+          role: "Evidence-based governance",
+          summary:
+            "Rwanda relies on scientific risk assessment, regulatory transparency, and internationally accepted biosafety principles — supported by the Biosafety Law and strong collaboration among RAB, RICA, REMA, and MINAGRI — to evaluate emerging technologies including CRISPR-based genome editing.",
+        },
+        {
+          name: "A Young Nation Ready to Innovate",
+          role: "Investing in Rwanda's youth",
+          summary:
+            "With people aged 16–30 accounting for roughly 27% of the population (NISR), the Rwanda BioCap Project invests in advanced scientific training, postgraduate research, biotechnology infrastructure, and innovation leadership for the next generation of African scientists.",
+        },
+        {
+          name: "Smarter Regulation Through Data Transportability",
+          role: "Not reinventing the wheel",
+          summary:
+            "Data transportability allows scientifically relevant data from rigorous field evaluations in comparable environments to inform national regulatory decisions, letting Rwanda make timely, science-based decisions without duplicating validated studies or compromising safety and transparency.",
+        },
+      ],
+      collaboration: [
+        "Cross-institutional regulatory coordination (RAB, RICA, REMA, MINAGRI)",
+        "Biosafety Law implementation and regulatory transparency",
+        "Data transportability with regional regulators",
+        "Investment in advanced scientific training and postgraduate research",
+      ],
+      quote:
+        "Today's launch is for the people of Rwanda. It is about ensuring that our farmers have access to better, safer, and more resilient crops, and that our families can rely on food that is sufficient, nutritious, and affordable.",
+      quoteSource: "Dr. Solange Uwituze, Minister of State for Agriculture — Rwanda BioCap Launch",
+    },
+  },
 ];
 
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
@@ -305,6 +356,7 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Communication & Advocacy": { icon: Megaphone, accent: "#E8185A", accentBg: "#fde8ef" },
   "Precision Biotechnology": { icon: Dna, accent: "#2F8F5B", accentBg: "#e7f5ec" },
   "Communication & Social Engagement": { icon: Radio, accent: "#D97706", accentBg: "#fef3e2" },
+  "Regulatory Advocacy": { icon: Scale, accent: "#1B3A5C", accentBg: "#e8edf3" },
 };
 
 // ── Inner content component ─────────────────────────────────────────
@@ -335,6 +387,16 @@ function StewardshipNewsContent() {
     if (activeProject.title === 'Communication & Social Engagement') {
       return (
         <CommunicationSocialEngagementArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'Regulatory Advocacy') {
+      return (
+        <RegulatoryAdvocacyArticle
           project={activeProject}
           onBack={() => setActiveProject(null)}
           allProjects={ecoProjects}
