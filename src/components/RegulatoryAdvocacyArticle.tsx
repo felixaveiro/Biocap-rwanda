@@ -65,7 +65,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/IMG_150.jpg',
-    caption: "Rwanda's regulatory institutions — RAB, RICA, REMA, and MINAGRI — collaborate under the Biosafety Law to evaluate agricultural biotechnology.",
+    caption: "Regulatory and research partners come together at the official launch of the Rwanda BioCap Project.",
   },
   { type: 'h2', text: 'Investing in World-Class Agricultural Technologies' },
   {
@@ -121,7 +121,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/reguratory-body.jpg',
-    caption: "Scientific data and laboratory evidence inform Rwanda's evidence-based regulatory decisions.",
+    caption: "Touring RAB's research laboratories, where scientific evidence informs Rwanda's evidence-based regulatory process.",
   },
   {
     type: 'p',
