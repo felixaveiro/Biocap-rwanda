@@ -84,7 +84,7 @@ const blocks: Block[] = [
 {
   type: 'image',
   src: '/image/afs-communication-image.jpg',
-  caption: 'Community radio outreach bringing biotechnology information to farmers across rural Rwanda',
+  caption: 'Rwanda BioCap Project engaging social media influencers on communicating biotechnology to the public',
 },
   {
     type: 'p',
@@ -109,11 +109,11 @@ const blocks: Block[] = [
   },
   { type: 'quote',
      text: 'This integrated communication strategy ensures that no community is excluded from the biotechnology conversation.',
-    source: 'AFS-Communication Team', },
+    source: 'AFS-RWANDA Communication Team', },
   {
     type: 'image',
     src: '/image/IMG_149.jpg',
-    caption: 'Community radio outreach bringing biotechnology information to farmers across rural Rwanda',
+    caption: 'The Rwanda BioCap Project officially launches, bringing together researchers, regulators, and partners',
   },
   { type: 'h2', text: 'Learning Through Entertainment' },
   {
