@@ -291,7 +291,8 @@ export default function Footer() {
             {/* Social icons */}
             <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
               {SOCIAL_LINKS.map(({ icon: Icon, href }, i) => (
-                <a key={i} href={href} className="bc-footer-social">
+                <a key={i} href={href} target="_blank"
+      rel="noopener noreferrer" className="bc-footer-social">
                   <Icon size={15} strokeWidth={1.75} />
                 </a>
               ))}
