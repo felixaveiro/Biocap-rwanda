@@ -42,7 +42,7 @@ const FEATURES = [
   {
     Icon: Dna,
     title: 'Precision Biotechnology',
-    body: "CRISPR-based crop improvements engineered for Rwanda's highland agro-ecological zones, from lab research to registered field varieties.",
+    body: "For centuries, crop improvement has relied on selecting plants with desirable traits and crossing them over many generations. While conventional breeding has transformed global agriculture, it often transfers both desirable ..",
     color: COLORS.purple,
     // Points straight at the Precision Biotechnology article on the
     // Stewardship News page (same route the news cards there use).
@@ -52,7 +52,7 @@ const FEATURES = [
 {
   Icon: Leaf,
   title: 'Communication & Social Engagement',
-  body: 'Regenerative agriculture integrated with modern biosystems science — protecting biodiversity while dramatically boosting smallholder yield.',
+  body: 'Through BioCap, communication is viewed as a continuous process of engagement that connects researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.',
   color: COLORS.teal,
   href: '/Stewardship-News?project=communication-social-engagement',
   img: '/image/IMG_155.jpg',
@@ -61,25 +61,26 @@ const FEATURES = [
   {
     Icon: Scale,
     title: 'Regulatory Advocacy',
-    body: "Evidence-driven policy reform enabling Rwanda's farmers and scientists to access the world's safest and most effective crop technologies.",
+    body: "Scientific discoveries improve lives only when they are supported by sound public policy. As crop biotechnology continues to evolve, countries need regulatory systems that protect public health and the environment while ..",
     color: COLORS.pink,
     href: '/Stewardship-News?project=regulatory-advocacy',
     img: '/image/DSC_6116.jpg',
   },
+  
   {
     Icon: Handshake,
     title: 'Farmer Participation',
-    body: "Direct collaboration with cooperatives across Rwanda's 30 districts, ensuring innovation reaches those who need it most — on the ground.",
+    body: "For the first time, the project introduces genome editing as a precise crop improvement tool. Its purpose is not to reinvent new varieties, but to strengthen existing crop value chains by enhancing the varieties farmers already grow, trust, sell, and consume.",
     color: COLORS.navy,
-    href: '/About',
+    href: '/Stewardship-News?project=farmer-participation',
     img: '/image/IMG_126.jpg',
   },
   {
     Icon: BarChart2,
     title: 'Condunsive Research Infrastracture',
-    body: 'Real-time field data collection and analysis across multiple crop varieties, enabling rapid iteration and evidence-based recommendations.',
+    body: 'Scientific innovation flourishes where ideas, expertise, and world-class infrastructure come together. For Rwanda, investing in modern research facilities is more than constructing laboratories — it is creating the foundation for a future where agricultural solutions are discovered ..',
     color: COLORS.purple,
-    href: '/Biotech',
+    href: '/Stewardship-News?project=conducive-research-infrastructure',
     img: '/image/LABDY3_41.jpg',
   },
   {
@@ -548,10 +549,10 @@ export default function HomePage() {
                 <div className="bc-feature-icon">
                   <Icon size={20} color="#fff" strokeWidth={SW} />
                 </div>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 0.75rem' }}>
+                <h3 style={{ fontSize: '1.0rem', fontWeight: 700, margin: '0 0 0.75rem' }}>
                   {title}
                 </h3>
-                <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.65, marginBottom: '1.5rem' }}>
+                <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.65, textAlign: 'justify', marginBottom: '1.5rem' }}>
                   {body}
                 </p>
                 <Link

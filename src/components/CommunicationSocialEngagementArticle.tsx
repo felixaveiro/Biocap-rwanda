@@ -1,9 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Footer from '@/components/Footer';
 import { type Project } from '@/components/ProjectDetailPage';
-import { ArrowLeft, Share2, Send, Link2, MessageCircle, CalendarDays, Users, ArrowUpRight, User } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Share2, 
+  Send, 
+  Link2, 
+  MessageCircle, 
+  CalendarDays, 
+  Users, 
+  ArrowUpRight, 
+  User
+} from 'lucide-react';
 
 // ── Inline markdown-style bold helper ───────────────────────────────
 function renderInline(text: string) {
@@ -16,8 +26,6 @@ function renderInline(text: string) {
   });
 }
 
-// ── Article content ──────────────────────────────────────────────────
-// Sourced directly and only from "Communication and Social Engagement - Blog.docx".
 type Block =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
@@ -28,7 +36,7 @@ type Block =
 const ARTICLE_TITLE =
   'Communication & Social Engagement: Building Public Trust in Biotechnology Through Science, Stories, and Community Voices';
 
-const blocks: Block[] = [
+const INITIAL_BLOCKS: Block[] = [
   {
     type: 'quote',
     text: 'Scientific breakthroughs alone do not transform agriculture — people do.',
@@ -77,15 +85,15 @@ const blocks: Block[] = [
     text: 'This approach helps ensure that conversations about biotechnology are driven by evidence, transparency, and public interest.',
   },
   { type: 'h2', text: 'Empowering Digital Voices for Science' },
- {
-  type: 'p',
-  text: "Today's audiences increasingly receive information from trusted online personalities rather than traditional institutions. Recognizing this shift, the Rwanda BioCap Project is embracing a new generation of science communicators.",
-},
-{
-  type: 'image',
-  src: '/image/afs-communication-image.jpg',
-  caption: 'Rwanda BioCap Project engaging social media influencers on communicating biotechnology to the public',
-},
+  {
+    type: 'p',
+    text: "Today's audiences increasingly receive information from trusted online personalities rather than traditional institutions. Recognizing this shift, the Rwanda BioCap Project is embracing a new generation of science communicators.",
+  },
+  {
+    type: 'image',
+    src: '/image/afs-communication-image.jpg',
+    caption: 'Rwanda BioCap Project engaging social media influencers on communicating biotechnology to the public',
+  },
   {
     type: 'p',
     text: 'Social media influencers, agripreneurs, youth innovators, farmers, educators, and digital content creators are becoming powerful ambassadors for agricultural innovation. When equipped with accurate scientific knowledge, these trusted voices can translate complex biotechnology concepts into relatable stories that resonate with diverse audiences.',
@@ -107,9 +115,11 @@ const blocks: Block[] = [
     type: 'p',
     text: 'To ensure inclusive communication, BioCap combines digital innovation with traditional media outreach, using community radio, interactive talk shows, expert interviews, and local-language programming to reach farmers wherever they are.',
   },
-  { type: 'quote',
-     text: 'This integrated communication strategy ensures that no community is excluded from the biotechnology conversation.',
-    source: 'AFS-RWANDA Communication Team', },
+  { 
+    type: 'quote',
+    text: 'This integrated communication strategy ensures that no community is excluded from the biotechnology conversation.',
+    source: 'AFS-RWANDA Communication Team', 
+  },
   {
     type: 'image',
     src: '/image/IMG_149.jpg',
@@ -154,7 +164,7 @@ const blocks: Block[] = [
 
 interface ExtendedProject extends Project {
   author?: string;
-  fullDate?: string; // Explicit support for full date formatting strings like '15/12/2026'
+  fullDate?: string;
 }
 
 export default function CommunicationSocialEngagementArticle({
@@ -168,6 +178,8 @@ export default function CommunicationSocialEngagementArticle({
   allProjects?: Project[];
   onSelectProject?: (project: Project) => void;
 }) {
+  const [blocks] = useState<Block[]>(INITIAL_BLOCKS);
+
   const shareIcons = [
     { Icon: Share2, label: 'Share' },
     { Icon: Send, label: 'Send' },
@@ -176,8 +188,6 @@ export default function CommunicationSocialEngagementArticle({
   ];
 
   const relatedStories = allProjects.filter((p) => p.title !== project.title);
-
-  // Fallback structural helpers to extract details if props aren't uniformly structured
   const displayDate = project.fullDate || project.modal?.date || '15/12/2026';
 
   return (
@@ -282,7 +292,6 @@ export default function CommunicationSocialEngagementArticle({
               </p>
             )}
 
-            {/* ── BYLINE METADATA ROW WITH FULL DD/MM/YYYY FORMAT ── */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-4 border-t border-white/20 text-white/90 text-sm font-medium">
               <div className="inline-flex items-center gap-2">
                 <User size={15} className="text-[#E8185A]" />
@@ -339,9 +348,13 @@ export default function CommunicationSocialEngagementArticle({
                     );
                   case 'image':
                     return (
-                      <figure key={i} className="my-12">
-                        <div className="rounded-2xl overflow-hidden shadow-xl">
-                          <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
+                      <figure key={i} className="my-12 relative group">
+                        <div className="rounded-2xl overflow-hidden shadow-xl relative">
+                          <img 
+                            src={block.src} 
+                            alt={block.caption} 
+                            className="w-full h-[320px] object-cover object-top transition-all duration-300 group-hover:brightness-90" 
+                          />
                         </div>
                         <figcaption className="text-[13px] text-slate-400 mt-3 text-center capitalize tracking-widest">
                           {block.caption}

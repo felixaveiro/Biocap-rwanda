@@ -1,9 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Footer from '@/components/Footer';
 import { type Project } from '@/components/ProjectDetailPage';
-import { ArrowLeft, Share2, Send, Link2, MessageCircle, CalendarDays, Users, ArrowUpRight, User } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Share2, 
+  Send, 
+  Link2, 
+  MessageCircle, 
+  CalendarDays, 
+  Users, 
+  ArrowUpRight, 
+  User
+} from 'lucide-react';
 
 // ── Inline markdown-style bold helper ───────────────────────────────
 function renderInline(text: string) {
@@ -16,11 +26,7 @@ function renderInline(text: string) {
   });
 }
 
-// ── Article content ──────────────────────────────────────────────────
-// Sourced directly and only from "Regulatory_Advocacy.docx" for all text.
-// Two body images (matching the Precision Biotechnology article's rhythm)
-// use existing site photos with captions grounded only in facts already
-// stated in the article — no invented names, events, or claims.
+// ── Article content types ───────────────────────────────────────────
 type Block =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
@@ -31,7 +37,7 @@ type Block =
 const ARTICLE_TITLE =
   "Regulatory Advocacy: Evidence-Driven Policies Powering Rwanda's Biotechnology Future";
 
-const blocks: Block[] = [
+const INITIAL_BLOCKS: Block[] = [
   {
     type: 'p',
     text: 'Scientific discoveries improve lives only when they are supported by sound public policy. As crop biotechnology continues to evolve, countries need regulatory systems that protect public health and the environment while enabling farmers and researchers to benefit from proven scientific innovations.',
@@ -65,7 +71,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/IMG_150.jpg',
-    caption: "Regulatory and research partners come together at the official launch of the Rwanda BioCap Project.",
+    caption: "Communication and Research Development Partners of RAB posing for a group photo at the Rwanda BioCap Project Launch Event.",
   },
   { type: 'h2', text: 'Investing in World-Class Agricultural Technologies' },
   {
@@ -121,7 +127,7 @@ const blocks: Block[] = [
   {
     type: 'image',
     src: '/image/reguratory-body.jpg',
-    caption: "Touring RAB's research laboratories, where scientific evidence informs Rwanda's evidence-based regulatory process.",
+    caption: "CIP, IITA, and RAB Partners during a Lab Touring Activity.",
   },
   {
     type: 'p',
@@ -175,6 +181,8 @@ export default function RegulatoryAdvocacyArticle({
   allProjects?: Project[];
   onSelectProject?: (project: Project) => void;
 }) {
+  const [blocks] = useState<Block[]>(INITIAL_BLOCKS);
+
   const shareIcons = [
     { Icon: Share2, label: 'Share' },
     { Icon: Send, label: 'Send' },
@@ -333,9 +341,13 @@ export default function RegulatoryAdvocacyArticle({
                     );
                   case 'image':
                     return (
-                      <figure key={i} className="my-12">
-                        <div className="rounded-2xl overflow-hidden shadow-xl">
-                          <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
+                      <figure key={i} className="my-12 relative group">
+                        <div className="rounded-2xl overflow-hidden shadow-xl relative">
+                          <img 
+                            src={block.src} 
+                            alt={block.caption} 
+                            className="w-full h-[320px] object-cover object-top transition-all duration-300 group-hover:brightness-90" 
+                          />
                         </div>
                         <figcaption className="text-[13px] text-slate-400 mt-3 text-center capitalize tracking-widest">
                           {block.caption}

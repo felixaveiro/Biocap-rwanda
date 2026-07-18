@@ -7,7 +7,9 @@ import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage'
 import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyArticle';
 import CommunicationSocialEngagementArticle from '@/components/CommunicationSocialEngagementArticle';
 import RegulatoryAdvocacyArticle from '@/components/RegulatoryAdvocacyArticle';
-import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale } from 'lucide-react';
+import FarmerParticipationArticle from '@/components/FarmerParticipationArticle';
+import ConducendResearchInfrastructureArticle from '@/components/ConducendResearchInfrastructureArticle';
+import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale, Users, FlaskConical } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -17,6 +19,8 @@ const PROJECT_SLUGS: Record<string, string> = {
   'Precision Biotechnology': 'precision-biotechnology',
   'Communication & Social Engagement': 'communication-social-engagement',
   'Regulatory Advocacy': 'regulatory-advocacy',
+  'Farmer Participation': 'farmer-participation',
+  'Conducive Research Infrastructure': 'conducive-research-infrastructure',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -348,6 +352,104 @@ const ecoProjects: Project[] = [
       quoteSource: "Dr. Solange Uwituze, Minister of State for Agriculture — Rwanda BioCap Launch",
     },
   },
+  {
+    title: "Farmer Participation",
+    img: "/image/Potato-field.jpg",
+    tag: "Farmer Engagement",
+    excerpt:
+      "The Rwanda BioCap Project places farmers at the centre of its innovation strategy — listening through Farmer Field Schools and cooperatives to improve trusted varieties like Kinigi potato, Kamaramasenge banana, and farmer-preferred cassava rather than replace them.",
+    modal: {
+      date: "15/12/2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Rwanda Agriculture and Animal Resources Development Board (RAB) · Farmer Field Schools · Farmer Cooperatives and Producer Organizations",
+      intro:
+        "Agricultural innovation has the greatest impact when it responds to farmers' real needs. For Rwanda's smallholder farmers, a better crop variety must deliver more than yield: it should resist major diseases, tolerate climate stress, reduce production losses, meet market demand, preserve preferred food qualities, and lower the cost and risk of farming. This is why the Rwanda BioCap Project places Farmer Participation at the centre of its innovation strategy, building on existing RAB engagement approaches, including Farmer Field Schools, to understand farmers' experiences, expectations, and priorities for improved crops.",
+      objectives: [
+        "Listen to farmers through Farmer Field Schools and cooperative platforms before setting crop improvement priorities",
+        "Improve familiar varieties farmers already grow, trust, sell, and consume rather than replace them",
+        "Involve farmers as partners throughout the innovation journey, from priority-setting to field validation",
+        "Work through farmer cooperatives and agricultural networks across all 30 districts of Rwanda",
+      ],
+      sessions: [
+        {
+          name: "Listening Before Innovating",
+          role: "Farmer knowledge as a research guide",
+          summary:
+            "Farmers identify the diseases that cause the greatest losses, the varieties that perform well locally, and the food qualities consumers prefer — knowledge the project treats as essential to setting crop improvement priorities.",
+        },
+        {
+          name: "Developing Varieties Farmers Already Want",
+          role: "Improving Kinigi, Cyerekezo, Kamaramasenge, and Injagi",
+          summary:
+            "Genome editing is introduced as a precise tool to strengthen existing crop value chains — enhancing priority potato, banana, and cassava varieties rather than introducing unfamiliar replacements.",
+        },
+        {
+          name: "Farmers as Partners",
+          role: "Co-creators, not passive recipients",
+          summary:
+            "Through Farmer Field Schools, cooperative meetings, field demonstrations, and participatory evaluations, farmers share feedback on crop performance, consumer acceptance, and market opportunities alongside researchers and RAB teams.",
+        },
+      ],
+      collaboration: [
+        "Farmer Field Schools and cooperative platforms across 30 districts",
+        "Participatory field demonstrations and technology validation",
+        "Two-way dialogue between scientists and farming communities",
+        "Seed dissemination and technology adoption support",
+      ],
+      quote:
+        "When farmers help shape innovation, crop improvement delivers lasting value.",
+      quoteSource: "Rwanda BioCap Project — Farmer Participation",
+    },
+  },
+  {
+    title: "Conducive Research Infrastructure",
+    img: "/image/LABDY3_27.jpg",
+    tag: "Research Infrastructure",
+    excerpt:
+      "At the heart of the Rwanda BioCap Project is the Center of Excellence in Crop Biotechnology at RAB — bringing DNA sequencing, genome editing, and bioinformatics home to Rwanda and building a regional hub for African scientific leadership.",
+    modal: {
+      date: "15/12/2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Rwanda Agriculture and Animal Resources Development Board (RAB) · RAB Center of Excellence in Crop Biotechnology",
+      intro:
+        "Scientific innovation flourishes where ideas, expertise, and world-class infrastructure come together. At the heart of the Rwanda BioCap Project is the establishment of the Center of Excellence in Crop Biotechnology at the Rwanda Agriculture Board (RAB) — a landmark investment transforming Rwanda into an emerging regional hub for modern crop biotechnology, equipped to accelerate research, strengthen scientific capacity, and deliver climate-resilient, farmer-preferred crop varieties.",
+      objectives: [
+        "Establish RAB's Center of Excellence in Crop Biotechnology as an emerging regional hub for modern crop biotechnology",
+        "Bring DNA sequencing, molecular characterization, genome editing, and bioinformatics home, reducing costs and turnaround times previously tied to overseas laboratories",
+        "Strengthen Rwanda's seed system through tissue culture, diagnostics, and quality testing for banana, cassava, and potato",
+        "Build an integrated research pipeline linking laboratory science with greenhouse studies, confined field trials, and farmer evaluations",
+      ],
+      sessions: [
+        {
+          name: "Bringing World-Class Biotechnology Home",
+          role: "Reducing dependence on overseas labs",
+          summary:
+            "State-of-the-art laboratories within Rwanda let scientists conduct molecular biology, genomics, CRISPR-based genome editing, and bioinformatics work locally — reducing costs, improving efficiency, and strengthening national scientific independence.",
+        },
+        {
+          name: "A Platform for African Scientific Leadership",
+          role: "Regional collaboration and training",
+          summary:
+            "The Centre is expected to foster collaboration with universities, research institutions, regulatory agencies, and international partners, creating knowledge exchange, postgraduate training, and multidisciplinary research across Eastern and Central Africa.",
+        },
+        {
+          name: "Empowering Scientists to Improve Local Crops",
+          role: "Molecular breeding, genomics, and biosafety training",
+          summary:
+            "Researchers are receiving advanced training in molecular breeding, genomics, bioinformatics, biosafety, DNA sequencing, and genome editing, enabling them to strengthen farmer-preferred banana, cassava, and potato varieties without replacing the traits farmers value.",
+        },
+      ],
+      collaboration: [
+        "Advanced molecular biology, genomics, and bioinformatics laboratories",
+        "CRISPR genome editing, tissue culture, and plant transformation",
+        "Greenhouse research and confined field trials",
+        "Digital field data collection, analytics, and biosafety assessment",
+      ],
+      quote:
+        "By bringing world-class biotechnology closer to the communities it serves, the Rwanda BioCap Project is making innovation faster, more locally driven, and better focused on resilient crops that support food security, rural prosperity, and sustainable agricultural development.",
+      quoteSource: "Rwanda BioCap Project — Conducive Research Infrastructure",
+    },
+  },
 ];
 
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
@@ -357,6 +459,8 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Precision Biotechnology": { icon: Dna, accent: "#2F8F5B", accentBg: "#e7f5ec" },
   "Communication & Social Engagement": { icon: Radio, accent: "#D97706", accentBg: "#fef3e2" },
   "Regulatory Advocacy": { icon: Scale, accent: "#1B3A5C", accentBg: "#e8edf3" },
+  "Farmer Participation": { icon: Users, accent: "#3F8F3F", accentBg: "#eaf6ea" },
+  "Conducive Research Infrastructure": { icon: FlaskConical, accent: "#0891B2", accentBg: "#e3f4f7" },
 };
 
 // ── Inner content component ─────────────────────────────────────────
@@ -397,6 +501,26 @@ function StewardshipNewsContent() {
     if (activeProject.title === 'Regulatory Advocacy') {
       return (
         <RegulatoryAdvocacyArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'Farmer Participation') {
+      return (
+        <FarmerParticipationArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'Conducive Research Infrastructure') {
+      return (
+        <ConducendResearchInfrastructureArticle
           project={activeProject}
           onBack={() => setActiveProject(null)}
           allProjects={ecoProjects}

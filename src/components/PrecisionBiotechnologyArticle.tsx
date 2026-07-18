@@ -1,9 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Footer from '@/components/Footer';
 import { type Project } from '@/components/ProjectDetailPage';
-import { ArrowLeft, Share2, Send, Link2, MessageCircle, CalendarDays, Users, ArrowUpRight, User } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Share2, 
+  Send, 
+  Link2, 
+  MessageCircle, 
+  CalendarDays, 
+  Users, 
+  ArrowUpRight, 
+  User
+} from 'lucide-react';
 
 // ── Inline markdown-style bold helper ───────────────────────────────
 function renderInline(text: string) {
@@ -16,7 +26,7 @@ function renderInline(text: string) {
   });
 }
 
-// ── Article content ──────────────────────────────────────────────────
+// ── Article content types ───────────────────────────────────────────
 type Block =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
@@ -27,7 +37,7 @@ type Block =
 const ARTICLE_TITLE =
   'Precision Biotechnology: Advancing the Next Generation of Climate-Resilient Crops for Rwanda';
 
-const blocks: Block[] = [
+const INITIAL_BLOCKS: Block[] = [
   {
     type: 'p',
     text: 'For centuries, crop improvement has relied on selecting plants with desirable traits and crossing them over many generations. While conventional breeding has transformed global agriculture, it often transfers both desirable and undesirable genes together, requiring many years of repeated breeding before improved varieties are ready for farmers.',
@@ -119,7 +129,7 @@ const blocks: Block[] = [
 
 interface ExtendedProject extends Project {
   author?: string;
-  fullDate?: string; // Explicit support for full date formatting strings like '15/12/2026'
+  fullDate?: string;
 }
 
 export default function PrecisionBiotechnologyArticle({
@@ -133,6 +143,8 @@ export default function PrecisionBiotechnologyArticle({
   allProjects?: Project[];
   onSelectProject?: (project: Project) => void;
 }) {
+  const [blocks] = useState<Block[]>(INITIAL_BLOCKS);
+
   const shareIcons = [
     { Icon: Share2, label: 'Share' },
     { Icon: Send, label: 'Send' },
@@ -141,8 +153,6 @@ export default function PrecisionBiotechnologyArticle({
   ];
 
   const relatedStories = allProjects.filter((p) => p.title !== project.title);
-
-  // Fallback structural helpers to extract details if props aren't uniformly structured
   const displayDate = project.fullDate || project.modal?.date || '15/12/2026';
 
   return (
@@ -294,9 +304,13 @@ export default function PrecisionBiotechnologyArticle({
                     );
                   case 'image':
                     return (
-                      <figure key={i} className="my-12">
-                        <div className="rounded-2xl overflow-hidden shadow-xl">
-                          <img src={block.src} alt={block.caption} className="w-full h-[320px] object-cover object-top" />
+                      <figure key={i} className="my-12 relative group">
+                        <div className="rounded-2xl overflow-hidden shadow-xl relative">
+                          <img 
+                            src={block.src} 
+                            alt={block.caption} 
+                            className="w-full h-[320px] object-cover object-top transition-all duration-300 group-hover:brightness-90" 
+                          />
                         </div>
                         <figcaption className="text-[13px] text-slate-400 mt-3 text-center capitalize tracking-widest">
                           {block.caption}
