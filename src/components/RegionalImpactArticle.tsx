@@ -171,7 +171,7 @@ const INITIAL_BLOCKS: Block[] = [
   {
     type: 'quote',
     text: 'This is a replicable pathway for African nations seeking to improve productivity, competitiveness, environmental stewardship, and food self-reliance across the continent.',
-    source: 'Rwanda BioCap Project \u2014 Regional Impact',
+    source: 'Rwanda BioCap Project  Regional Impact',
   },
 ];
 
@@ -345,7 +345,7 @@ export default function RegionalImpactArticle({
                         </p>
                         {block.source && (
                           <cite className="not-italic text-xs uppercase tracking-widest text-slate-400 block mt-4">
-                            \u2014 {block.source}
+                            {block.source}
                           </cite>
                         )}
                       </blockquote>
@@ -383,7 +383,7 @@ export default function RegionalImpactArticle({
                 onClick={onBack}
                 className="border-2 border-[#1B3A5C] text-[#1B3A5C] text-xs font-bold uppercase tracking-widest px-8 py-3 rounded-sm hover:bg-[#1B3A5C] hover:text-white transition-colors mt-4"
               >
-                \u2190 Back to Stewardship News
+                Back to Stewardship News
               </button>
 
               <div className="flex items-center gap-3 mt-10 pt-8 border-t border-slate-100">
