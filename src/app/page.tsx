@@ -88,7 +88,7 @@ const FEATURES = [
     title: 'Regional Impact',
     body: 'Building a replicable model for East Africa, with Rwanda as the proving ground for scalable agricultural biotech deployment.',
     color: COLORS.teal,
-    href: '/About',
+    href: '/Stewardship-News?project=regional-impact',
     img: '/image/LABDY3_43.jpg',
   },
 ];

@@ -9,7 +9,8 @@ import CommunicationSocialEngagementArticle from '@/components/CommunicationSoci
 import RegulatoryAdvocacyArticle from '@/components/RegulatoryAdvocacyArticle';
 import FarmerParticipationArticle from '@/components/FarmerParticipationArticle';
 import ConducendResearchInfrastructureArticle from '@/components/ConducendResearchInfrastructureArticle';
-import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale, Users, FlaskConical } from 'lucide-react';
+import RegionalImpactArticle from '@/components/RegionalImpactArticle';
+import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale, Users, FlaskConical, Globe2 } from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -21,6 +22,7 @@ const PROJECT_SLUGS: Record<string, string> = {
   'Regulatory Advocacy': 'regulatory-advocacy',
   'Farmer Participation': 'farmer-participation',
   'Conducive Research Infrastructure': 'conducive-research-infrastructure',
+  'Regional Impact': 'regional-impact',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -450,6 +452,55 @@ const ecoProjects: Project[] = [
       quoteSource: "Rwanda BioCap Project — Conducive Research Infrastructure",
     },
   },
+  {
+    title: "Regional Impact",
+    img: "/image/LABDY3_30.jpg",
+    tag: "Regional Development",
+    excerpt:
+      "The Rwanda BioCap Project is building a nationally led biotechnology model — anchored in the Center of Excellence in Crop Biotechnology at RAB Rubona — that can be tested in Rwanda, strengthened through evidence, and adapted as a replicable, African-led pathway for food security across the continent.",
+    modal: {
+      date: "15/12/2026",
+      organizer: "By Nshimiyimana Pacifique — Rwanda BioCap Project",
+      partners: "Rwanda Agriculture and Animal Resources Development Board (RAB) · RAB Rubona Centre of Excellence in Crop Biotechnology · FAOSTAT",
+      intro:
+        "Africa's food security challenge is not simply a shortage of agricultural land — it is a productivity challenge shaped by crop diseases, climate stress, limited access to quality planting material, and weak research-to-farmer delivery systems. The Rwanda BioCap Project is responding by building a nationally led biotechnology model that can be tested in Rwanda, strengthened through evidence, and adapted by other African countries.",
+      objectives: [
+        "Build an integrated pathway from advanced research and precision breeding to biosafety assessment, variety registration, seed multiplication, and delivery",
+        "Demonstrate a replicable process for locally appropriate biotechnology solutions across crops, farmers, markets, and value chains",
+        "Improve productivity in cassava, potato, and banana while preserving farmer-preferred traits",
+        "Position Rwanda's Center of Excellence as a potential regional model for other African countries",
+      ],
+      sessions: [
+        {
+          name: "Rwanda as a Proving Ground",
+          role: "Scalable innovation",
+          summary:
+            "Rwanda's compact geography, coordinated institutions, diverse agro-ecological zones, and performance-based implementation culture make it a strong environment for testing how biotechnology can move responsibly from lab to field.",
+        },
+        {
+          name: "The Productivity Opportunity",
+          role: "Cassava yield comparisons",
+          summary:
+            "FAOSTAT data show cassava yield gaps across Rwanda, Burundi, Kenya, Nigeria, and Mozambique — a gap in food, income, and industrial raw material that improved varieties and stronger seed systems can help close.",
+        },
+        {
+          name: "From National Capacity to Regional Public Good",
+          role: "Shared scientific infrastructure",
+          summary:
+            "As Rwanda's Center of Excellence matures, it can support regional collaboration through postgraduate training, shared research protocols, and harmonized biosafety dialogue across comparable agro-ecological environments.",
+        },
+      ],
+      collaboration: [
+        "Regional postgraduate and technical training",
+        "Shared research protocols and genomic data exchange",
+        "Collaborative improvement of regionally important crops",
+        "Harmonized scientific dialogue on biosafety",
+      ],
+      quote:
+        "This is a replicable pathway for African nations seeking to improve productivity, competitiveness, environmental stewardship, and food self-reliance across the continent.",
+      quoteSource: "Rwanda BioCap Project — Regional Impact",
+    },
+  },
 ];
 
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
@@ -461,6 +512,7 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Regulatory Advocacy": { icon: Scale, accent: "#1B3A5C", accentBg: "#e8edf3" },
   "Farmer Participation": { icon: Users, accent: "#3F8F3F", accentBg: "#eaf6ea" },
   "Conducive Research Infrastructure": { icon: FlaskConical, accent: "#0891B2", accentBg: "#e3f4f7" },
+  "Regional Impact": { icon: Globe2, accent: "#B45309", accentBg: "#fef3e2" },
 };
 
 // ── Inner content component ─────────────────────────────────────────
@@ -521,6 +573,16 @@ function StewardshipNewsContent() {
     if (activeProject.title === 'Conducive Research Infrastructure') {
       return (
         <ConducendResearchInfrastructureArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'Regional Impact') {
+      return (
+        <RegionalImpactArticle
           project={activeProject}
           onBack={() => setActiveProject(null)}
           allProjects={ecoProjects}
