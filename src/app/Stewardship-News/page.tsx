@@ -658,7 +658,7 @@ function StewardshipNewsContent() {
         <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
           <div className="absolute inset-0 z-0">
             <img
-              src="/image/IMG_149.jpg"
+              src="/image/IMG_45(2).jpg"
               alt="BioCap Environment"
               className="w-full h-full object-cover"
             />

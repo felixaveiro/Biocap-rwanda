@@ -52,7 +52,7 @@ const FEATURES = [
 {
   Icon: Leaf,
   title: 'Communication & Social Engagement',
-  body: 'Through BioCap, communication is viewed as a continuous process of engagement that connects researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.',
+  body: 'Through Rwanda BioCap Project, communication is viewed as a continuous process of engagement that connects researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.',
   color: COLORS.teal,
   href: '/Stewardship-News?project=communication-social-engagement',
   img: '/image/IMG_155.jpg',
@@ -89,7 +89,7 @@ const FEATURES = [
     body: 'Building a replicable model for East Africa, with Rwanda as the proving ground for scalable agricultural biotech deployment.',
     color: COLORS.teal,
     href: '/Stewardship-News?project=regional-impact',
-    img: '/image/LABDY3_43.jpg',
+    img: '/image/LABDY3_30.jpg',
   },
 ];
 
