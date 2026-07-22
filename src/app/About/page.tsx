@@ -96,7 +96,7 @@ export default function AboutPage() {
       id: '03',
       title: 'Delivering Innovation to Farmers',
       desc: "Rwanda BioCap Project is turning scientific innovation into practical solutions for Rwanda's smallholder farmers. It advances improved farmer-preferred cassava, potato, banana cooking, and sweet banana varieties with stronger resistance to major pests and diseases. It also preserves the traits farmers and consumers value. Through research partnerships, seed systems, extension services, and farmer engagement, the project supports higher productivity, reduced crop losses, lower pesticide use, stronger climate resilience, and more stable harvests.",
-      bgImage: '/image/DSC_6510.jpg',
+      bgImage: '/image/innovation-image.jpg',
       border: 'bg-[#7B2D8B]',
     },
   ];
@@ -164,7 +164,7 @@ export default function AboutPage() {
   const partners: Partner[] = [
     {
       name: 'RAB',
-      fullName: 'Rwanda Agriculture Board',
+      fullName: 'Rwanda Agriculture and Animal Resource Board',
       role: 'National Lead & Host Institution',
       description: "Rwanda's principal government body overseeing agricultural research, development, and the regulation of seeds and plant varieties to drive national food security.",
       url: 'https://www.rab.gov.rw',
