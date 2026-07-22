@@ -10,15 +10,18 @@ const COLORS = {
 };
 
 const QUICK_LINKS = [
-  { label: 'Home',          href: '/'            },
-  { label: 'About Us',      href: '/About'       },
-  { label: 'Biotechnology', href: '/Biotech'     },
-  { label: 'Stewardship News',   href: '/Stewardship-News' },
-  { label: 'Gallery',      href: '/Gallery'      },
-  { label: 'Resource',      href: '/Resource'    },
-  { label: 'Dashboard',      href: '/auth/login'    },
-
-  
+  { label: 'Home',            href: '/'            },
+  { label: 'About Us',        href: '/About'       },
+  { label: 'Biotechnology',   href: '/Biotech'     },
+  { label: 'Stewardship News', href: '/Stewardship-News' },
+  { label: 'Gallery',        href: '/Gallery'      },
+  { label: 'Resource',       href: '/Resource'     },
+  { 
+    label: 'Dashboard', 
+    href: '/auth/login',
+    target: '_blank',
+    rel: 'noopener noreferrer'
+  }
 ];
 
 const RECENT_NEWS_FOOTER = [
@@ -28,8 +31,8 @@ const RECENT_NEWS_FOOTER = [
 ];
 
 const CONTACT_ITEMS = [
-  { icon: Phone,  text: '+250 733 389 450' },
-  { icon: Mail,   text: 'bellancile.uzayisenga@rab.gov.rw' },
+  { icon: Phone,   text: '+250 733 389 450' },
+  { icon: Mail,    text: 'bellancile.uzayisenga@rab.gov.rw' },
   { icon: MapPin, text: 'GQ9C+JX8, Ruhashya' },
 ];
 
@@ -54,7 +57,7 @@ function LinkedInIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; stroke
 }
 
 const SOCIAL_LINKS = [
-  { icon: X,             href: 'https://x.com/RwandaBioCap' },
+  { icon: X,            href: 'https://x.com/RwandaBioCap' },
   { icon: LinkedInIcon,  href: 'https://www.linkedin.com/company/rwanda-biocap-progam/' },
 ];
 
@@ -224,7 +227,13 @@ export default function Footer() {
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
               {QUICK_LINKS.map(l => (
                 <li key={l.href}>
-                  <Link href={l.href} className="bc-footer-link">
+                  {/* UPDATED: Added target and rel props dynamically to Next.js <Link> so items with target='_blank' open in a new tab */}
+                  <Link 
+                    href={l.href} 
+                    target={l.target} 
+                    rel={l.rel} 
+                    className="bc-footer-link"
+                  >
                     <span style={{ color: COLORS.pink, fontSize: '0.7rem' }}>→</span>
                     {l.label}
                   </Link>
