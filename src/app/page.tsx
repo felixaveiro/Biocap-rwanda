@@ -64,7 +64,7 @@ const FEATURES = [
     body: "Scientific discoveries improve lives only when they are supported by sound public policy. As crop biotechnology continues to evolve, countries need regulatory systems that protect public health and the environment while ..",
     color: COLORS.pink,
     href: '/Stewardship-News?project=regulatory-advocacy',
-    img: '/image/DSC_6116.jpg',
+    img: '/image/advocacy-image.jpg',
   },
   
   {
