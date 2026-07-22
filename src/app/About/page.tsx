@@ -233,7 +233,7 @@ export default function AboutPage() {
           <div
             className="about-hero-bg w-full h-full"
             style={{
-              backgroundImage: "url('/image/IMG_79.jpg')",
+              backgroundImage: "url('/image/IMG_80.jpg')",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundAttachment: 'fixed',
