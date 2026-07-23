@@ -10,7 +10,18 @@ import RegulatoryAdvocacyArticle from '@/components/RegulatoryAdvocacyArticle';
 import FarmerParticipationArticle from '@/components/FarmerParticipationArticle';
 import ConducendResearchInfrastructureArticle from '@/components/ConducendResearchInfrastructureArticle';
 import RegionalImpactArticle from '@/components/RegionalImpactArticle';
-import { Sprout, ShieldCheck, Megaphone, Dna, Radio, Scale, Users, FlaskConical, Globe2 } from 'lucide-react';
+import SeedCongressArticle from '@/components/SeedCongressArticle';
+import { 
+  Sprout, 
+  ShieldCheck, 
+  Megaphone, 
+  Dna, 
+  Radio, 
+  Scale, 
+  Users, 
+  FlaskConical, 
+  Globe2 
+} from 'lucide-react';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -23,6 +34,7 @@ const PROJECT_SLUGS: Record<string, string> = {
   'Farmer Participation': 'farmer-participation',
   'Conducive Research Infrastructure': 'conducive-research-infrastructure',
   'Regional Impact': 'regional-impact',
+  'National Seed Congress 2026': 'national-seed-congress-2026',
 };
 
 // ── Project data ────────────────────────────────────────────────────
@@ -501,6 +513,52 @@ const ecoProjects: Project[] = [
       quoteSource: "Rwanda BioCap Project — Regional Impact",
     },
   },
+  {
+    title: "National Seed Congress 2026",
+    img: "/image/RDI-CIP-Marriott-photographer.jpg",
+    tag: "Seed System & Innovation",
+    excerpt:
+      "The Rwanda BioCap Project showcased how modern crop biotechnology and clean seed systems are advancing Rwanda's next generation of climate-resilient, farmer-preferred crops at the 3rd National Seed Congress.",
+    modal: {
+      date: "2026",
+      organizer: "International Potato Center (CIP) & Alliance for Science Rwanda",
+      partners: "RAB · CIP · AfS-Rwanda · MINAGRI · National Seed Association · PSF",
+      intro:
+        "Held under the theme 'Seeds as a Strategic Engine for National Transformation', the congress highlighted quality seed as the foundation of productivity, food security, and agricultural transformation.",
+      objectives: [
+        "Demonstrate BioCap's three pillars: Accelerated Research, Biosafety & Regulation, and Delivering Innovation to Farmers",
+        "Showcase high-quality potato mini-tubers and modern seed production systems",
+        "Engage stakeholders across the seed value chain on biotechnology integration",
+        "Strengthen collaboration for the Center of Excellence in Crop Biotechnology",
+      ],
+      sessions: [
+        {
+          name: "Accelerated Research & Innovation",
+          role: "Strategic Pillar 1",
+          summary: "Investing in scientific capacity, advanced research infrastructure, and precision breeding at RAB.",
+        },
+        {
+          name: "Biosafety, Regulation & Responsible Innovation",
+          role: "Strategic Pillar 2",
+          summary: "Reinforcing principles of evidence-based regulation and responsible governance.",
+        },
+        {
+          name: "Delivering Innovation to Farmers",
+          role: "Strategic Pillar 3",
+          summary: "Connecting laboratory discoveries with clean seed production and farmer-preferred crop varieties.",
+        },
+      ],
+      collaboration: [
+        "Seed company partnerships",
+        "Clean seed multiplication & distribution",
+        "Stakeholder communication & outreach",
+        "Public-private sector alignment",
+      ],
+      quote:
+        "Quality seed is the foundation of agricultural productivity, climate resilience, food security, and economic transformation.",
+      quoteSource: "3rd Rwanda National Seed Congress 2026",
+    },
+  },
 ];
 
 const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg: string }> = {
@@ -513,6 +571,7 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
   "Farmer Participation": { icon: Users, accent: "#3F8F3F", accentBg: "#eaf6ea" },
   "Conducive Research Infrastructure": { icon: FlaskConical, accent: "#0891B2", accentBg: "#e3f4f7" },
   "Regional Impact": { icon: Globe2, accent: "#B45309", accentBg: "#fef3e2" },
+  "National Seed Congress 2026": { icon: Sprout, accent: "#059669", accentBg: "#ecfdf5" },
 };
 
 // ── Inner content component ─────────────────────────────────────────
@@ -583,6 +642,16 @@ function StewardshipNewsContent() {
     if (activeProject.title === 'Regional Impact') {
       return (
         <RegionalImpactArticle
+          project={activeProject}
+          onBack={() => setActiveProject(null)}
+          allProjects={ecoProjects}
+          onSelectProject={(selected: Project) => setActiveProject(selected)}
+        />
+      );
+    }
+    if (activeProject.title === 'National Seed Congress 2026') {
+      return (
+        <SeedCongressArticle
           project={activeProject}
           onBack={() => setActiveProject(null)}
           allProjects={ecoProjects}
