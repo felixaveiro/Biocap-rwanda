@@ -174,7 +174,7 @@ export default function AboutPage() {
     },
     {
       name: 'IITA',
-      fullName: 'Intl. Institute of Tropical Agriculture',
+      fullName: 'International Institute of Tropical Agriculture',
       role: 'Banana Gene-Editing Lead',
       description: 'A world-class research-for-development organisation supporting RAB\u2019s deployment of CRISPR tools to knock out key susceptibility genes in banana varieties.',
       url: 'https://www.iita.org',
@@ -274,23 +274,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── PARTNERS ── */}
-      <section className="py-10 border-b border-gray-100 px-6 lg:px-12 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-6">
-            <p className="text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-1">
-              Convened at launch with MINAGRI &amp; REMA, implemented by
-            </p>
-            <p className="text-xs text-slate-400">Click any partner to visit their website</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
-            {partners.map((p) => (
-              <PartnerCard key={p.name} p={p} />
-            ))}
-          </div>
-        </div>
-      </section>
+     
 
       {/* ── THREE PILLARS ── */}
       <section className="py-12 px-6 lg:px-12 max-w-7xl mx-auto">
@@ -910,6 +894,24 @@ export default function AboutPage() {
             </div>
           </div>
         </section>
+
+         {/* ── PARTNERS ── */}
+      <section className="py-10 border-b border-gray-100 px-6 lg:px-12 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-6">
+            <p className="text-[10px] font-bold uppercase tracking-[3px] text-gray-400 mb-1">
+              Convened at launch with MINAGRI &amp; REMA, implemented by
+            </p>
+            <p className="text-xs text-slate-400">Click any partner to visit their website</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {partners.map((p) => (
+              <PartnerCard key={p.name} p={p} />
+            ))}
+          </div>
+        </div>
+      </section>
 
         {/* ── CTA Strip ── */}
         <section className="obj-cta-strip">
