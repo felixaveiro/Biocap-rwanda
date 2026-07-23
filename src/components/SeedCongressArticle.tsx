@@ -81,7 +81,7 @@ const INITIAL_BLOCKS: Block[] = [
   },
   {
     type: 'image',
-    src: '/image/RDI-CIP-Marriott-photographer-01.jpg',
+    src: '/image/RDI-CIP-Marriott-photographer-02.jpg',
     caption: 'High-quality potato mini-tubers and seed systems on display at the Rwanda BioCap Project exhibition booth.',
   },
   {
@@ -145,7 +145,7 @@ const INITIAL_BLOCKS: Block[] = [
   },
   {
     type: 'image',
-    src: '/image/RDI-CIP-Marriott-photographer-02.jpg',
+    src: '/image/RDI-CIP-Marriott-photographer-01.jpg',
     caption: 'Stakeholders and congress delegates connecting science with society at the 3rd Rwanda National Seed Congress 2026.',
   },
   {
