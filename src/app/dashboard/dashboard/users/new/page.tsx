@@ -35,7 +35,7 @@ export default function NewUserPage() {
               You do not have administrative privileges to register new users.
             </p>
             <Link
-              href="/dashboard/dashboard/users"
+              href="/dashboard/users"
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700"
             >
               <ArrowLeft size={16} />
@@ -57,7 +57,7 @@ export default function NewUserPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link
-            href="/dashboard/dashboard/users"
+            href="/dashboard/users"
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
           >
             <ArrowLeft size={14} className="text-slate-400" />
