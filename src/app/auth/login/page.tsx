@@ -39,7 +39,7 @@ export default function LoginPage() {
         username,
       });
 
-      router.push("/dashboard/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : "Something went wrong. Please try again.";

@@ -19,11 +19,11 @@ import {
 
 // Cleaned up route paths (removed duplicate /dashboard prefixing)
 const navItems = [
-  { label: "Overview", href: "/dashboard/dashboard", icon: LayoutDashboard },
+  { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Stories", href: "/dashboard/dashboard/blog", icon: BookOpen },
   { label: "New Story", href: "/dashboard/dashboard/blog/new", icon: PenSquare },
   { label: "Team Members", href: "/dashboard/dashboard/users", icon: Users },
-  { label: "Settings", href: "/dashboard/dashboard/settings", icon: Settings },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 interface SessionUser {
