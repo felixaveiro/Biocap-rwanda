@@ -45,7 +45,7 @@ export default function UsersPage() {
         {can(user.role, "user:create") && (
           <div className="mb-4 flex justify-end">
             <Link
-              href="/dashboard/users/new"
+              href="/dashboard/dashboard/users/new"
               className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700"
             >
               Add user

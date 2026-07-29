@@ -1,4 +1,4 @@
-import { Role, User, BlogPost } from "@/types";
+import { Role, User, BlogPost, BlogStatus } from "@/types";
 
 export type Permission =
   | "blog:view:all"
@@ -9,44 +9,105 @@ export type Permission =
   | "blog:reject"
   | "blog:publish"
   | "blog:unpublish"
-  | "blog:resubmit"
+  | "blog:submit"
   | "user:view"
   | "user:create"
   | "user:edit:info"
   | "user:edit:role"
-  | "user:delete";
+  | "user:deactivate"
+  | "user:delete"
+  | "user:review";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  ADMIN: [
-    "blog:view:all", "blog:create", "blog:edit", "blog:delete",
-    "blog:approve", "blog:reject", "blog:publish", "blog:unpublish", "blog:resubmit",
-    "user:view", "user:create", "user:edit:info", "user:edit:role", "user:delete",
+  admin: [
+    "blog:view:all",
+    "blog:create",
+    "blog:edit",
+    "blog:delete",
+    "blog:approve",
+    "blog:reject",
+    "blog:publish",
+    "blog:unpublish",
+    "blog:submit",
+    "user:view",
+    "user:create",
+    "user:edit:info",
+    "user:edit:role",
+    "user:deactivate",
+    "user:delete",
+    "user:review",
   ],
-  COMMUNICATION_OFFICER: [
-    "blog:view:all", "blog:create", "blog:edit",
-    "blog:approve", "blog:reject", "blog:publish", "blog:resubmit",
-    "user:view", "user:edit:info",
+  communication_officer: [
+    "blog:view:all",
+    "blog:create",
+    "blog:edit",
+    "blog:delete",
+    "blog:approve",
+    "blog:reject",
+    "blog:publish",
+    "blog:unpublish",
+    "blog:submit",
+    "user:view",
+    "user:create",
+    "user:edit:info",
+    "user:review",
   ],
-  SOCIAL_MEDIA_INFLUENCER: ["blog:create", "blog:resubmit"],
+  editor: [
+    "blog:view:all",
+    "blog:create",
+    "blog:edit",
+    "blog:delete",
+    "blog:approve",
+    "blog:reject",
+    "blog:unpublish",
+    "blog:submit",
+  ],
+  social_media_content_creator: ["blog:create", "blog:submit"],
+  broadcast_content_creator: ["blog:create", "blog:submit"],
 };
 
 export function can(role: Role, permission: Permission): boolean {
   return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
 }
 
-// Note the 3-arg signature (role, userId, post) — matches how BlogDetailPage calls it
+export function isOwner(userId: string, post: BlogPost): boolean {
+  if (!userId || !post) return false;
+
+  const originalId =
+    typeof post.originalAuthor === "object" && post.originalAuthor !== null
+      ? post.originalAuthor._id
+      : post.originalAuthor;
+
+  const authorId =
+    typeof post.author === "object" && post.author !== null
+      ? post.author._id
+      : post.author;
+
+  return originalId === userId || authorId === userId;
+}
+
 export function canViewBlog(role: Role, userId: string, post: BlogPost): boolean {
-  return can(role, "blog:view:all") || post.authorId === userId;
+  return can(role, "blog:view:all") || isOwner(userId, post);
 }
 
 export function canEditBlog(role: Role, userId: string, post: BlogPost): boolean {
+  if (role === "admin") return true;
+
+  const status = post.status as string;
+  if (status === "published" && role !== "communication_officer" && role !== "editor") {
+    return false;
+  }
   if (can(role, "blog:edit")) return true;
-  return post.authorId === userId && (post.status === "DRAFT" || post.status === "REJECTED");
+
+  // Creators can edit their own posts if in 'draft' or 'rejected' / 'changes_requested' status
+  return isOwner(userId, post) && (status === "draft" || status === "rejected" || status === "changes_requested");
 }
 
 export function canDeleteBlog(role: Role, userId: string, post: BlogPost): boolean {
+  const status = post.status as string;
+  if (status === "published") return role === "admin";
   if (can(role, "blog:delete")) return true;
-  return post.authorId === userId && post.status === "DRAFT";
+  return isOwner(userId, post) && status === "draft";
 }
 
 export interface NavVisibility {

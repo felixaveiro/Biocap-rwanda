@@ -1,85 +1,282 @@
-import { apiRequest } from "./client";
+import { apiRequest, apiFormRequest } from "./client";
+import { BlogPost, BlogBlock, BlogModalMetadata, PaginatedResponse, Role } from "@/types";
 
-export interface BlogSession {
-  role: string;
-  name: string;
-  summary: string;
-}
+// ─── Payload Interfaces ────────────────────────────────────────────────────────
 
-export interface BlogModal {
-  date: string;
-  organizer: string;
-  partners: string;
-  intro: string;
-  objectives: string[];
-  sessions: BlogSession[];
-  collaboration: string[];
-  quote: string;
-  quoteSource: string;
-}
-
-export interface BlogAuthor {
-  _id: string;
-  username: string;
-  email: string;
-  role: string;
-}
-
-export interface Blog {
-  _id: string;
+export interface CreateBlogPayload {
   title: string;
-  img: string;
   tag: string;
-  modal: BlogModal;
-  author: BlogAuthor;
-  createdAt: string;
-  updatedAt: string;
+  excerpt: string;
+  blocks: BlogBlock[];
+  modal?: BlogModalMetadata;
+  socialHandle?: string;
+  organizationLink?: string;
+  img: File;
+  document?: File;
 }
 
-/** Body shape for creating a blog — matches the ProjectModal frontend shape per the API docs. */
-export interface BlogPayload {
-  title: string;
-  img: string;      // ← expects an image URL string
-  tag: string;
-  modal: BlogModal;
+export interface UpdateBlogPayload {
+  title?: string;
+  tag?: string;
+  excerpt?: string;
+  blocks?: BlogBlock[];
+  modal?: BlogModalMetadata;
+  socialHandle?: string;
+  organizationLink?: string;
+  img?: File;
+  document?: File;
 }
 
-/** GET /api/blogs — public, no auth needed. Used by both the dashboard list and the Environment page. */
-export function getBlogs() {
-  return apiRequest<Blog[]>("/api/blogs", { method: "GET" });
+export interface ReviewBlogPayload {
+  decision: "approved" | "rejected";
+  note?: string;
 }
 
-/** POST /api/blogs — requires login (admin/editor). Used by the dashboard "new" page. */
-export function createBlog(payload: BlogPayload) {
-  return apiRequest<Blog>("/api/blogs", {
+export interface UnpublishBlogPayload {
+  note?: string;
+}
+
+export interface BlogFilterOptions {
+  status?: string;
+  tag?: string;
+  search?: string;
+  author?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface BlogStatsResponse {
+  draft: number;
+  pending_review: number;
+  approved: number;
+  published: number;
+  deleted?: number;
+  total: number;
+}
+
+// ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
+
+function getBlogBasePath(role?: Role): string {
+  switch (role) {
+    case "admin":
+      return "/api/blogs";
+    case "communication_officer":
+      return "/api/officer/blogs";
+    case "editor":
+      return "/api/editor/blogs";
+    case "broadcast_content_creator":
+    case "social_media_content_creator":
+      return "/api/contributor/my-blogs";
+    default:
+      return "/api/blogs";
+  }
+}
+
+// ─── Individual Function Exports ───────────────────────────────────────────────
+
+/**
+ * GET /api/blogs/public — Public endpoint for live website feed (No Auth Required)
+ */
+export async function getPublicBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  if (params.tag) query.append("tag", params.tag);
+  if (params.search) query.append("search", params.search);
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/blogs/public${queryString}`);
+}
+
+/**
+ * GET /api/blogs/public/:slug — Single public post by slug
+ */
+export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
+  return apiRequest<BlogPost>(`/api/blogs/public/${slug}`);
+}
+
+/**
+ * GET /api/blogs (or role-specific path) — List dashboard blogs
+ */
+export async function getBlogs(role?: Role, params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
+  const basePath = getBlogBasePath(role);
+  const query = new URLSearchParams();
+
+  if (params.status) query.append("status", params.status);
+  if (params.search) query.append("search", params.search);
+  if (params.author) query.append("author", params.author);
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost>>(`${basePath}${queryString}`, { auth: true });
+}
+
+/**
+ * GET /api/blogs/:id — Fetch single blog by ID
+ */
+export async function getBlogById(id: string, role?: Role): Promise<BlogPost> {
+  const basePath = getBlogBasePath(role);
+  return apiRequest<BlogPost>(`${basePath}/${id}`, { auth: true });
+}
+
+/**
+ * GET /api/blogs/stats — Get count metrics by status
+ */
+export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
+  const basePath = getBlogBasePath(role);
+  return apiRequest<BlogStatsResponse>(`${basePath}/stats`, { auth: true });
+}
+
+/**
+ * POST /api/blogs — Create new blog with multipart FormData (Image + Document + Blocks)
+ */
+export async function createBlog(payload: CreateBlogPayload, role?: Role): Promise<BlogPost> {
+  const basePath = getBlogBasePath(role);
+  const formData = new FormData();
+
+  formData.append("title", payload.title);
+  formData.append("tag", payload.tag);
+  formData.append("excerpt", payload.excerpt);
+
+  if (payload.blocks) {
+    formData.append("blocks", JSON.stringify(payload.blocks));
+  }
+  if (payload.modal) {
+    formData.append("modal", JSON.stringify(payload.modal));
+  }
+  if (payload.socialHandle) {
+    formData.append("socialHandle", payload.socialHandle);
+  }
+  if (payload.organizationLink) {
+    formData.append("organizationLink", payload.organizationLink);
+  }
+
+  formData.append("img", payload.img);
+  if (payload.document) {
+    formData.append("document", payload.document);
+  }
+
+  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
+    ? "/api/contributor/blogs"
+    : basePath;
+
+  return apiFormRequest<BlogPost>(endpoint, {
     method: "POST",
-    body: payload,
+    formData,
     auth: true,
   });
 }
 
 /**
- * TODO: confirm these three routes against the backend Swagger docs —
- * they weren't listed in the endpoint screenshot but are required for
- * the dashboard edit/delete flows. Once confirmed, wire them the same
- * way as getBlogs/createBlog above (no other file needs to change).
+ * PUT /api/blogs/:id — Update existing blog
  */
+export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: Role): Promise<BlogPost> {
+  const basePath = getBlogBasePath(role);
+  const formData = new FormData();
 
-// export function getBlogById(id: string) {
-//   return apiRequest<Blog>(`/api/blogs/${id}`, { method: "GET" });
-// }
+  if (payload.title) formData.append("title", payload.title);
+  if (payload.tag) formData.append("tag", payload.tag);
+  if (payload.excerpt) formData.append("excerpt", payload.excerpt);
+  if (payload.blocks) formData.append("blocks", JSON.stringify(payload.blocks));
+  if (payload.modal) formData.append("modal", JSON.stringify(payload.modal));
+  if (payload.socialHandle) formData.append("socialHandle", payload.socialHandle);
+  if (payload.organizationLink) formData.append("organizationLink", payload.organizationLink);
 
-// export function updateBlog(id: string, payload: BlogPayload) {
-//   return apiRequest<Blog>(`/api/blogs/${id}`, {
-//     method: "PUT",
-//     body: payload,
-//     auth: true,
-//   });
-// }
+  if (payload.img) formData.append("img", payload.img);
+  if (payload.document) formData.append("document", payload.document);
 
-// export function deleteBlog(id: string) {
-//   return apiRequest<{ message: string }>(`/api/blogs/${id}`, {
-//     method: "DELETE",
-//     auth: true,
-//   });
-// }
+  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
+    ? `/api/contributor/blogs/${id}`
+    : `${basePath}/${id}`;
+
+  return apiFormRequest<BlogPost>(endpoint, {
+    method: "PUT",
+    formData,
+    auth: true,
+  });
+}
+
+/**
+ * DELETE /api/blogs/:id — Soft-delete blog
+ */
+export async function deleteBlog(id: string, role?: Role): Promise<{ message: string }> {
+  const basePath = getBlogBasePath(role);
+  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
+    ? `/api/contributor/blogs/${id}`
+    : `${basePath}/${id}`;
+
+  return apiRequest<{ message: string }>(endpoint, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+// ─── Workflow Operations ───────────────────────────────────────────────────────
+
+/**
+ * PATCH /api/blogs/:id/submit — Submit draft for staff review
+ */
+export async function submitBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const basePath = getBlogBasePath(role);
+  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
+    ? `/api/contributor/blogs/${id}/submit`
+    : `${basePath}/${id}/submit`;
+
+  return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+/**
+ * PATCH /api/blogs/:id/review — Approve or reject pending blog
+ */
+export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const basePath = getBlogBasePath(role);
+  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/review`, {
+    method: "PATCH",
+    auth: true,
+    body: payload,
+  });
+}
+
+/**
+ * PATCH /api/blogs/:id/publish — Publish approved blog to live site (Admin & Officer)
+ */
+export async function publishBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const basePath = getBlogBasePath(role);
+  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/publish`, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+/**
+ * PATCH /api/blogs/:id/unpublish — Unpublish live blog back to approved state
+ */
+export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const basePath = getBlogBasePath(role);
+  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/unpublish`, {
+    method: "PATCH",
+    auth: true,
+    body: payload || {},
+  });
+}
+
+// ─── Unified Namespace Export Object ──────────────────────────────────────────
+
+export const blogsApi = {
+  getPublicBlogs,
+  getPublicBlogBySlug,
+  getBlogs,
+  getBlogById,
+  getBlogStats,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  submitBlog,
+  reviewBlog,
+  publishBlog,
+  unpublishBlog,
+};

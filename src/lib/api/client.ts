@@ -1,12 +1,9 @@
 import { authCookies } from "@/lib/auth/cookies";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 /**
  * Thrown for every failed request (network error, 4xx, 5xx).
- * Always carries a human-readable `message` and the HTTP `status`,
- * so calling code can show the right thing to the user without
- * re-parsing the response itself.
  */
 export class ApiError extends Error {
   status: number;
@@ -21,26 +18,47 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
-  /** Set true for endpoints that require the Bearer token (most non-public routes). */
+  /** Set true for endpoints that require the Bearer token */
   auth?: boolean;
 }
 
+async function tryRefreshToken(): Promise<string | null> {
+  const refreshToken = authCookies.getRefreshToken();
+  const userId = authCookies.getUserId();
+
+  if (!refreshToken || !userId) return null;
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken, userId }),
+    });
+
+    if (!res.ok) {
+      authCookies.clearAll();
+      return null;
+    }
+
+    const data = await res.json();
+    if (data.accessToken) {
+      authCookies.setToken(data.accessToken);
+      return data.accessToken;
+    }
+  } catch {
+    authCookies.clearAll();
+  }
+  return null;
+}
+
 /**
- * Generic typed request function. Every function in auth.ts / blogs.ts
- * calls this instead of `fetch` directly.
+ * Generic typed request function with automatic token refresh on 401 errors.
  */
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const { method = "GET", body, auth = false } = options;
-
-  if (!BASE_URL) {
-    throw new ApiError(
-      "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
-      500
-    );
-  }
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -49,7 +67,7 @@ export async function apiRequest<T>(
   if (auth) {
     const token = authCookies.getToken();
     if (!token) {
-      throw new ApiError("You must be logged in to do this.", 401);
+      throw new ApiError("You must be logged in to perform this action.", 401);
     }
     headers.Authorization = `Bearer ${token}`;
   }
@@ -67,6 +85,19 @@ export async function apiRequest<T>(
       "Could not reach the server. Check your connection.",
       0
     );
+  }
+
+  // Handle 401 Unauthorized token expiry with automatic retry
+  if (response.status === 401 && auth) {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      headers.Authorization = `Bearer ${newToken}`;
+      response = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    }
   }
 
   const contentType = response.headers.get("content-type") ?? "";
@@ -90,10 +121,7 @@ interface FormRequestOptions {
 }
 
 /**
- * Like apiRequest, but for multipart/form-data endpoints (file uploads).
- * Used by blog create/update, which require an actual image file plus
- * a JSON-stringified "modal" field — matches the backend's uploadBlogFiles
- * + parseBlogBody middleware exactly.
+ * Multipart request handler for image & file uploads (Blog Creation/Updates).
  */
 export async function apiFormRequest<T>(
   path: string,
@@ -101,21 +129,12 @@ export async function apiFormRequest<T>(
 ): Promise<T> {
   const { method = "POST", formData, auth = true } = options;
 
-  if (!BASE_URL) {
-    throw new ApiError(
-      "NEXT_PUBLIC_API_URL is not set. Check your .env.local file.",
-      500
-    );
-  }
-
   const headers: Record<string, string> = {};
-  // Deliberately no Content-Type here — the browser sets the correct
-  // multipart boundary automatically when you pass a FormData body.
 
   if (auth) {
     const token = authCookies.getToken();
     if (!token) {
-      throw new ApiError("You must be logged in to do this.", 401);
+      throw new ApiError("You must be logged in to perform this action.", 401);
     }
     headers.Authorization = `Bearer ${token}`;
   }
@@ -133,6 +152,18 @@ export async function apiFormRequest<T>(
       "Could not reach the server. Check your connection.",
       0
     );
+  }
+
+  if (response.status === 401 && auth) {
+    const newToken = await tryRefreshToken();
+    if (newToken) {
+      headers.Authorization = `Bearer ${newToken}`;
+      response = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers,
+        body: formData,
+      });
+    }
   }
 
   const contentType = response.headers.get("content-type") ?? "";

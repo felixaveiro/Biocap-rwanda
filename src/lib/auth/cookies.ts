@@ -1,22 +1,13 @@
-/**
- * Cookie-based session storage.
- *
- * We use cookies (not localStorage) so that:
- *  - the token survives page refreshes
- *  - Next.js middleware can read it later if you add protected routes
- *
- * Each function does exactly one job, so if something breaks you can
- * test/log each one in isolation instead of digging through one big blob.
- */
-
 const TOKEN_COOKIE = "biocap_token";
+const REFRESH_TOKEN_COOKIE = "biocap_refresh_token";
+const USER_ID_COOKIE = "biocap_user_id";
 const ROLE_COOKIE = "biocap_role";
 const USERNAME_COOKIE = "biocap_username";
 
 const DEFAULT_EXPIRY_DAYS = 7;
 
 function setCookie(name: string, value: string, days = DEFAULT_EXPIRY_DAYS) {
-  if (typeof document === "undefined") return; // safety for any accidental server-side call
+  if (typeof document === "undefined") return;
 
   const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
   document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
@@ -41,20 +32,36 @@ function deleteCookie(name: string) {
 
 export interface SessionData {
   token: string;
+  refreshToken?: string;
+  userId?: string;
   role: string;
   username: string;
 }
 
 export const authCookies = {
-  /** Call right after a successful login/register to persist the session. */
-  setSession({ token, role, username }: SessionData) {
+  /** Call after successful login to persist session */
+  setSession({ token, refreshToken, userId, role, username }: SessionData) {
     setCookie(TOKEN_COOKIE, token);
+    if (refreshToken) setCookie(REFRESH_TOKEN_COOKIE, refreshToken);
+    if (userId) setCookie(USER_ID_COOKIE, userId);
     setCookie(ROLE_COOKIE, role);
     setCookie(USERNAME_COOKIE, username);
   },
 
+  setToken(token: string) {
+    setCookie(TOKEN_COOKIE, token);
+  },
+
   getToken(): string | null {
     return getCookie(TOKEN_COOKIE);
+  },
+
+  getRefreshToken(): string | null {
+    return getCookie(REFRESH_TOKEN_COOKIE);
+  },
+
+  getUserId(): string | null {
+    return getCookie(USER_ID_COOKIE);
   },
 
   getRole(): string | null {
@@ -69,10 +76,16 @@ export const authCookies = {
     return Boolean(getCookie(TOKEN_COOKIE));
   },
 
-  /** Call on logout. */
+  /** Call on logout or forced token invalidation */
   clearSession() {
     deleteCookie(TOKEN_COOKIE);
+    deleteCookie(REFRESH_TOKEN_COOKIE);
+    deleteCookie(USER_ID_COOKIE);
     deleteCookie(ROLE_COOKIE);
     deleteCookie(USERNAME_COOKIE);
+  },
+
+  clearAll() {
+    this.clearSession();
   },
 };

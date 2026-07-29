@@ -2,15 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { can } from "@/lib/permissions";
-import { BlogPost, SessionUser } from "@/types";
+import { can, Permission } from "@/lib/permissions";
+import { blogsApi } from "@/lib/api/blogs";
+import { BlogPost, User, Role } from "@/types";
 
 export default function BlogActions({
   post,
   user,
 }: {
   post: BlogPost;
-  user: SessionUser;
+  user: User;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -18,31 +19,39 @@ export default function BlogActions({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const isOwner = post.authorId === user.id;
-  const canReview = can(user.role, "blog:approve") || can(user.role, "blog:reject");
-  const canPublish = can(user.role, "blog:publish");
-  const canUnpublish = can(user.role, "blog:unpublish");
+  const userRole = user.role as Role;
+  const authorId =
+    typeof post.author === "object"
+      ? post.author?._id
+      : (post as unknown as { authorId?: string }).authorId || post.author;
+  const isOwner = authorId === user._id;
 
-  async function call(path: string, opts: RequestInit = {}) {
+  const canReview = can(userRole, "blog:approve") || can(userRole, "blog:reject");
+  const canPublish = can(userRole, "blog:publish");
+  const canUnpublish = can(userRole, "blog:unpublish");
+
+  const statusKey = (post.status as string)?.toLowerCase() || "";
+
+  async function executeAction(actionFn: () => Promise<unknown>) {
     setBusy(true);
     setError(null);
-    const res = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      ...opts,
-    });
-    setBusy(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Action failed");
+    try {
+      await actionFn();
+      router.refresh();
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Action failed";
+      setError(msg);
       return false;
+    } finally {
+      setBusy(false);
     }
-    router.refresh();
-    return true;
   }
 
   async function approve() {
-    await call(`/api/blogs/${post.id}/approve`);
+    await executeAction(() =>
+      blogsApi.reviewBlog(post._id, { decision: "approved" })
+    );
   }
 
   async function submitReject() {
@@ -50,9 +59,9 @@ export default function BlogActions({
       setError("Please explain why this post is being rejected.");
       return;
     }
-    const ok = await call(`/api/blogs/${post.id}/reject`, {
-      body: JSON.stringify({ reason }),
-    });
+    const ok = await executeAction(() =>
+      blogsApi.reviewBlog(post._id, { decision: "rejected", note: reason })
+    );
     if (ok) {
       setRejectOpen(false);
       setReason("");
@@ -60,21 +69,27 @@ export default function BlogActions({
   }
 
   async function resubmit() {
-    await call(`/api/blogs/${post.id}/resubmit`);
+    await executeAction(() => blogsApi.submitBlog(post._id));
   }
 
   async function publish() {
-    await call(`/api/blogs/${post.id}/publish`);
+    await executeAction(() => blogsApi.publishBlog(post._id));
   }
 
   async function unpublish() {
-    await call(`/api/blogs/${post.id}/publish`, { method: "DELETE" });
+    await executeAction(() => blogsApi.unpublishBlog(post._id));
   }
 
-  const showApproveReject = canReview && post.status === "PENDING";
-  const showResubmit = isOwner && post.status === "REJECTED" && can(user.role, "blog:resubmit");
-  const showPublish = canPublish && (post.status === "DRAFT" || post.status === "PENDING");
-  const showUnpublish = canUnpublish && post.status === "APPROVED";
+  const showApproveReject =
+    canReview && (statusKey === "pending_review" || statusKey === "pending");
+  const showResubmit =
+    isOwner &&
+    (statusKey === "rejected" || statusKey === "changes_requested") &&
+    can(userRole, "blog:resubmit" as Permission);
+  const showPublish =
+    canPublish &&
+    (statusKey === "approved" || statusKey === "draft" || statusKey === "pending_review");
+  const showUnpublish = canUnpublish && statusKey === "published";
 
   if (!showApproveReject && !showResubmit && !showPublish && !showUnpublish) return null;
 
@@ -112,7 +127,7 @@ export default function BlogActions({
           <button
             onClick={resubmit}
             disabled={busy}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-lg bg-[#E52B67] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#c42155] disabled:opacity-50"
           >
             Fix & resubmit for review
           </button>
@@ -122,7 +137,7 @@ export default function BlogActions({
           <button
             onClick={publish}
             disabled={busy}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-lg bg-[#133248] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0e273a] disabled:opacity-50"
           >
             Publish now
           </button>
@@ -149,7 +164,7 @@ export default function BlogActions({
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="Explain what needs to change before this can be approved..."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#E52B67] focus:outline-none focus:ring-2 focus:ring-[#E52B67]/20"
           />
           <div className="mt-3 flex gap-2">
             <button

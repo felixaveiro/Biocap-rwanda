@@ -1,60 +1,174 @@
-export type Role = "ADMIN" | "COMMUNICATION_OFFICER" | "SOCIAL_MEDIA_INFLUENCER";
+export type Role =
+  | 'admin'
+  | 'communication_officer'
+  | 'editor'
+  | 'social_media_content_creator'
+  | 'broadcast_content_creator';
 
-export const ROLES: Role[] = ["ADMIN", "COMMUNICATION_OFFICER", "SOCIAL_MEDIA_INFLUENCER"];
+export const ROLES: Role[] = [
+  'admin',
+  'communication_officer',
+  'editor',
+  'social_media_content_creator',
+  'broadcast_content_creator',
+];
 
 export const ROLE_LABELS: Record<Role, string> = {
-  ADMIN: "Administrator",
-  COMMUNICATION_OFFICER: "Communication Officer",
-  SOCIAL_MEDIA_INFLUENCER: "Social Media Influencer",
+  admin: 'Administrator',
+  communication_officer: 'Communication Officer',
+  editor: 'Editor',
+  social_media_content_creator: 'Social Media Content Creator',
+  broadcast_content_creator: 'Broadcast Content Creator',
 };
 
+export type ProfileReviewStatus = 'pending' | 'verified' | 'needs_attention';
+
+export interface UserReviewLog {
+  decision: 'verified' | 'needs_attention' | 'noted';
+  reviewer: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
+  } | string;
+  note?: string;
+  reviewedAt: string;
+}
+
 export interface User {
-  id: string;
-  name: string;
+  _id: string;
+  username: string;
   email: string;
+  firstName: string;
+  lastName: string;
   role: Role;
-  active: boolean;
+  isActive: boolean;
+  dateOfBirth?: string;
+  avatar?: string;
+  organization?: string;
+  organizationLink?: string;
+  socialHandle?: string;
+  createdBy?: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  } | string;
+  profileReviewStatus: ProfileReviewStatus;
+  profileReviewHistory?: UserReviewLog[];
+  lastProfileReviewNote?: string;
+  isPasswordResetRequired?: boolean;
+  lastLoginAt?: string;
+  loginCount?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type SessionUser = User;
 
-export type BlogStatus = "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
+export type BlogStatus = 'draft' | 'pending_review' | 'approved' | 'published';
 
 export const BLOG_STATUS_LABELS: Record<BlogStatus, string> = {
-  DRAFT: "Draft",
-  PENDING: "Pending review",
-  APPROVED: "Published",
-  REJECTED: "Rejected",
+  draft: 'Draft',
+  pending_review: 'Pending Review',
+  approved: 'Approved',
+  published: 'Published',
 };
 
-export type HistoryAction =
-  | "CREATED"
-  | "SUBMITTED"
-  | "APPROVED"
-  | "REJECTED"
-  | "RESUBMITTED"
-  | "EDITED"
-  | "UNPUBLISHED";
+// Flexible block structure matching article component
+export type BlockType = 'p' | 'h2' | 'quote' | 'emphasis' | 'image';
 
-export interface HistoryEntry {
-  id: string;
-  action: HistoryAction;
-  by: string;
-  at: string;
+export interface BlogBlock {
+  type: BlockType;
+  text?: string;
+  source?: string;
+  src?: string;
+  caption?: string;
+}
+
+export interface BlogModalMetadata {
+  date?: string;
+  organizer?: string;
+  partners?: string;
+}
+
+export interface ReviewLog {
+  decision: 'approved' | 'rejected';
+  reviewer: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+    role?: Role;
+  } | string;
   note?: string;
+  reviewedAt: string;
 }
 
 export interface BlogPost {
-  id: string;
+  _id: string;
   title: string;
-  content: string;
-  tags: string[];
-  authorId: string;
-  authorName: string;
+  slug: string;
+  tag: string;
+  excerpt: string;
+  blocks: BlogBlock[];
+  modal?: BlogModalMetadata;
+  img: string;
+  imgPublicId: string;
+  documentUrl?: string;
+  documentPublicId?: string;
+  documentName?: string;
+
+  // Frozen creator for public bylines
+  originalAuthor: {
+    _id: string;
+    username: string;
+    email?: string;
+    firstName: string;
+    lastName: string;
+    socialHandle?: string;
+    organizationLink?: string;
+    organization?: string;
+  };
+  originalAuthorRole: Role;
+
+  // Responsible editor / staff account
+  author: {
+    _id: string;
+    username: string;
+    email?: string;
+    firstName: string;
+    lastName: string;
+    role?: Role;
+  };
+  authorRole: Role;
+
+  socialHandle?: string;
+  organizationLink?: string;
   status: BlogStatus;
-  rejectionReason?: string;
-  reviewerName?: string;
-  history: HistoryEntry[];
+  submittedAt?: string;
+  lastRejectionNote?: string;
+  reviewHistory: ReviewLog[];
+  publishedAt?: string;
+  publishedBy?: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+  isDeleted: boolean;
+  views: number;
   createdAt: string;
   updatedAt: string;
+}
+
+// API Pagination Structure
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
 }

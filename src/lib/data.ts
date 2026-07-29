@@ -1,4 +1,4 @@
-import { BlogPost, HistoryEntry, User, BlogStatus } from "@/types";
+import { BlogPost, User, BlogStatus } from "@/types";
 
 const USERS_KEY = "app:users";
 const BLOGS_KEY = "app:blogs";
@@ -15,33 +15,128 @@ function nowIso() {
 
 // ── Seed data ────────────────────────────────────────────────────
 const SEED_USERS: User[] = [
-  { id: "u1", name: "Alice Admin", email: "alice@example.com", role: "ADMIN", active: true },
-  { id: "u2", name: "Eddie Officer", email: "eddie@example.com", role: "COMMUNICATION_OFFICER", active: true },
-  { id: "u3", name: "Ivy Influencer", email: "ivy@example.com", role: "SOCIAL_MEDIA_INFLUENCER", active: true },
-];
-
-const SEED_BLOGS: BlogPost[] = [
   {
-    id: "b1",
-    title: "Welcome to the dashboard",
-    content: "This is your first published post.",
-    tags: ["news"],
-    authorId: "u3",
-    authorName: "Ivy Influencer",
-    status: "APPROVED",
-    history: [{ id: uid("h"), action: "CREATED", by: "Ivy Influencer", at: nowIso() }],
+    _id: "u1",
+    username: "alice_admin",
+    email: "alice@example.com",
+    firstName: "Alice",
+    lastName: "Admin",
+    role: "admin",
+    isActive: true,
+    profileReviewStatus: "verified",
     createdAt: nowIso(),
     updatedAt: nowIso(),
   },
   {
-    id: "b2",
+    _id: "u2",
+    username: "eddie_officer",
+    email: "eddie@example.com",
+    firstName: "Eddie",
+    lastName: "Officer",
+    role: "communication_officer",
+    isActive: true,
+    profileReviewStatus: "verified",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    _id: "u3",
+    username: "nadia_editor",
+    email: "nadia@example.com",
+    firstName: "Nadia",
+    lastName: "Editor",
+    role: "editor",
+    isActive: true,
+    profileReviewStatus: "verified",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    _id: "u4",
+    username: "ivy_social",
+    email: "ivy@example.com",
+    firstName: "Ivy",
+    lastName: "Social",
+    role: "social_media_content_creator",
+    isActive: true,
+    profileReviewStatus: "verified",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    _id: "u5",
+    username: "ben_broadcast",
+    email: "ben@example.com",
+    firstName: "Ben",
+    lastName: "Broadcast",
+    role: "broadcast_content_creator",
+    isActive: true,
+    profileReviewStatus: "verified",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+];
+
+const SEED_BLOGS: BlogPost[] = [
+  {
+    _id: "b1",
+    title: "Welcome to the dashboard",
+    slug: "welcome-to-the-dashboard",
+    tag: "news",
+    excerpt: "This is your first published post.",
+    blocks: [{ type: "p", text: "This is your first published post." }],
+    img: "https://via.placeholder.com/800x450",
+    imgPublicId: "placeholder",
+    originalAuthor: {
+      _id: "u3",
+      username: "nadia_editor",
+      firstName: "Nadia",
+      lastName: "Editor",
+    },
+    originalAuthorRole: "editor",
+    author: {
+      _id: "u3",
+      username: "nadia_editor",
+      firstName: "Nadia",
+      lastName: "Editor",
+      role: "editor",
+    },
+    authorRole: "editor",
+    status: "approved",
+    reviewHistory: [],
+    isDeleted: false,
+    views: 0,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  },
+  {
+    _id: "b2",
     title: "Draft campaign ideas",
-    content: "Still working on this one.",
-    tags: ["draft"],
-    authorId: "u3",
-    authorName: "Ivy Influencer",
-    status: "DRAFT",
-    history: [{ id: uid("h"), action: "CREATED", by: "Ivy Influencer", at: nowIso() }],
+    slug: "draft-campaign-ideas",
+    tag: "draft",
+    excerpt: "Still working on this one.",
+    blocks: [{ type: "p", text: "Still working on this one." }],
+    img: "https://via.placeholder.com/800x450",
+    imgPublicId: "placeholder",
+    originalAuthor: {
+      _id: "u3",
+      username: "nadia_editor",
+      firstName: "Nadia",
+      lastName: "Editor",
+    },
+    originalAuthorRole: "editor",
+    author: {
+      _id: "u3",
+      username: "nadia_editor",
+      firstName: "Nadia",
+      lastName: "Editor",
+      role: "editor",
+    },
+    authorRole: "editor",
+    status: "draft",
+    reviewHistory: [],
+    isDeleted: false,
+    views: 0,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   },
@@ -72,69 +167,92 @@ export async function listUsers(): Promise<User[]> {
 }
 
 export async function getUser(id: string): Promise<User | undefined> {
-  return (await listUsers()).find((u) => u.id === id);
+  return (await listUsers()).find((u) => u._id === id);
 }
 
-export async function createUser(data: Pick<User, "name" | "email" | "role">): Promise<User> {
+export async function createUser(data: Pick<User, "firstName" | "lastName" | "email" | "role" | "username">): Promise<User> {
   const users = await listUsers();
-  const user: User = { id: uid("u"), active: true, ...data };
+  const user: User = {
+    _id: uid("u"),
+    isActive: true,
+    profileReviewStatus: "verified",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    ...data,
+  };
   write(USERS_KEY, [...users, user]);
   return user;
 }
 
 export async function updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
   const users = await listUsers();
-  const idx = users.findIndex((u) => u.id === id);
+  const idx = users.findIndex((u) => u._id === id);
   if (idx === -1) return undefined;
-  users[idx] = { ...users[idx], ...updates };
+  users[idx] = { ...users[idx], ...updates, updatedAt: nowIso() };
   write(USERS_KEY, users);
   return users[idx];
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  write(USERS_KEY, (await listUsers()).filter((u) => u.id !== id));
+  write(USERS_KEY, (await listUsers()).filter((u) => u._id !== id));
 }
 
 // ── Blogs ────────────────────────────────────────────────────────
 export async function listBlogs(filter?: { authorId?: string; status?: BlogStatus }): Promise<BlogPost[]> {
   let blogs = read<BlogPost[]>(BLOGS_KEY, SEED_BLOGS);
-  if (filter?.authorId) blogs = blogs.filter((b) => b.authorId === filter.authorId);
-  if (filter?.status) blogs = blogs.filter((b) => b.status === filter.status);
+  if (filter?.authorId) {
+    blogs = blogs.filter((b) => (typeof b.author === 'object' ? b.author._id : b.author) === filter.authorId);
+  }
+  if (filter?.status) {
+    blogs = blogs.filter((b) => b.status === filter.status);
+  }
   return blogs;
 }
 
 export async function getBlog(id: string): Promise<BlogPost | undefined> {
-  return (await listBlogs()).find((b) => b.id === id);
-}
-
-// entry no longer needs `id` or `at` — both are generated here
-function pushHistory(blog: BlogPost, entry: Omit<HistoryEntry, "id" | "at">): BlogPost {
-  return {
-    ...blog,
-    history: [...blog.history, { id: uid("h"), at: nowIso(), ...entry }],
-    updatedAt: nowIso(),
-  };
+  return (await listBlogs()).find((b) => b._id === id);
 }
 
 async function saveBlog(blog: BlogPost): Promise<BlogPost> {
   const blogs = await listBlogs();
-  const idx = blogs.findIndex((b) => b.id === blog.id);
+  const idx = blogs.findIndex((b) => b._id === blog._id);
   idx >= 0 ? (blogs[idx] = blog) : blogs.push(blog);
   write(BLOGS_KEY, blogs);
   return blog;
 }
 
 export async function createBlog(
-  data: { title: string; content: string; tags: string[] },
+  data: { title: string; excerpt: string; tag: string },
   author: User
 ): Promise<BlogPost> {
   const blog: BlogPost = {
-    id: uid("b"),
-    ...data,
-    authorId: author.id,
-    authorName: author.name,
-    status: "DRAFT",
-    history: [{ id: uid("h"), action: "CREATED", by: author.name, at: nowIso() }],
+    _id: uid("b"),
+    title: data.title,
+    slug: data.title.toLowerCase().replace(/\s+/g, '-'),
+    tag: data.tag,
+    excerpt: data.excerpt,
+    blocks: [{ type: "p", text: data.excerpt }],
+    img: "https://via.placeholder.com/800x450",
+    imgPublicId: "placeholder",
+    originalAuthor: {
+      _id: author._id,
+      username: author.username,
+      firstName: author.firstName,
+      lastName: author.lastName,
+    },
+    originalAuthorRole: author.role,
+    author: {
+      _id: author._id,
+      username: author.username,
+      firstName: author.firstName,
+      lastName: author.lastName,
+      role: author.role,
+    },
+    authorRole: author.role,
+    status: "draft",
+    reviewHistory: [],
+    isDeleted: false,
+    views: 0,
     createdAt: nowIso(),
     updatedAt: nowIso(),
   };
@@ -143,54 +261,36 @@ export async function createBlog(
 
 export async function editBlog(
   id: string,
-  updates: { title?: string; content?: string; tags?: string[] },
-  by: string
+  updates: Partial<BlogPost>
 ): Promise<BlogPost | undefined> {
   const blog = await getBlog(id);
   if (!blog) return undefined;
-  return saveBlog(pushHistory({ ...blog, ...updates }, { action: "EDITED", by }));
+  return saveBlog({ ...blog, ...updates, updatedAt: nowIso() });
 }
 
-export async function submitBlog(id: string, by: string): Promise<BlogPost | undefined> {
+export async function submitBlog(id: string): Promise<BlogPost | undefined> {
   const blog = await getBlog(id);
   if (!blog) return undefined;
-  const action = blog.status === "REJECTED" ? "RESUBMITTED" : "SUBMITTED";
-  return saveBlog(pushHistory({ ...blog, status: "PENDING", rejectionReason: undefined }, { action, by }));
+  return saveBlog({ ...blog, status: "pending_review", updatedAt: nowIso() });
 }
 
-export async function approveBlog(id: string, by: string): Promise<BlogPost | undefined> {
+export async function approveBlog(id: string): Promise<BlogPost | undefined> {
   const blog = await getBlog(id);
   if (!blog) return undefined;
-  return saveBlog(
-    pushHistory({ ...blog, status: "APPROVED", reviewerName: by, rejectionReason: undefined }, { action: "APPROVED", by })
-  );
-}
-
-export async function rejectBlog(id: string, by: string, reason: string): Promise<BlogPost | undefined> {
-  const blog = await getBlog(id);
-  if (!blog) return undefined;
-  return saveBlog(
-    pushHistory({ ...blog, status: "REJECTED", reviewerName: by, rejectionReason: reason }, { action: "REJECTED", by, note: reason })
-  );
-}
-
-export async function unpublishBlog(id: string, by: string): Promise<BlogPost | undefined> {
-  const blog = await getBlog(id);
-  if (!blog) return undefined;
-  return saveBlog(pushHistory({ ...blog, status: "DRAFT" }, { action: "UNPUBLISHED", by }));
+  return saveBlog({ ...blog, status: "approved", updatedAt: nowIso() });
 }
 
 export async function deleteBlog(id: string): Promise<void> {
-  write(BLOGS_KEY, (await listBlogs()).filter((b) => b.id !== id));
+  write(BLOGS_KEY, (await listBlogs()).filter((b) => b._id !== id));
 }
 
 // ── "Session" (which seed user is currently signed in) ───────────
 export function getCurrentUserSync(): User | null {
   if (!isBrowser) return null;
-  const id = window.localStorage.getItem(SESSION_KEY) ?? SEED_USERS[0].id;
+  const id = window.localStorage.getItem(SESSION_KEY) ?? SEED_USERS[0]._id;
   window.localStorage.setItem(SESSION_KEY, id);
   const users = read<User[]>(USERS_KEY, SEED_USERS);
-  return users.find((u) => u.id === id) ?? SEED_USERS[0];
+  return users.find((u) => u._id === id) ?? SEED_USERS[0];
 }
 
 export function setCurrentUser(id: string) {

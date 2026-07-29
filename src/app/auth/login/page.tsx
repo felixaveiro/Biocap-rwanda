@@ -27,12 +27,18 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const { token, role, username } = await loginUser({
+      const { accessToken, refreshToken, role, username } = await loginUser({
         email: form.email,
         password: form.password,
       });
 
-      authCookies.setSession({ token, role, username });
+      authCookies.setSession({
+        token: accessToken,
+        refreshToken,
+        role,
+        username,
+      });
+
       router.push("/dashboard/dashboard");
     } catch (err) {
       const message =
@@ -51,11 +57,8 @@ export default function LoginPage() {
       {/* Left Double DNA Helix Strand */}
       <div className="absolute top-[-10%] left-[-5%] w-[380px] h-[800px] text-[#E52B67]/20 pointer-events-none -rotate-12 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
-          {/* Helix Strand A */}
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
-          {/* Helix Strand B */}
           <path d="M 70,0 Q 20,50 70,100 T 70,200 T 70,300 T 70,400" strokeWidth="3" />
-          {/* Base Pairs (Rungs) */}
           <line x1="32" y1="25" x2="68" y2="25" strokeWidth="1.5" opacity="0.6" />
           <line x1="50" y1="50" x2="50" y2="50" strokeWidth="1.5" opacity="0.6" />
           <line x1="32" y1="75" x2="68" y2="75" strokeWidth="1.5" opacity="0.6" />
@@ -99,11 +102,10 @@ export default function LoginPage() {
       {/* Bottom Left Ambient Glow Blob */}
       <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
 
-
       {/* ── MAIN BIOCAP GLASS CARD ── */}
       <div className="relative z-10 w-full max-w-md bg-white/25 backdrop-blur-md border border-white/40 rounded-[38px] p-8 sm:p-10 shadow-2xl shadow-[#133248]/50">
         
-        {/* BioCap Navy Avatar Icon with Subtle DNA Icon */}
+        {/* Avatar Header */}
         <div className="flex justify-center mb-3">
           <div className="relative w-16 h-16 rounded-full bg-[#133248] text-white flex items-center justify-center shadow-lg border border-[#E52B67]/40">
             <User className="w-9 h-9 stroke-[2.2]" />
