@@ -18,12 +18,24 @@ export default function EditUserPage() {
   const [notFoundState, setNotFoundState] = useState(false);
 
   useEffect(() => {
-    if (!user || !allowed) return;
-    getUser(params.id).then((u) => {
-      u ? setTarget(u) : setNotFoundState(true);
-      setDataLoading(false);
-    });
-  }, [user, allowed, params.id]);
+    if (!user || !allowed || !params?.id) return;
+    
+    getUser(params.id)
+      .then((u) => {
+        if (u) {
+          setTarget(u);
+        } else {
+          setNotFoundState(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load user:", err);
+        setNotFoundState(true);
+      })
+      .finally(() => {
+        setDataLoading(false);
+      });
+  }, [user, allowed, params?.id]);
 
   if (loading || !allowed || !user || dataLoading) {
     return (
@@ -40,7 +52,10 @@ export default function EditUserPage() {
         <Header title="User not found" subtitle="" />
         <div className="p-8 text-sm text-slate-400">
           This user doesn&apos;t exist.{" "}
-          <button className="text-brand-600 underline" onClick={() => router.push("/dashboard/users")}>
+          <button
+            className="text-brand-600 underline"
+            onClick={() => router.push("/dashboard/users")}
+          >
             Back to users
           </button>
         </div>
@@ -48,20 +63,35 @@ export default function EditUserPage() {
     );
   }
 
+  // Safely construct display name from MongoDB / API fields
+  const targetUserAny = target as any;
+  const displayName =
+    `${targetUserAny.firstName || ""} ${targetUserAny.lastName || ""}`.trim() ||
+    targetUserAny.username ||
+    targetUserAny.name ||
+    "User";
+
   return (
     <div>
-      <Header title={`Edit ${target.name}`} subtitle={target.email} />
+      <Header title={`Edit ${displayName}`} subtitle={target.email} />
       <div className="p-8">
         <UserForm
           mode="edit"
           canEditRole={can(user.role, "user:edit:role")}
-          initial={{
-            id: target.id,
-            name: target.name,
-            email: target.email,
-            role: target.role,
-            active: target.active,
-          }}
+          initial={
+            {
+              _id: targetUserAny._id || targetUserAny.id,
+              id: targetUserAny._id || targetUserAny.id,
+              firstName: targetUserAny.firstName || "",
+              lastName: targetUserAny.lastName || "",
+              name: displayName,
+              username: targetUserAny.username || "",
+              email: target.email,
+              role: target.role,
+              active: targetUserAny.active ?? targetUserAny.isActive ?? true,
+              isActive: targetUserAny.isActive ?? targetUserAny.active ?? true,
+            } as any
+          }
         />
       </div>
     </div>
