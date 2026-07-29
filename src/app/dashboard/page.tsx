@@ -190,7 +190,7 @@ export default function UsersPage() {
 
           {/* Add User Button */}
           <Link
-            href="/dashboard/users/new"
+            href="/dashboard/dashboard/users/new"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-700 active:bg-indigo-800"
           >
             <UserPlus size={16} />
