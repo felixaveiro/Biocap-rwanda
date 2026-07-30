@@ -1,6 +1,7 @@
 import { Role, User, BlogPost, BlogStatus } from "@/types";
 
 export type Permission =
+  | "blog:view"       // 👈 Added to resolve TypeScript build errors in useSession("blog:view")
   | "blog:view:all"
   | "blog:create"
   | "blog:edit"
@@ -20,6 +21,7 @@ export type Permission =
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   admin: [
+    "blog:view",
     "blog:view:all",
     "blog:create",
     "blog:edit",
@@ -38,6 +40,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "user:review",
   ],
   communication_officer: [
+    "blog:view",
     "blog:view:all",
     "blog:create",
     "blog:edit",
@@ -53,6 +56,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "user:review",
   ],
   editor: [
+    "blog:view",
     "blog:view:all",
     "blog:create",
     "blog:edit",
@@ -62,8 +66,16 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:unpublish",
     "blog:submit",
   ],
-  social_media_content_creator: ["blog:create", "blog:submit"],
-  broadcast_content_creator: ["blog:create", "blog:submit"],
+  social_media_content_creator: [
+    "blog:view",
+    "blog:create",
+    "blog:submit",
+  ],
+  broadcast_content_creator: [
+    "blog:view",
+    "blog:create",
+    "blog:submit",
+  ],
 };
 
 export function can(role: Role, permission: Permission): boolean {
@@ -100,7 +112,10 @@ export function canEditBlog(role: Role, userId: string, post: BlogPost): boolean
   if (can(role, "blog:edit")) return true;
 
   // Creators can edit their own posts if in 'draft' or 'rejected' / 'changes_requested' status
-  return isOwner(userId, post) && (status === "draft" || status === "rejected" || status === "changes_requested");
+  return (
+    isOwner(userId, post) &&
+    (status === "draft" || status === "rejected" || status === "changes_requested")
+  );
 }
 
 export function canDeleteBlog(role: Role, userId: string, post: BlogPost): boolean {
@@ -119,7 +134,7 @@ export interface NavVisibility {
 
 export function visibleNav(role: Role): NavVisibility {
   return {
-    blog: true,
+    blog: can(role, "blog:view"),
     pending: can(role, "blog:approve"),
     users: can(role, "user:view"),
     settings: true,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import UserTable from "@/components/UserTable";
-import { usersApi } from "@/lib/api/users"; // 👈 Updated to use real API module
+import { usersApi } from "@/lib/api/users";
 import { can } from "@/lib/permissions";
 import { useSession } from "@/hooks/useSession";
 import { User, Role } from "@/types";
@@ -22,6 +22,9 @@ export default function UsersPage() {
     }
 
     async function fetchRealUsers() {
+      // Guard check so TypeScript knows `user` is non-null inside async scope
+      if (!user) return;
+
       setDataLoading(true);
       setErrorMsg(null);
       try {
@@ -93,7 +96,7 @@ export default function UsersPage() {
         {can(user.role as Role, "user:create") && (
           <div className="mb-4 flex justify-end">
             <Link
-              href="/dashboard/users/new"
+              href="/admin/team/new"
               className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700"
             >
               Add user

@@ -73,9 +73,14 @@ export default function BlogListPage() {
   // Derived Statistics
   const stats = useMemo(() => {
     const total = blogs.length;
-    const published = blogs.filter((b) => b.status === "published").length;
-    const pending = blogs.filter((b) => b.status === "submitted").length;
-    const rejected = blogs.filter((b) => b.status === "rejected").length;
+    const published = blogs.filter((b) => (b.status as string) === "published").length;
+    
+    // Check both 'submitted' and 'pending' safely
+    const pending = blogs.filter(
+      (b) => (b.status as string) === "submitted" || (b.status as string) === "pending"
+    ).length;
+    
+    const rejected = blogs.filter((b) => (b.status as string) === "rejected").length;
 
     return { total, published, pending, rejected };
   }, [blogs]);
@@ -92,13 +97,14 @@ export default function BlogListPage() {
       const authorMatches = authorName.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesSearch = titleMatches || authorMatches;
-      const matchesStatus = selectedStatus === "ALL" || b.status === selectedStatus;
+      const matchesStatus =
+        selectedStatus === "ALL" || (b.status as string) === selectedStatus;
 
       return matchesSearch && matchesStatus;
     });
   }, [blogs, searchTerm, selectedStatus]);
 
-  // Handle Quick Editorial Status Change (Publish / Reject)
+  // Handle Quick Editorial Status Change (Publish / Reject / Approve)
   const handleStatusChange = async (
     blogId: string,
     action: "publish" | "reject" | "approve",

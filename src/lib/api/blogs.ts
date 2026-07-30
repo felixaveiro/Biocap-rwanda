@@ -242,6 +242,20 @@ export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: 
 }
 
 /**
+ * Helper alias to approve a blog post
+ */
+export async function approveBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  return reviewBlog(id, { decision: "approved" }, role);
+}
+
+/**
+ * Helper alias to reject a blog post with an optional note
+ */
+export async function rejectBlog(id: string, role?: Role, note?: string): Promise<{ message: string; blog: BlogPost }> {
+  return reviewBlog(id, { decision: "rejected", note }, role);
+}
+
+/**
  * PATCH /api/blogs/:id/publish — Publish approved blog to live site (Admin & Officer)
  */
 export async function publishBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
@@ -277,6 +291,8 @@ export const blogsApi = {
   deleteBlog,
   submitBlog,
   reviewBlog,
+  approveBlog,
+  rejectBlog,
   publishBlog,
   unpublishBlog,
 };
