@@ -34,15 +34,25 @@ export default function UsersPage() {
     setFetchError(null);
 
     try {
-      const response = await usersApi.listUsers(user.role as Role);
-      const userList: User[] = Array.isArray(response)
-        ? response
-        : (response as { docs?: User[] })?.docs || [];
+      const response: any = await usersApi.listUsers(user.role as Role);
+
+      // Extract array safely across multiple standard response structures
+      let userList: User[] = [];
+      if (Array.isArray(response)) {
+        userList = response;
+      } else if (Array.isArray(response?.data)) {
+        userList = response.data;
+      } else if (Array.isArray(response?.users)) {
+        userList = response.users;
+      } else if (Array.isArray(response?.docs)) {
+        userList = response.docs;
+      }
 
       setUsers(userList);
     } catch (err: unknown) {
       console.error("Failed to fetch users:", err);
-      const msg = err instanceof Error ? err.message : "Failed to load team members.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to load team members.";
       setFetchError(msg);
     } finally {
       setDataLoading(false);
@@ -53,7 +63,7 @@ export default function UsersPage() {
     fetchUsers();
   }, [user, allowed]);
 
-  // Derived Statistics based strictly on your project's Role definitions
+  // Derived Statistics
   const stats = useMemo(() => {
     const total = users.length;
     const active = users.filter((u) => {
@@ -61,7 +71,6 @@ export default function UsersPage() {
       return ext.isActive !== false && ext.isApproved !== false;
     }).length;
 
-    // ✅ Typed correctly using your project's admin roles
     const admins = users.filter(
       (u) => u.role === "admin" || u.role === "communication_officer"
     ).length;
@@ -190,7 +199,7 @@ export default function UsersPage() {
 
           {/* Add User Button */}
           <Link
-            href="/dashboard/dashboard/users/new"
+            href="/dashboard/users/new"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-700 active:bg-indigo-800"
           >
             <UserPlus size={16} />
