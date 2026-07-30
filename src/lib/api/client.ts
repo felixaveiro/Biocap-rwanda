@@ -1,6 +1,8 @@
 import { authCookies } from "@/lib/auth/cookies";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const BASE_URL = 
+  process.env.NEXT_PUBLIC_API_URL || 
+  "https://biocap-dashboard-backend.onrender.com";
 
 /**
  * Thrown for every failed request (network error, 4xx, 5xx).
