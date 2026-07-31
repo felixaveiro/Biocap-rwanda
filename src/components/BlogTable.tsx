@@ -1,254 +1,276 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import StatusBadge from "@/components/StatusBadge";
-import { canDeleteBlog, canEditBlog, can } from "@/lib/permissions";
-import { deleteBlog } from "@/lib/api/blogs";
-import { BlogPost, ROLE_LABELS, User, Role } from "@/types";
+import { useState } from "react";
+import { BlogPost, User, Role } from "@/types";
+import { blogsApi } from "@/lib/api/blogs";
+import EditStoryModal from "@/components/EditStoryModal";
+import ReviewStoryModal from "@/components/ReviewStoryModal";
 import {
-  CheckCircle,
+  Edit3,
+  CheckCircle2,
   XCircle,
-  Globe,
-  Trash2,
-  Edit,
   Eye,
+  Send,
+  Trash2,
   Loader2,
+  AlertTriangle,
+  MessageSquare,
 } from "lucide-react";
 
 interface BlogTableProps {
   blogs: BlogPost[];
   user: User;
   onPublish?: (id: string) => void;
-  onReject?: (id: string, note?: string) => void;
+  onUnpublish?: (id: string) => void;
   onApprove?: (id: string) => void;
+  onReject?: (id: string, note?: string) => void;
+  onRefreshNeeded?: () => void;
 }
 
 export default function BlogTable({
   blogs,
   user,
   onPublish,
-  onReject,
+  onUnpublish,
   onApprove,
+  onReject,
+  onRefreshNeeded,
 }: BlogTableProps) {
-  const [rows, setRows] = useState<BlogPost[]>(blogs);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
+  const [reviewingStory, setReviewingStory] = useState<BlogPost | null>(null);
 
-  // Rejection note state
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectNote, setRejectNote] = useState("");
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setRows(blogs);
-  }, [blogs]);
+  const isCreator = user.role.includes("creator");
+  const isEditor = user.role === "editor" || user.role === "admin";
+  const isOfficer = user.role === "communication_officer" || user.role === "admin";
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this post? This cannot be undone.")) return;
-    setBusyId(id);
-    setError(null);
+  // Creator Action: Submit Draft for Review
+  const handleSubmitForReview = async (storyId: string) => {
+    setActiveActionId(storyId);
+    setActionError(null);
     try {
-      await deleteBlog(id, user.role as Role);
-      setRows((prev) => prev.filter((b) => b._id !== id));
-    } catch {
-      setError("Failed to delete post");
+      await blogsApi.submitBlog(storyId, user.role as Role);
+      if (onRefreshNeeded) onRefreshNeeded();
+    } catch (err: unknown) {
+      console.error("Failed to submit story:", err);
+      const msg = err instanceof Error ? err.message : "Failed to submit story.";
+      setActionError(msg);
     } finally {
-      setBusyId(null);
+      setActiveActionId(null);
     }
-  }
+  };
 
-  async function handleConfirmReject() {
-    if (!rejectingId) return;
-    setBusyId(rejectingId);
+  // Creator Action: Delete Story Draft
+  const handleDeleteStory = async (storyId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+    setActiveActionId(storyId);
+    setActionError(null);
     try {
-      if (onReject) {
-        await onReject(rejectingId, rejectNote);
-      }
-      setRejectingId(null);
-      setRejectNote("");
-    } catch {
-      setError("Failed to reject post");
+      await blogsApi.deleteBlog(storyId, user.role as Role);
+      if (onRefreshNeeded) onRefreshNeeded();
+    } catch (err: unknown) {
+      console.error("Failed to delete story:", err);
+      const msg = err instanceof Error ? err.message : "Failed to delete story.";
+      setActionError(msg);
     } finally {
-      setBusyId(null);
+      setActiveActionId(null);
     }
-  }
+  };
 
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500 shadow-xs">
-        No stories found.
-      </div>
-    );
-  }
-
-  const userRole = user.role as Role;
-  const canApprove = can(userRole, "blog:approve");
-  const canPublish = can(userRole, "blog:publish");
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "published":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+      case "approved":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+      case "pending_review":
+        return "bg-amber-50 text-amber-700 border-amber-200/80";
+      case "rejected":
+        return "bg-rose-50 text-rose-700 border-rose-200/80";
+      default:
+        return "bg-slate-100 text-slate-600 border-slate-200/80";
+    }
+  };
 
   return (
-    <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xs">
-      {error && (
-        <div className="border-b border-rose-200 bg-rose-50 px-5 py-2 text-sm text-rose-700">
-          {error}
+    <div className="w-full">
+      {actionError && (
+        <div className="m-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+          <AlertTriangle size={15} />
+          <span>{actionError}</span>
         </div>
       )}
-      <table className="w-full text-left text-sm">
-        <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th className="px-5 py-3 font-medium">Story</th>
-            <th className="px-5 py-3 font-medium">Creator</th>
-            <th className="px-5 py-3 font-medium">Status</th>
-            <th className="px-5 py-3 font-medium">Updated</th>
-            <th className="px-5 py-3 font-medium text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {rows.map((post) => {
-            const editable = canEditBlog(userRole, user._id, post);
-            const deletable = canDeleteBlog(userRole, user._id, post);
 
-            // Resolve author details
-            const authorObj = typeof post.author === "object" ? post.author : null;
-            const authorName = authorObj
-              ? `${authorObj.firstName || ""} ${authorObj.lastName || ""}`.trim() || authorObj.username
-              : "Author";
-
-            const authorRole = authorObj?.role || post.originalAuthorRole || "user";
-            const postStatus = post.status as string;
-
-            return (
-              <tr key={post._id} className="hover:bg-slate-50/60 transition">
-                <td className="max-w-xs px-5 py-3">
-                  <Link href={`/dashboard/blog/edit/${post._id}`} className="block">
-                    <p className="truncate font-semibold text-slate-900 hover:text-indigo-600 transition">
-                      {post.title}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {post.tag || "General"}
-                    </p>
-                  </Link>
-                </td>
-                <td className="px-5 py-3 text-slate-600">
-                  <div className="font-medium text-slate-800">{authorName}</div>
-                  <div className="text-xs text-slate-500">
-                    {ROLE_LABELS[authorRole as keyof typeof ROLE_LABELS] || "Creator"}
-                  </div>
-                </td>
-                <td className="px-5 py-3">
-                  <StatusBadge status={post.status} />
-                </td>
-                <td className="px-5 py-3 text-xs text-slate-500">
-                  {new Date(post.updatedAt).toLocaleDateString()}
-                </td>
-                <td className="px-5 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {/* Workflow Editorial Actions */}
-                    {canApprove && (postStatus === "submitted" || postStatus === "pending") && (
-                      <>
-                        <button
-                          onClick={() => onApprove && onApprove(post._id)}
-                          disabled={busyId === post._id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
-                          title="Approve post"
-                        >
-                          <CheckCircle size={13} />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => setRejectingId(post._id)}
-                          disabled={busyId === post._id}
-                          className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition"
-                          title="Reject post"
-                        >
-                          <XCircle size={13} />
-                          Reject
-                        </button>
-                      </>
-                    )}
-
-                    {canPublish && (postStatus === "approved" || postStatus === "submitted") && (
-                      <button
-                        onClick={() => onPublish && onPublish(post._id)}
-                        disabled={busyId === post._id}
-                        className="inline-flex items-center gap-1 rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition"
-                        title="Publish to public site"
-                      >
-                        <Globe size={13} />
-                        Publish
-                      </button>
-                    )}
-
-                    {/* Standard Edit/View Button */}
-                    <Link
-                      href={`/dashboard/blog/edit/${post._id}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-indigo-600 transition ml-1"
-                    >
-                      {editable ? (
-                        <>
-                          <Edit size={13} /> Edit
-                        </>
-                      ) : (
-                        <>
-                          <Eye size={13} /> View
-                        </>
-                      )}
-                    </Link>
-
-                    {/* Delete Button */}
-                    {deletable && (
-                      <button
-                        onClick={() => handleDelete(post._id)}
-                        disabled={busyId === post._id}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-800 transition"
-                      >
-                        {busyId === post._id ? (
-                          <Loader2 size={13} className="animate-spin" />
-                        ) : (
-                          <Trash2 size={13} />
-                        )}
-                        Delete
-                      </button>
-                    )}
-                  </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="border-b border-slate-200/80 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <tr>
+              <th scope="col" className="px-6 py-4">Title & Excerpt</th>
+              <th scope="col" className="px-6 py-4">Category Tag</th>
+              <th scope="col" className="px-6 py-4">Status</th>
+              <th scope="col" className="px-6 py-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {blogs.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
+                  No articles found in this catalog.
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ) : (
+              blogs.map((story) => {
+                const isBusy = activeActionId === story._id;
 
-      {/* Reject Modal */}
-      {rejectingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-slate-100">
-            <h3 className="text-base font-bold text-slate-900">Request Revisions</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Provide feedback to the author on why this post requires changes.
-            </p>
-            <textarea
-              rows={3}
-              value={rejectNote}
-              onChange={(e) => setRejectNote(e.target.value)}
-              placeholder="e.g. Please update images and adjust the title..."
-              className="mt-3 w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                onClick={() => setRejectingId(null)}
-                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmReject}
-                disabled={busyId === rejectingId}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-700"
-              >
-                Reject & Send Feedback
-              </button>
-            </div>
-          </div>
-        </div>
+                return (
+                  <tr key={story._id} className="transition hover:bg-slate-50/50">
+                    <td className="px-6 py-4 max-w-md">
+                      <p className="font-semibold text-slate-900">{story.title}</p>
+                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                        {story.excerpt || "No excerpt provided."}
+                      </p>
+
+                      {/* Display Editor Revision Note if Rejected */}
+                      {story.status === "rejected" && story.lastRejectionNote && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 border border-amber-200/60">
+                          <MessageSquare size={12} className="shrink-0 text-amber-600" />
+                          <span className="truncate max-w-xs">
+                            Feedback: {story.lastRejectionNote}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                        {story.tag || "General"}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${getStatusBadge(
+                          story.status
+                        )}`}
+                      >
+                        {story.status?.replace(/_/g, " ")}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* CREATOR ACTIONS */}
+                        {isCreator && (
+                          <>
+                            {/* Submit for Review (Available for Drafts or Rejected Stories) */}
+                            {(story.status === "draft" || story.status === "rejected") && (
+                              <button
+                                disabled={isBusy}
+                                onClick={() => handleSubmitForReview(story._id)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition disabled:opacity-50"
+                                title="Submit Draft for Editorial Review"
+                              >
+                                {isBusy ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Send size={13} />
+                                )}
+                                Submit
+                              </button>
+                            )}
+
+                            {/* Edit Button */}
+                            <button
+                              disabled={isBusy}
+                              onClick={() => setEditingStory(story)}
+                              className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition disabled:opacity-50"
+                              title="Edit Story"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              disabled={isBusy}
+                              onClick={() => handleDeleteStory(story._id, story.title)}
+                              className="rounded-lg border border-rose-100 p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition disabled:opacity-50"
+                              title="Delete Story Draft"
+                            >
+                              {isBusy ? (
+                                <Loader2 size={15} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={15} />
+                              )}
+                            </button>
+                          </>
+                        )}
+
+                        {/* EDITOR ACTION */}
+                        {isEditor && (
+                          <button
+                            onClick={() => setReviewingStory(story)}
+                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
+                            title="Review Submission"
+                          >
+                            <Eye size={15} />
+                          </button>
+                        )}
+
+                        {/* OFFICER ACTIONS */}
+                        {isOfficer && story.status === "approved" && onPublish && (
+                          <button
+                            onClick={() => onPublish(story._id)}
+                            className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition flex items-center gap-1"
+                          >
+                            <CheckCircle2 size={13} /> Publish
+                          </button>
+                        )}
+
+                        {isOfficer && story.status === "published" && onUnpublish && (
+                          <button
+                            onClick={() => onUnpublish(story._id)}
+                            className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition flex items-center gap-1"
+                          >
+                            <XCircle size={13} /> Unpublish
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* RENDER EDIT STORY MODAL */}
+      {editingStory && (
+        <EditStoryModal
+          story={editingStory}
+          currentUserRole={user.role}
+          onClose={() => setEditingStory(null)}
+          onStoryUpdated={() => {
+            setEditingStory(null);
+            if (onRefreshNeeded) onRefreshNeeded();
+          }}
+        />
+      )}
+
+      {/* RENDER REVIEW STORY MODAL */}
+      {reviewingStory && (
+        <ReviewStoryModal
+          story={reviewingStory}
+          currentUserRole={user.role}
+          onClose={() => setReviewingStory(null)}
+          onReviewCompleted={() => {
+            setReviewingStory(null);
+            if (onRefreshNeeded) onRefreshNeeded();
+          }}
+        />
       )}
     </div>
   );

@@ -4,20 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  User, 
-  Mail, 
-  Calendar, 
-  Building2, 
-  Briefcase, 
+  UserCheck, 
   Loader2, 
   AlertCircle, 
   CheckCircle2, 
   Dna,
-  UserCheck,
   Eye,
-  EyeOff,
-  Globe,
-  AtSign
+  EyeOff
 } from "lucide-react";
 import { registerUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -48,11 +41,11 @@ export default function RegisterPage() {
     setSuccessMessage("");
 
     if (
-      !form.username ||
-      !form.email ||
+      !form.username.trim() ||
+      !form.email.trim() ||
       !form.password ||
-      !form.firstName ||
-      !form.lastName ||
+      !form.firstName.trim() ||
+      !form.lastName.trim() ||
       !form.role
     ) {
       setError("Please fill out all required fields.");
@@ -64,7 +57,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (form.role === "broadcast_content_creator" && !form.organizationLink) {
+    if (form.role === "broadcast_content_creator" && !form.organizationLink.trim()) {
       setError("An organization link is required for Broadcast Content Creator accounts.");
       return;
     }
@@ -73,23 +66,29 @@ export default function RegisterPage() {
 
     try {
       const response = await registerUser({
-        username: form.username,
-        email: form.email,
+        username: form.username.trim(),
+        email: form.email.trim(),
         password: form.password,
-        firstName: form.firstName,
-        lastName: form.lastName,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth || undefined,
-        organization: form.organization || undefined,
-        organizationLink: form.organizationLink || undefined,
-        socialHandle: form.socialHandle || undefined,
+        organization: form.organization.trim() || undefined,
+        organizationLink: form.organizationLink.trim() || undefined,
+        socialHandle: form.socialHandle.trim() || undefined,
         role: form.role,
       });
 
-      setSuccessMessage(response.message);
-      setTimeout(() => router.push("/auth/login"), 2000);
-    } catch (err) {
+      setSuccessMessage(response.message || "Registration successful!");
+      // Redirect to correct /login route
+      setTimeout(() => router.push("/login"), 1800);
+    } catch (err: unknown) {
+      console.error("Registration error:", err);
       const message =
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+        err instanceof ApiError 
+          ? err.message 
+          : err instanceof Error 
+          ? err.message 
+          : "Something went wrong. Please try again.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -294,7 +293,7 @@ export default function RegisterPage() {
           <p className="text-xs sm:text-sm text-[#133248] font-medium">
             Already have an account?{" "}
             <Link
-              href="/auth/login"
+              href="/login"
               className="font-bold text-[#E52B67] hover:underline"
             >
               Sign in here

@@ -1,7 +1,7 @@
 import { authCookies } from "@/lib/auth/cookies";
 
-const BASE_URL = 
-  process.env.NEXT_PUBLIC_API_URL || 
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
   "https://biocap-dashboard-backend.onrender.com";
 
 /**
@@ -24,33 +24,58 @@ interface RequestOptions {
   auth?: boolean;
 }
 
+// Single active promise to handle concurrent 401 retries gracefully
+let refreshPromise: Promise<string | null> | null = null;
+
 async function tryRefreshToken(): Promise<string | null> {
   const refreshToken = authCookies.getRefreshToken();
   const userId = authCookies.getUserId();
 
-  if (!refreshToken || !userId) return null;
-
-  try {
-    const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken, userId }),
-    });
-
-    if (!res.ok) {
-      authCookies.clearAll();
-      return null;
-    }
-
-    const data = await res.json();
-    if (data.accessToken) {
-      authCookies.setToken(data.accessToken);
-      return data.accessToken;
-    }
-  } catch {
+  if (!refreshToken || !userId) {
     authCookies.clearAll();
+    return null;
   }
-  return null;
+
+  // If a refresh request is already running, reuse it
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken, userId }),
+      });
+
+      // Explicit Check: ONLY clear session if server returns explicit Auth failure
+      if (res.status === 401 || res.status === 403 || res.status === 400) {
+        authCookies.clearAll();
+        return null;
+      }
+
+      // If backend is sleeping/returning 5xx, keep cookies intact and fail request gracefully
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json();
+      if (data.accessToken) {
+        authCookies.setToken(data.accessToken);
+        return data.accessToken;
+      }
+    } catch (err) {
+      console.error("Token refresh network attempt failed:", err);
+      // Do NOT clear cookies on network drop or Render sleep cold-start timeouts
+    } finally {
+      refreshPromise = null;
+    }
+
+    return null;
+  })();
+
+  return refreshPromise;
 }
 
 /**
@@ -89,16 +114,23 @@ export async function apiRequest<T>(
     );
   }
 
-  // Handle 401 Unauthorized token expiry with automatic retry
-  if (response.status === 401 && auth) {
+  // ✅ FIX: Exclude ONLY /refresh route to prevent infinite loops. Allow /api/auth/me to refresh!
+  if (response.status === 401 && auth && !path.includes("/api/auth/refresh")) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;
-      response = await fetch(`${BASE_URL}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      try {
+        response = await fetch(`${BASE_URL}${path}`, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch {
+        throw new ApiError(
+          "Could not reach the server. Check your connection.",
+          0
+        );
+      }
     }
   }
 
@@ -156,15 +188,23 @@ export async function apiFormRequest<T>(
     );
   }
 
-  if (response.status === 401 && auth) {
+  // ✅ FIX: Exclude ONLY /refresh route
+  if (response.status === 401 && auth && !path.includes("/api/auth/refresh")) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;
-      response = await fetch(`${BASE_URL}${path}`, {
-        method,
-        headers,
-        body: formData,
-      });
+      try {
+        response = await fetch(`${BASE_URL}${path}`, {
+          method,
+          headers,
+          body: formData,
+        });
+      } catch {
+        throw new ApiError(
+          "Could not reach the server. Check your connection.",
+          0
+        );
+      }
     }
   }
 

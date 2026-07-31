@@ -66,6 +66,7 @@ function getBlogBasePath(role?: Role): string {
       return "/api/editor/blogs";
     case "broadcast_content_creator":
     case "social_media_content_creator":
+      // 🚨 FIX: GET endpoints for contributors use /api/contributor/my-blogs
       return "/api/contributor/my-blogs";
     default:
       return "/api/blogs";
@@ -129,12 +130,13 @@ export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
 }
 
 /**
- * POST /api/blogs — Create new blog with multipart FormData (Image + Document + Blocks)
+ * POST /api/blogs — Create new blog with multipart FormData
  */
 export async function createBlog(payload: CreateBlogPayload, role?: Role): Promise<BlogPost> {
-  const basePath = getBlogBasePath(role);
-  const formData = new FormData();
+  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const endpoint = isContributor ? "/api/contributor/blogs" : getBlogBasePath(role);
 
+  const formData = new FormData();
   formData.append("title", payload.title);
   formData.append("tag", payload.tag);
   formData.append("excerpt", payload.excerpt);
@@ -157,10 +159,6 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
     formData.append("document", payload.document);
   }
 
-  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
-    ? "/api/contributor/blogs"
-    : basePath;
-
   return apiFormRequest<BlogPost>(endpoint, {
     method: "POST",
     formData,
@@ -172,9 +170,10 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
  * PUT /api/blogs/:id — Update existing blog
  */
 export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: Role): Promise<BlogPost> {
-  const basePath = getBlogBasePath(role);
-  const formData = new FormData();
+  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const endpoint = isContributor ? `/api/contributor/blogs/${id}` : `${getBlogBasePath(role)}/${id}`;
 
+  const formData = new FormData();
   if (payload.title) formData.append("title", payload.title);
   if (payload.tag) formData.append("tag", payload.tag);
   if (payload.excerpt) formData.append("excerpt", payload.excerpt);
@@ -185,10 +184,6 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
 
   if (payload.img) formData.append("img", payload.img);
   if (payload.document) formData.append("document", payload.document);
-
-  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
-    ? `/api/contributor/blogs/${id}`
-    : `${basePath}/${id}`;
 
   return apiFormRequest<BlogPost>(endpoint, {
     method: "PUT",
@@ -201,10 +196,8 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
  * DELETE /api/blogs/:id — Soft-delete blog
  */
 export async function deleteBlog(id: string, role?: Role): Promise<{ message: string }> {
-  const basePath = getBlogBasePath(role);
-  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
-    ? `/api/contributor/blogs/${id}`
-    : `${basePath}/${id}`;
+  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const endpoint = isContributor ? `/api/contributor/blogs/${id}` : `${getBlogBasePath(role)}/${id}`;
 
   return apiRequest<{ message: string }>(endpoint, {
     method: "DELETE",
@@ -218,10 +211,8 @@ export async function deleteBlog(id: string, role?: Role): Promise<{ message: st
  * PATCH /api/blogs/:id/submit — Submit draft for staff review
  */
 export async function submitBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const basePath = getBlogBasePath(role);
-  const endpoint = (role === "broadcast_content_creator" || role === "social_media_content_creator")
-    ? `/api/contributor/blogs/${id}/submit`
-    : `${basePath}/${id}/submit`;
+  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const endpoint = isContributor ? `/api/contributor/blogs/${id}/submit` : `${getBlogBasePath(role)}/${id}/submit`;
 
   return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {
     method: "PATCH",
@@ -251,7 +242,7 @@ export async function approveBlog(id: string, role?: Role): Promise<{ message: s
 /**
  * Helper alias to reject a blog post with an optional note
  */
-export async function rejectBlog(id: string, role?: Role, note?: string): Promise<{ message: string; blog: BlogPost }> {
+export async function rejectBlog(id: string, note?: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   return reviewBlog(id, { decision: "rejected", note }, role);
 }
 

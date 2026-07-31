@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   KeyRound, 
-  Lock, 
   Eye, 
   EyeOff, 
   Loader2, 
@@ -65,7 +64,8 @@ function ResetPasswordForm() {
       });
 
       setSuccess(response.message || 'Password reset successful! Redirecting to login...');
-      setTimeout(() => router.push('/auth/login'), 2500);
+      // Updated route to match /login
+      setTimeout(() => router.push('/login'), 2200);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Reset failed. Link may have expired.';
@@ -192,7 +192,7 @@ function ResetPasswordForm() {
           <p className="text-xs sm:text-sm text-[#133248] font-medium">
             Remembered your password?{' '}
             <Link
-              href="/auth/login"
+              href="/login"
               className="font-bold text-[#E52B67] hover:underline"
             >
               Go to Login

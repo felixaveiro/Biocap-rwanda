@@ -25,12 +25,14 @@ export type ProfileReviewStatus = 'pending' | 'verified' | 'needs_attention';
 
 export interface UserReviewLog {
   decision: 'verified' | 'needs_attention' | 'noted';
-  reviewer: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-    role: Role;
-  } | string;
+  reviewer:
+    | {
+        _id: string;
+        firstName: string;
+        lastName: string;
+        role: Role;
+      }
+    | string;
   note?: string;
   reviewedAt: string;
 }
@@ -48,12 +50,14 @@ export interface User {
   organization?: string;
   organizationLink?: string;
   socialHandle?: string;
-  createdBy?: {
-    _id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-  } | string;
+  createdBy?:
+    | {
+        _id: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+      }
+    | string;
   profileReviewStatus: ProfileReviewStatus;
   profileReviewHistory?: UserReviewLog[];
   lastProfileReviewNote?: string;
@@ -66,13 +70,23 @@ export interface User {
 
 export type SessionUser = User;
 
-export type BlogStatus = 'draft' | 'pending_review' | 'approved' | 'published';
+// 🚨 UPDATED: Extended BlogStatus to include 'rejected' and 'revision_requested'
+export type BlogStatus =
+  | 'draft'
+  | 'pending_review'
+  | 'approved'
+  | 'published'
+  | 'rejected'
+  | 'revision_requested';
 
+// 🚨 UPDATED: Added labels for the new statuses
 export const BLOG_STATUS_LABELS: Record<BlogStatus, string> = {
   draft: 'Draft',
   pending_review: 'Pending Review',
   approved: 'Approved',
   published: 'Published',
+  rejected: 'Rejected',
+  revision_requested: 'Revision Requested',
 };
 
 // Flexible block structure matching article component
@@ -94,13 +108,15 @@ export interface BlogModalMetadata {
 
 export interface ReviewLog {
   decision: 'approved' | 'rejected';
-  reviewer: {
-    _id: string;
-    username: string;
-    firstName: string;
-    lastName: string;
-    role?: Role;
-  } | string;
+  reviewer:
+    | {
+        _id: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+        role?: Role;
+      }
+    | string;
   note?: string;
   reviewedAt: string;
 }

@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Lock, Mail, Loader2, AlertCircle, Eye, EyeOff, Dna } from "lucide-react";
+import { User, Loader2, AlertCircle, Eye, EyeOff, Dna } from "lucide-react";
 import { loginUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { authCookies } from "@/lib/auth/cookies";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,8 +19,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
 
-    if (!form.email || !form.password) {
-      setError("Email and password are required.");
+    if (!form.identifier.trim() || !form.password) {
+      setError("Username or Email and password are required.");
       return;
     }
 
@@ -28,10 +28,11 @@ export default function LoginPage() {
 
     try {
       const { accessToken, refreshToken, role, username } = await loginUser({
-        email: form.email,
+        email: form.identifier.trim(),
         password: form.password,
       });
 
+      // Save tokens & auth user state
       authCookies.setSession({
         token: accessToken,
         refreshToken,
@@ -39,10 +40,17 @@ export default function LoginPage() {
         username,
       });
 
+      // Navigate to smart role redirect dashboard
       router.push("/dashboard");
-    } catch (err) {
+      router.refresh();
+    } catch (err: unknown) {
+      console.error("Login failed:", err);
       const message =
-        err instanceof ApiError ? err.message : "Something went wrong. Please try again.";
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+          ? err.message
+          : "Invalid credentials or server error. Please try again.";
       setError(message);
     } finally {
       setIsSubmitting(false);
@@ -53,8 +61,6 @@ export default function LoginPage() {
     <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#133248] via-[#235D74] to-[#632B70] overflow-hidden px-4 selection:bg-[#E52B67] selection:text-white">
       
       {/* ── BIOCAP DNA HELIX & MOLECULAR BACKGROUND GRAPHICS ── */}
-      
-      {/* Left Double DNA Helix Strand */}
       <div className="absolute top-[-10%] left-[-5%] w-[380px] h-[800px] text-[#E52B67]/20 pointer-events-none -rotate-12 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
@@ -70,7 +76,6 @@ export default function LoginPage() {
         </svg>
       </div>
 
-      {/* Right DNA Helix Strand */}
       <div className="absolute bottom-[-15%] right-[-5%] w-[420px] h-[850px] text-white/15 pointer-events-none rotate-45 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
@@ -84,7 +89,6 @@ export default function LoginPage() {
         </svg>
       </div>
 
-      {/* Top Right Molecular Node Structure */}
       <div className="absolute top-[8%] right-[8%] w-[220px] h-[220px] text-[#E52B67]/30 pointer-events-none">
         <svg viewBox="0 0 100 100" className="w-full h-full fill-current stroke-current">
           <polygon points="50,15 80,32 80,68 50,85 20,68 20,32" className="fill-none stroke-2" />
@@ -99,7 +103,6 @@ export default function LoginPage() {
         </svg>
       </div>
 
-      {/* Bottom Left Ambient Glow Blob */}
       <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* ── MAIN BIOCAP GLASS CARD ── */}
@@ -136,10 +139,10 @@ export default function LoginPage() {
           {/* Email / Username Input */}
           <div className="relative">
             <input
-              type="email"
+              type="text"
               placeholder="Username or Email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              value={form.identifier}
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
               disabled={isSubmitting}
               className="w-full px-6 py-3.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-base rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] transition-all border border-white disabled:opacity-60"
             />

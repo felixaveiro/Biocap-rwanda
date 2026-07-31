@@ -1,0 +1,253 @@
+'use client';
+
+import { useEffect, useState, useMemo, useCallback } from "react";
+import Link from "next/link";
+import Header from "@/components/Header";
+import UserTable from "@/components/UserTable";
+import { usersApi } from "@/lib/api/users";
+import { useSession } from "@/hooks/useSession";
+import { User, Role, ROLES, ROLE_LABELS } from "@/types";
+import {
+  UserPlus,
+  Users as UsersIcon,
+  Search,
+  Filter,
+  ShieldCheck,
+  UserCheck,
+  AlertCircle,
+  RefreshCw,
+} from "lucide-react";
+
+export default function AdminTeamPage() {
+  const {
+    user: currentAdminUser,
+    loading: sessionLoading,
+    allowed: isPermissionAllowed,
+  } = useSession("user:view");
+
+  const [teamMembersList, setTeamMembersList] = useState<User[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
+
+  // Search and Filter States
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>("ALL");
+
+  // Wrapped in useCallback for clean React Hook dependency tracking
+  const fetchTeamMembers = useCallback(async () => {
+    if (!currentAdminUser || !isPermissionAllowed) return;
+
+    setIsDataLoading(true);
+    setFetchErrorMessage(null);
+
+    try {
+      const adminRole = currentAdminUser.role as Role;
+      const apiResponse: any = await usersApi.listUsers(adminRole);
+
+      // Normalize backend response regardless of payload structure
+      let extractedUsersList: User[] = [];
+      if (Array.isArray(apiResponse)) {
+        extractedUsersList = apiResponse;
+      } else if (Array.isArray(apiResponse?.data)) {
+        extractedUsersList = apiResponse.data;
+      } else if (Array.isArray(apiResponse?.users)) {
+        extractedUsersList = apiResponse.users;
+      } else if (Array.isArray(apiResponse?.docs)) {
+        extractedUsersList = apiResponse.docs;
+      }
+
+      setTeamMembersList(extractedUsersList);
+    } catch (error: unknown) {
+      console.error("Failed to fetch team members:", error);
+      const detailedMessage =
+        error instanceof Error ? error.message : "Failed to load team directory from server.";
+      setFetchErrorMessage(detailedMessage);
+    } finally {
+      setIsDataLoading(false);
+    }
+  }, [currentAdminUser, isPermissionAllowed]);
+
+  useEffect(() => {
+    if (currentAdminUser && isPermissionAllowed) {
+      fetchTeamMembers();
+    }
+  }, [currentAdminUser, isPermissionAllowed, fetchTeamMembers]);
+
+  // Compute key summary metrics
+  const directoryMetrics = useMemo(() => {
+    const totalCount = teamMembersList.length;
+
+    const activeCount = teamMembersList.filter((member) => {
+      const extraDetails = member as unknown as { isActive?: boolean; isApproved?: boolean };
+      return extraDetails.isActive !== false && extraDetails.isApproved !== false;
+    }).length;
+
+    const adminsAndOfficersCount = teamMembersList.filter(
+      (member) => member.role === "admin" || member.role === "communication_officer"
+    ).length;
+
+    return { totalCount, activeCount, adminsAndOfficersCount };
+  }, [teamMembersList]);
+
+  // Filter team members by search string and selected role
+  const filteredTeamMembers = useMemo(() => {
+    return teamMembersList.filter((member) => {
+      const fullName = `${member.firstName || ""} ${member.lastName || ""}`.toLowerCase();
+      const matchesSearch =
+        fullName.includes(searchQuery.toLowerCase()) ||
+        member.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        member.username?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesRole =
+        selectedRoleFilter === "ALL" || member.role === selectedRoleFilter;
+
+      return matchesSearch && matchesRole;
+    });
+  }, [teamMembersList, searchQuery, selectedRoleFilter]);
+
+  if (sessionLoading || !isPermissionAllowed || !currentAdminUser) {
+    return (
+      <div className="min-h-screen bg-slate-50/50 pb-16">
+        <Header title="Team Directory" subtitle="Verifying permissions…" />
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="animate-pulse space-y-6">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="h-24 rounded-2xl bg-slate-200/80" />
+              <div className="h-24 rounded-2xl bg-slate-200/80" />
+              <div className="h-24 rounded-2xl bg-slate-200/80" />
+            </div>
+            <div className="h-12 w-full rounded-2xl bg-slate-200/80" />
+            <div className="h-96 w-full rounded-2xl bg-slate-200/80" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 pb-16">
+      <Header
+        title="Team Directory"
+        subtitle="Manage active accounts, assigned roles, and platform access control"
+      />
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Directory Summary Metric Cards */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <UsersIcon size={22} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Total Team Members
+              </p>
+              <p className="text-2xl font-bold text-slate-900">{directoryMetrics.totalCount}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <UserCheck size={22} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Active Accounts
+              </p>
+              <p className="text-2xl font-bold text-slate-900">{directoryMetrics.activeCount}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Admins & Officers
+              </p>
+              <p className="text-2xl font-bold text-slate-900">
+                {directoryMetrics.adminsAndOfficersCount}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Toolbar & Filters */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                <Search size={16} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, email, or username..."
+                className="w-full rounded-xl border border-slate-200/80 bg-white pl-10 pr-4 py-2 text-sm font-medium text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+              />
+            </div>
+
+            {/* Role Filter Selector */}
+            <div className="relative min-w-[180px]">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Filter size={14} />
+              </div>
+              <select
+                value={selectedRoleFilter}
+                onChange={(e) => setSelectedRoleFilter(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-slate-200/80 bg-white pl-9 pr-8 py-2 text-sm font-medium text-slate-700 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+              >
+                <option value="ALL">All Roles</option>
+                {ROLES.map((roleKey) => (
+                  <option key={roleKey} value={roleKey}>
+                    {ROLE_LABELS[roleKey] || roleKey}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Create User Button */}
+          <Link
+            href="/admin/team/new"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-700 active:bg-indigo-800"
+          >
+            <UserPlus size={16} />
+            Create Member
+          </Link>
+        </div>
+
+        {/* Connection Error Banner */}
+        {fetchErrorMessage && (
+          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+            <div className="flex items-center gap-3">
+              <AlertCircle size={18} className="text-rose-600" />
+              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+            </div>
+            <button
+              onClick={fetchTeamMembers}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+            >
+              <RefreshCw size={13} />
+              Retry Sync
+            </button>
+          </div>
+        )}
+
+        {/* User Data Table */}
+        {isDataLoading ? (
+          <div className="h-64 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
+        ) : (
+          <UserTable
+            users={filteredTeamMembers}
+            currentUser={currentAdminUser}
+            onUserUpdated={fetchTeamMembers}
+          />
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,209 +1,343 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Pencil, Trash2, AlertCircle, Users as UsersIcon } from "lucide-react";
+import { User, Role, ROLES, ROLE_LABELS } from "@/types";
 import { can } from "@/lib/permissions";
 import { usersApi } from "@/lib/api/users";
-import { ROLE_LABELS, User, Role } from "@/types";
+import {
+  Shield,
+  Edit3,
+  Trash2,
+  CheckCircle2,
+  Loader2,
+  X,
+  Save,
+  AlertCircle,
+} from "lucide-react";
 
-// Deterministic accent per user derived from their ID
-const AVATAR_PALETTE = [
-  { bg: "bg-indigo-50", text: "text-indigo-600", ring: "ring-indigo-100" },
-  { bg: "bg-rose-50", text: "text-rose-600", ring: "ring-rose-100" },
-  { bg: "bg-amber-50", text: "text-amber-600", ring: "ring-amber-100" },
-  { bg: "bg-emerald-50", text: "text-emerald-600", ring: "ring-emerald-100" },
-  { bg: "bg-sky-50", text: "text-sky-600", ring: "ring-sky-100" },
-  { bg: "bg-violet-50", text: "text-violet-600", ring: "ring-violet-100" },
-];
-
-function avatarStyle(id: string = "") {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
-}
-
-function initials(name: string = "") {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
+interface UserTableProps {
+  users: User[];
+  currentUser: User;
+  onUserUpdated?: () => void;
 }
 
 export default function UserTable({
-  users,
+  users: teamMembersList,
   currentUser,
-}: {
-  users: User[];
-  currentUser: User;
-}) {
-  const router = useRouter();
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  onUserUpdated,
+}: UserTableProps) {
+  const [activeDeletingUserId, setActiveDeletingUserId] = useState<string | null>(null);
+  const [tableActionError, setTableActionError] = useState<string | null>(null);
 
-  const userRole = currentUser.role as Role;
-  const canDelete = can(userRole, "user:delete");
-  const canEdit = can(userRole, "user:edit:info");
+  // Modal State
+  const [selectedMemberToEdit, setSelectedMemberToEdit] = useState<User | null>(null);
+  const [editFirstName, setEditFirstName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState<Role>("broadcast_content_creator");
+  const [isModalSubmitting, setIsModalSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
-  async function handleDelete(targetId: string) {
-    if (!targetId || targetId.startsWith("user-")) {
-      setError("Cannot delete user: Missing or invalid MongoDB ID (_id).");
-      return;
-    }
+  const handleOpenEditModal = (member: User) => {
+    setSelectedMemberToEdit(member);
+    setEditFirstName(member.firstName || "");
+    setEditLastName(member.lastName || "");
+    setEditEmail(member.email || "");
+    setEditRole(member.role);
+    setModalError(null);
+  };
 
-    if (!confirm("Remove this user? This cannot be undone.")) return;
+  const handleCloseEditModal = () => {
+    setSelectedMemberToEdit(null);
+    setModalError(null);
+  };
 
-    setBusyId(targetId);
-    setError(null);
+  const handleSaveUserModalSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMemberToEdit) return;
+
+    const targetUserId = selectedMemberToEdit._id;
+    setIsModalSubmitting(true);
+    setModalError(null);
 
     try {
-      await usersApi.deleteUser(targetId);
-      router.refresh();
-    } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to remove user";
-      setError(errorMessage);
+      // 1. Update basic profile details
+      await usersApi.updateUser(targetUserId, {
+        firstName: editFirstName.trim(),
+        lastName: editLastName.trim(),
+        role: editRole,
+      });
+
+      // 2. Change user role if role was modified
+      if (editRole !== selectedMemberToEdit.role) {
+        await usersApi.changeUserRole(targetUserId, editRole);
+      }
+
+      handleCloseEditModal();
+      if (onUserUpdated) {
+        onUserUpdated();
+      } else {
+        window.location.reload();
+      }
+    } catch (error: unknown) {
+      console.error("Failed to update team member:", error);
+      const msg = error instanceof Error ? error.message : "Failed to update member details.";
+      setModalError(msg);
     } finally {
-      setBusyId(null);
+      setIsModalSubmitting(false);
     }
-  }
+  };
+
+  const handleMemberDelete = async (targetUserId: string, targetMemberName: string) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to delete account: ${targetMemberName}?`
+    );
+    if (!isConfirmed) return;
+
+    setActiveDeletingUserId(targetUserId);
+    setTableActionError(null);
+
+    try {
+      // Pass ONLY the targetUserId parameter
+      await usersApi.deleteUser(targetUserId);
+      if (onUserUpdated) onUserUpdated();
+      else window.location.reload();
+    } catch (error: unknown) {
+      console.error("Failed to delete user account:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to delete user account.";
+      setTableActionError(errorMessage);
+    } finally {
+      setActiveDeletingUserId(null);
+    }
+  };
+
+  const getRoleBadgeStyle = (userRole: Role) => {
+    switch (userRole) {
+      case "admin":
+        return "bg-purple-50 text-purple-700 border-purple-200/80";
+      case "communication_officer":
+        return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+      case "editor":
+        return "bg-amber-50 text-amber-700 border-amber-200/80";
+      default:
+        return "bg-sky-50 text-sky-700 border-sky-200/80";
+    }
+  };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/50">
-      {error && (
-        <div className="flex items-center gap-2 border-b border-rose-100 bg-rose-50 px-5 py-3 text-sm font-medium text-rose-700">
-          <AlertCircle size={15} className="flex-shrink-0" />
-          {error}
+    <div className="w-full">
+      {tableActionError && (
+        <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+          {tableActionError}
         </div>
       )}
 
-      {users.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            <UsersIcon size={18} />
-          </div>
-          <p className="text-sm font-medium text-slate-500">No users found</p>
-        </div>
-      ) : (
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/70">
-              <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Name
-              </th>
-              <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Email
-              </th>
-              <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Role
-              </th>
-              <th className="px-5 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Status
-              </th>
-              <th className="px-5 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Actions
-              </th>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm text-slate-600">
+          <thead className="border-b border-slate-200/80 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <tr>
+              <th scope="col" className="px-6 py-4">User Info</th>
+              <th scope="col" className="px-6 py-4">Role</th>
+              <th scope="col" className="px-6 py-4">Status</th>
+              <th scope="col" className="px-6 py-4 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
-            {users.map((u, index) => {
-              // Extract original MongoDB string ID directly
-              const mongoId = u._id || (u as unknown as { id?: string }).id || "";
-              const keyId = mongoId || `user-${index}`;
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {teamMembersList.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
+                  No team members match the specified criteria.
+                </td>
+              </tr>
+            ) : (
+              teamMembersList.map((member) => {
+                const memberId = member._id;
+                const memberFullName =
+                  `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.username;
+                const isSelfAccount = currentUser._id === memberId;
+                const canModifyRoles = can(currentUser.role, "user:edit:role");
+                const canDeleteAccounts = can(currentUser.role, "user:delete");
 
-              const fullName =
-                `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
-                u.username ||
-                "User";
-
-              const currentMongoId =
-                currentUser._id || (currentUser as unknown as { id?: string }).id;
-              const isSelf = mongoId === currentMongoId;
-
-              const avatar = avatarStyle(keyId);
-
-              const userExt = u as unknown as {
-                isApproved?: boolean;
-                isActive?: boolean;
-              };
-              const isActive =
-                userExt.isApproved !== false && userExt.isActive !== false;
-
-              return (
-                <tr
-                  key={keyId}
-                  className="group transition-colors hover:bg-slate-50/60"
-                >
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[11px] font-bold ring-1 ${avatar.bg} ${avatar.text} ${avatar.ring}`}
-                      >
-                        {initials(fullName)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate font-semibold text-slate-900">
-                            {fullName}
-                          </span>
-                          {isSelf && (
-                            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                              You
-                            </span>
-                          )}
+                return (
+                  <tr key={memberId} className="transition hover:bg-slate-50/50">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 uppercase">
+                          {member.firstName?.[0] || member.username?.[0] || "U"}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900 flex items-center gap-1.5">
+                            {memberFullName}
+                            {isSelfAccount && (
+                              <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
+                                You
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-400">{member.email}</p>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-500">{u.email}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                      {ROLE_LABELS[u.role as Role] || u.role}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                        isActive
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-slate-100 text-slate-500"
-                      }`}
-                    >
+                    </td>
+
+                    <td className="px-6 py-4">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          isActive ? "bg-emerald-500" : "bg-slate-400"
-                        }`}
-                      />
-                      {isActive ? "Active" : "Pending / Disabled"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-                      {canEdit && mongoId && (
-                        <Link
-                          href={`/dashboard/users/${mongoId}`}
-                          aria-label={`Edit ${fullName}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-indigo-50 hover:text-indigo-600"
-                        >
-                          <Pencil size={15} />
-                        </Link>
-                      )}
-                      {canDelete && !isSelf && mongoId && (
-                        <button
-                          onClick={() => handleDelete(mongoId)}
-                          disabled={busyId === mongoId}
-                          aria-label={`Remove ${fullName}`}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getRoleBadgeStyle(
+                          member.role
+                        )}`}
+                      >
+                        <Shield size={12} />
+                        {ROLE_LABELS[member.role] || member.role}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <CheckCircle2 size={14} /> Active
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canModifyRoles && (
+                          <button
+                            onClick={() => handleOpenEditModal(member)}
+                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-800"
+                            title="Edit User Role"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                        )}
+
+                        {canDeleteAccounts && !isSelfAccount && (
+                          <button
+                            disabled={activeDeletingUserId === memberId}
+                            onClick={() => handleMemberDelete(memberId, memberFullName)}
+                            className="rounded-lg border border-rose-100 p-1.5 text-rose-500 shadow-xs transition hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+                          >
+                            {activeDeletingUserId === memberId ? (
+                              <Loader2 size={15} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={15} />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
+      </div>
+
+      {/* EDIT USER MODAL OVERLAY */}
+      {selectedMemberToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900">
+                Edit Team Member Account
+              </h3>
+              <button
+                onClick={handleCloseEditModal}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {modalError && (
+              <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+                <AlertCircle size={15} />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveUserModalSubmit} className="space-y-4 pt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editLastName}
+                    onChange={(e) => setEditLastName(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Assigned System Role
+                </label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as Role)}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                >
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>
+                      {ROLE_LABELS[r] || r}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleCloseEditModal}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isModalSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+                >
+                  {isModalSubmitting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Save size={14} />
+                  )}
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
