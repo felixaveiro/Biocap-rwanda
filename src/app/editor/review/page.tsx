@@ -8,39 +8,38 @@ import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
-export default function EditorReviewDeskPage() {
+export default function EditorReviewQueuePage() {
   const {
     user: currentEditorUser,
     loading: sessionLoading,
     allowed: isPermissionAllowed,
   } = useSession("blog:view");
 
-  const [reviewArticlesList, setReviewArticlesList] = useState<BlogPost[]>([]);
+  const [reviewQueue, setReviewQueue] = useState<BlogPost[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
 
-  const fetchSubmissionsForReview = useCallback(async () => {
+  const fetchReviewQueue = useCallback(async () => {
     if (!currentEditorUser) return;
     setIsDataLoading(true);
     setFetchErrorMessage(null);
 
     try {
-      const editorRole = currentEditorUser.role as Role;
-      const apiResponse = await blogsApi.getBlogs(editorRole);
+      // Fetch articles pending review for the editor
+      const response = await blogsApi.getBlogs("editor", { status: "pending_review" });
 
       let extractedBlogs: BlogPost[] = [];
-      if (Array.isArray(apiResponse)) {
-        extractedBlogs = apiResponse;
-      } else if (apiResponse && Array.isArray(apiResponse.data)) {
-        extractedBlogs = apiResponse.data;
+      if (Array.isArray(response)) {
+        extractedBlogs = response;
+      } else if (response && Array.isArray((response as any).data)) {
+        extractedBlogs = (response as any).data;
       }
 
-      setReviewArticlesList(extractedBlogs);
+      setReviewQueue(extractedBlogs);
     } catch (error: unknown) {
-      console.error("Failed to fetch review articles:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to load review queue.";
-      setFetchErrorMessage(errorMessage);
+      console.error("Failed to fetch editor review queue:", error);
+      const msg = error instanceof Error ? error.message : "Failed to load review queue.";
+      setFetchErrorMessage(msg);
     } finally {
       setIsDataLoading(false);
     }
@@ -48,40 +47,15 @@ export default function EditorReviewDeskPage() {
 
   useEffect(() => {
     if (currentEditorUser && isPermissionAllowed) {
-      fetchSubmissionsForReview();
+      fetchReviewQueue();
     }
-  }, [currentEditorUser, isPermissionAllowed, fetchSubmissionsForReview]);
-
-  const handleApproveArticle = async (targetArticleId: string) => {
-    if (!currentEditorUser) return;
-    try {
-      await blogsApi.approveBlog(targetArticleId, currentEditorUser.role as Role);
-      await fetchSubmissionsForReview();
-    } catch (error) {
-      console.error("Failed to approve article:", error);
-    }
-  };
-
-  const handleRejectArticle = async (targetArticleId: string, revisionNote?: string) => {
-    if (!currentEditorUser) return;
-    try {
-      // ✅ FIX: Order must be (id, note, role)
-      await blogsApi.rejectBlog(
-        targetArticleId,
-        revisionNote || "Revisions required.",
-        currentEditorUser.role as Role
-      );
-      await fetchSubmissionsForReview();
-    } catch (error) {
-      console.error("Failed to reject article:", error);
-    }
-  };
+  }, [currentEditorUser, isPermissionAllowed, fetchReviewQueue]);
 
   if (sessionLoading || !isPermissionAllowed || !currentEditorUser) {
     return (
       <div className="min-h-screen bg-slate-50/50 pb-16">
-        <Header title="Review Desk" subtitle="Verifying editor credentials…" />
-        <div className="p-8 text-sm text-slate-400">Loading articles…</div>
+        <Header title="Editor Review Queue" subtitle="Verifying credentials…" />
+        <div className="p-8 text-sm text-slate-400">Loading queue…</div>
       </div>
     );
   }
@@ -89,8 +63,8 @@ export default function EditorReviewDeskPage() {
   return (
     <div className="min-h-screen bg-slate-50/50 pb-16">
       <Header
-        title="Submissions Review Queue"
-        subtitle="Inspect creator drafts, leave feedback notes, and grant publication approvals"
+        title="Editor Review Queue"
+        subtitle="Review story submissions, make content or layout modifications, and approve articles for final publishing."
       />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -101,11 +75,10 @@ export default function EditorReviewDeskPage() {
               <p className="text-sm font-medium">{fetchErrorMessage}</p>
             </div>
             <button
-              onClick={fetchSubmissionsForReview}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              onClick={fetchReviewQueue}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
             >
-              <RefreshCw size={13} />
-              Retry Sync
+              <RefreshCw size={13} /> Retry Sync
             </button>
           </div>
         )}
@@ -115,11 +88,9 @@ export default function EditorReviewDeskPage() {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
             <BlogTable
-              blogs={reviewArticlesList}
+              blogs={reviewQueue}
               user={currentEditorUser}
-              onApprove={handleApproveArticle}
-              onReject={handleRejectArticle}
-              onRefreshNeeded={fetchSubmissionsForReview}
+              onRefreshNeeded={fetchReviewQueue}
             />
           </div>
         )}

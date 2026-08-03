@@ -17,6 +17,7 @@ import {
   Crop,
   Send,
   Clock,
+  Edit3,
 } from "lucide-react";
 
 interface ReviewStoryModalProps {
@@ -36,6 +37,12 @@ export default function ReviewStoryModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // ─── Editable Content States (for Editor Edits) ─────────────────────────
+  const [isEditingContent, setIsEditingContent] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(story.title || "");
+  const [editedExcerpt, setEditedExcerpt] = useState(story.excerpt || "");
+  const [editedContentText, setEditedContentText] = useState(story.blocks?.[0]?.text || "");
+
   // ─── Image & Cropping States ───────────────────────────────────────────────
   const [currentImgUrl, setCurrentImgUrl] = useState<string>(story.img || "");
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
@@ -46,6 +53,7 @@ export default function ReviewStoryModal({
   const [newCommentText, setNewCommentText] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
 
+  const isEditor = currentUserRole === "editor";
   const isOfficer = currentUserRole === "communication_officer" || currentUserRole === "admin";
   const isPublished = story.status === "published";
 
@@ -54,7 +62,6 @@ export default function ReviewStoryModal({
     ? `${story.author.firstName} ${story.author.lastName || ""}`.trim()
     : story.author?.username || story.originalAuthor?.firstName || "Contributor";
 
-  // Fetch comments if the article is published or being reviewed by an officer
   const fetchComments = useCallback(async () => {
     if (!story._id) return;
     try {
@@ -102,17 +109,28 @@ export default function ReviewStoryModal({
 
     try {
       if (decision === "approve") {
-        if (croppedImageFile) {
+        // 1. If Editor made text edits or cropped the image, apply modifications first
+        const hasContentEdits = 
+          editedTitle !== story.title || 
+          editedExcerpt !== story.excerpt || 
+          editedContentText !== (story.blocks?.[0]?.text || "") || 
+          croppedImageFile !== null;
+
+        if (isEditor && hasContentEdits) {
           await blogsApi.updateBlog(
             story._id,
-            { img: croppedImageFile },
+            {
+              title: editedTitle,
+              excerpt: editedExcerpt,
+              blocks: [{ type: "p", text: editedContentText }],
+              ...(croppedImageFile && { img: croppedImageFile }),
+            },
             currentUserRole
           );
         }
 
-        // If officer accepting proposed editor modifications
+        // 2. Perform role-specific approval
         if (isOfficer && story.editorModifications) {
-          // ✅ FIX: Wrap inside object matching AcceptEditorChangesPayload interface
           await officerApi.acceptEditorChanges(story._id, {
             approvalNote: revisionFeedbackNote,
           });
@@ -147,7 +165,11 @@ export default function ReviewStoryModal({
           {/* Modal Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
             <h3 className="text-base font-bold text-slate-900">
-              {isPublished ? "Published Article Discussion Desk" : "Review Story Submission"}
+              {isPublished
+                ? "Published Article Discussion Desk"
+                : isEditor
+                ? "Editor Review & Revision Workspace"
+                : "Review Story Submission"}
             </h3>
             <button
               onClick={onClose}
@@ -167,62 +189,104 @@ export default function ReviewStoryModal({
             )}
 
             <div className="grid gap-6 lg:grid-cols-3">
-              {/* Article Preview Column */}
+              {/* Article Preview / Edit Column */}
               <div className="lg:col-span-2 space-y-4 border-r border-slate-100 pr-0 lg:pr-6">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600">
-                    <Tag size={12} /> {story.tag || "General"}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-                    <UserIcon size={12} /> Author: {authorName}
-                  </span>
-                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-600">
+                      <Tag size={12} /> {story.tag || "General"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                      <UserIcon size={12} /> Author: {authorName}
+                    </span>
+                  </div>
 
-                <h2 className="text-xl font-bold text-slate-900">{story.title}</h2>
-
-                {/* Cover Image Container */}
-                {currentImgUrl && (
-                  <div className="relative group overflow-hidden rounded-xl bg-slate-100 max-h-64 shadow-xs">
-                    <img
-                      src={currentImgUrl}
-                      alt={story.title}
-                      className="w-full h-full object-cover rounded-xl"
-                    />
-
+                  {isEditor && !isPublished && (
                     <button
                       type="button"
-                      onClick={() => setIsCropperOpen(true)}
-                      className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-xl bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-md hover:bg-slate-900 transition"
+                      onClick={() => setIsEditingContent(!isEditingContent)}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
                     >
-                      <Crop size={14} className="text-[#E52B67]" />
-                      Crop & Align Image
+                      <Edit3 size={13} />
+                      {isEditingContent ? "View Mode" : "Edit Story Content"}
                     </button>
-                  </div>
-                )}
-
-                {story.excerpt && (
-                  <p className="rounded-xl bg-slate-50 p-3 text-xs italic font-medium text-slate-600">
-                    "{story.excerpt}"
-                  </p>
-                )}
-
-                <div className="prose prose-slate max-w-none text-xs text-slate-800 space-y-2">
-                  {story.blocks && story.blocks.length > 0 ? (
-                    story.blocks.map((block, idx) => (
-                      <p key={idx}>{block.text || block.caption || ""}</p>
-                    ))
-                  ) : (
-                    <p>No body text content provided.</p>
                   )}
                 </div>
+
+                {isEditingContent ? (
+                  /* Editor Editing Form Mode */
+                  <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4">
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-sm font-semibold text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Excerpt</label>
+                      <textarea
+                        rows={2}
+                        value={editedExcerpt}
+                        onChange={(e) => setEditedExcerpt(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Body Text</label>
+                      <textarea
+                        rows={6}
+                        value={editedContentText}
+                        onChange={(e) => setEditedContentText(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs text-slate-800"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard Story Display Mode */
+                  <>
+                    <h2 className="text-xl font-bold text-slate-900">{editedTitle}</h2>
+
+                    {currentImgUrl && (
+                      <div className="relative group overflow-hidden rounded-xl bg-slate-100 max-h-64 shadow-xs">
+                        <img
+                          src={currentImgUrl}
+                          alt={story.title}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsCropperOpen(true)}
+                          className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-xl bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md shadow-md hover:bg-slate-900 transition"
+                        >
+                          <Crop size={14} className="text-[#E52B67]" />
+                          Crop & Align Image
+                        </button>
+                      </div>
+                    )}
+
+                    {editedExcerpt && (
+                      <p className="rounded-xl bg-slate-50 p-3 text-xs italic font-medium text-slate-600">
+                        "{editedExcerpt}"
+                      </p>
+                    )}
+
+                    <div className="prose prose-slate max-w-none text-xs text-slate-800 space-y-2">
+                      <p>{editedContentText}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
-              {/* Sidebar: Decision Call or Comments */}
+              {/* Sidebar: Editorial Controls & Decision Panel */}
               <div className="space-y-6">
-                {!isPublished ? (
-                  /* Editorial Control Box for Pending Submissions */
+                {!isPublished && (
                   <div className="space-y-4">
-                    <h4 className="text-sm font-bold text-slate-900">Editorial Decision</h4>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      {isEditor ? "Review & Editorial Action" : "Editorial Decision"}
+                    </h4>
 
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
@@ -232,7 +296,7 @@ export default function ReviewStoryModal({
                         rows={4}
                         value={revisionFeedbackNote}
                         onChange={(e) => setRevisionFeedbackNote(e.target.value)}
-                        placeholder="Leave notes or approval remarks..."
+                        placeholder="Leave editorial remarks or feedback..."
                         className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-hidden"
                       />
                     </div>
@@ -249,7 +313,9 @@ export default function ReviewStoryModal({
                         ) : (
                           <CheckCircle2 size={14} />
                         )}
-                        {isOfficer && story.editorModifications
+                        {isEditor
+                          ? "Approve for Publication"
+                          : story.editorModifications
                           ? "Accept Editor Changes"
                           : "Approve Article"}
                       </button>
@@ -269,7 +335,7 @@ export default function ReviewStoryModal({
                       </button>
                     </div>
                   </div>
-                ) : null}
+                )}
 
                 {/* Team Discussion & Comments Thread */}
                 <div className="space-y-3 border-t border-slate-100 pt-4">
@@ -305,7 +371,7 @@ export default function ReviewStoryModal({
                           <span className="text-[11px] font-bold text-slate-800">
                             {comment.user
                               ? `${comment.user.firstName} ${comment.user.lastName}`
-                              : "Officer"}
+                              : "Editor"}
                           </span>
                           <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
                             <Clock size={9} />
@@ -323,7 +389,6 @@ export default function ReviewStoryModal({
         </div>
       </div>
 
-      {/* Image Cropper Viewport Modal */}
       {currentImgUrl && (
         <ImageCropperModal
           isOpen={isCropperOpen}
