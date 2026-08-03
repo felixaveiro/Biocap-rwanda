@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Dna,
+  Trash2,
 } from "lucide-react";
 
 interface NavItem {
@@ -45,9 +46,10 @@ export default function Sidebar() {
   if (role === "admin") {
     navItems = [
       { label: "Overview", href: "/admin", icon: LayoutDashboard },
-      { label: "Team Directory", href: "/admin/team", icon: Users },
       { label: "All Stories", href: "/admin/stories", icon: FileText },
+      { label: "Team Directory", href: "/admin/team", icon: Users },
       { label: "Create Member", href: "/admin/team/new", icon: PlusSquare },
+      { label: "Trash Bin", href: "/admin/trash", icon: Trash2 }, // 👈 Added Trash Bin link
     ];
   } else if (role === "editor") {
     navItems = [

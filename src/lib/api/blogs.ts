@@ -66,7 +66,6 @@ function getBlogBasePath(role?: Role): string {
       return "/api/editor/blogs";
     case "broadcast_content_creator":
     case "social_media_content_creator":
-      // 🚨 FIX: GET endpoints for contributors use /api/contributor/my-blogs
       return "/api/contributor/my-blogs";
     default:
       return "/api/blogs";
@@ -205,6 +204,35 @@ export async function deleteBlog(id: string, role?: Role): Promise<{ message: st
   });
 }
 
+// ─── Trash & Permanent Operations ────────────────────────────────────────────
+
+/**
+ * GET /api/blogs/trash — Fetch soft-deleted posts for Trash Bin
+ */
+export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | PaginatedResponse<BlogPost>> {
+  return apiRequest<BlogPost[] | PaginatedResponse<BlogPost>>("/api/blogs/trash", { auth: true });
+}
+
+/**
+ * PATCH /api/blogs/:id/restore — Restore a soft-deleted blog
+ */
+export async function restoreBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  return apiRequest<{ message: string; blog: BlogPost }>(`/api/blogs/${id}/restore`, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+/**
+ * DELETE /api/blogs/:id/hard-delete — Wipe blog permanently & destroy Cloudinary media
+ */
+export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/blogs/${id}/hard-delete`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
 // ─── Workflow Operations ───────────────────────────────────────────────────────
 
 /**
@@ -280,6 +308,9 @@ export const blogsApi = {
   createBlog,
   updateBlog,
   deleteBlog,
+  getDeletedBlogs,
+  restoreBlog,
+  permanentDeleteBlog,
   submitBlog,
   reviewBlog,
   approveBlog,

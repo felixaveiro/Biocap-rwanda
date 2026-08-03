@@ -1,17 +1,32 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import Cropper from 'react-easy-crop';
+import React, { useState, useCallback, useEffect } from 'react';
+import Cropper, { Point, Area } from 'react-easy-crop';
 
-// Hidden canvas calculation helper
-async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> {
+/**
+ * Dynamically extracts MIME type from Data URL (defaults to image/jpeg)
+ */
+function getMimeTypeFromSrc(imageSrc: string): string {
+  const match = imageSrc.match(/^data:(image\/[a-zA-Z+]+);base64,/);
+  return match ? match[1] : 'image/jpeg';
+}
+
+/**
+ * Calculates cropped image region on a hidden canvas
+ */
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
   const image = new Image();
+  image.crossOrigin = 'anonymous'; // Enable CORS for remote assets (Cloudinary)
   image.src = imageSrc;
-  await new Promise((resolve) => (image.onload = resolve));
+
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error('Failed to load image for cropping'));
+  });
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('No 2d context');
+  if (!ctx) throw new Error('No 2d context found');
 
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
@@ -28,7 +43,8 @@ async function getCroppedImg(imageSrc: string, pixelCrop: any): Promise<string> 
     pixelCrop.height
   );
 
-  return canvas.toDataURL('image/jpeg');
+  const mimeType = getMimeTypeFromSrc(imageSrc);
+  return canvas.toDataURL(mimeType, 0.95);
 }
 
 interface CropperModalProps {
@@ -36,8 +52,8 @@ interface CropperModalProps {
   imageSrc: string;
   onClose: () => void;
   onSave: (croppedImageBase64: string) => void;
-  aspectRatio?: number; // 1 for square, 1.77 (16:9) for landscape cards
-  circular?: boolean;    // true for user profiles, false for article cards
+  aspectRatio?: number;
+  circular?: boolean;
 }
 
 export default function ImageCropperModal({
@@ -45,50 +61,93 @@ export default function ImageCropperModal({
   imageSrc,
   onClose,
   onSave,
-  aspectRatio = 1,
+  aspectRatio = 16 / 9,
   circular = false,
 }: CropperModalProps) {
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [safeImageSrc, setSafeImageSrc] = useState<string>('');
 
-  const onCropComplete = useCallback((_croppedArea: any, croppedPixels: any) => {
+  // Convert remote HTTP Cloudinary URLs to local Blob URLs to prevent canvas CORS security errors
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+
+    if (imageSrc && imageSrc.startsWith('http')) {
+      fetch(imageSrc)
+        .then((res) => res.blob())
+        .then((blob) => {
+          if (active) {
+            objectUrl = URL.createObjectURL(blob);
+            setSafeImageSrc(objectUrl);
+          }
+        })
+        .catch(() => {
+          if (active) setSafeImageSrc(imageSrc);
+        });
+    } else {
+      setSafeImageSrc(imageSrc);
+    }
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageSrc]);
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
   const handleSave = async () => {
-    if (croppedAreaPixels && imageSrc) {
-      const result = await getCroppedImg(imageSrc, croppedAreaPixels);
-      onSave(result); // Pass the cropped image back to the parent file
-      onClose();      // Close the modal
+    if (!croppedAreaPixels || !safeImageSrc) return;
+
+    try {
+      setIsProcessing(true);
+      const result = await getCroppedImg(safeImageSrc, croppedAreaPixels);
+
+      // 1. Send cropped base64 result to parent
+      onSave(result);
+
+      // 2. Force close the cropper modal
+      onClose();
+    } catch (err) {
+      console.error('Cropping error:', err);
+      alert('Could not crop image. Check network connection.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col items-center">
-        <h3 className="text-lg font-bold text-[#1B3A5C] mb-4">Adjust Your Image</h3>
-        
-        {/* The active viewport */}
-        <div className="relative w-full h-64 bg-slate-100 rounded-lg overflow-hidden">
-          <Cropper
-            image={imageSrc}
-            crop={crop}
-            zoom={zoom}
-            aspect={aspectRatio}
-            cropShape={circular ? 'round' : 'rect'}
-            showGrid={true}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-          />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col items-center shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Adjust & Align Cover Image</h3>
+
+        {/* Interactive Cropper Viewport */}
+        <div className="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden shadow-inner">
+          {safeImageSrc && (
+            <Cropper
+              image={safeImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={aspectRatio}
+              cropShape={circular ? 'round' : 'rect'}
+              showGrid={true}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+          )}
         </div>
 
         {/* Zoom Control */}
         <div className="w-full flex items-center gap-3 mt-5">
-          <span className="text-xs font-semibold text-slate-500">Zoom</span>
+          <span className="text-xs font-semibold text-slate-500 shrink-0">Zoom</span>
           <input
             type="range"
             min={1}
@@ -96,23 +155,27 @@ export default function ImageCropperModal({
             step={0.1}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#E8185A]"
+            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
         </div>
 
         {/* Action Buttons */}
         <div className="flex gap-3 w-full mt-6">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 border border-slate-200 text-slate-500 rounded-xl font-bold hover:bg-slate-50 transition-colors"
+            disabled={isProcessing}
+            className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
-            className="flex-1 py-2.5 bg-[#1B3A5C] text-white rounded-xl font-bold hover:bg-opacity-90 transition-colors"
+            disabled={isProcessing}
+            className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md disabled:opacity-50"
           >
-            Apply Crop
+            {isProcessing ? 'Applying...' : 'Apply Crop'}
           </button>
         </div>
       </div>
