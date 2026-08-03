@@ -116,7 +116,7 @@ export default function AdminStoriesPage() {
 
       reader.onload = () => {
         setRawImageSrc(reader.result as string);
-        setIsCropperOpen(true); // Open the cropper modal
+        setIsCropperOpen(true);
       };
 
       reader.readAsDataURL(file);
@@ -125,7 +125,6 @@ export default function AdminStoriesPage() {
 
   const handleCropSave = (croppedBase64: string) => {
     setCroppedPreview(croppedBase64);
-    // Convert Base64 output to a dynamic File object for multipart/form-data upload
     const file = base64ToFile(croppedBase64, "cropped-cover-image");
     setFinalImageFile(file);
   };
@@ -145,7 +144,7 @@ export default function AdminStoriesPage() {
           tag: storyTag,
           excerpt: storyExcerpt,
           blocks: [{ type: "p", text: "Initial story section..." }],
-          img: finalImageFile, // Passes the cropped File object cleanly
+          img: finalImageFile,
         },
         user?.role as Role
       );
@@ -170,11 +169,19 @@ export default function AdminStoriesPage() {
 
   // ─── Workflow Actions ────────────────────────────────────────────────────────
 
-  const handlePublishToggle = async (blog: BlogPost) => {
+  const handlePublishToggle = async (target: BlogPost | string) => {
     if (!user) return;
+
+    const blog = typeof target === "string" 
+      ? blogs.find((b) => b._id === target) 
+      : target;
+
+    if (!blog) return;
+
     try {
       if (blog.status === "published") {
-        await blogsApi.unpublishBlog(blog._id, user.role as Role);
+        // ✅ Fixed: Pass `undefined` as 2nd arg (payload) so `user.role` aligns with 3rd arg (role)
+        await blogsApi.unpublishBlog(blog._id, undefined, user.role as Role);
       } else {
         await blogsApi.publishBlog(blog._id, user.role as Role);
       }
@@ -549,7 +556,7 @@ export default function AdminStoriesPage() {
         <ImageCropperModal
           isOpen={isCropperOpen}
           imageSrc={rawImageSrc}
-          aspectRatio={16 / 9} // 16:9 aspect ratio for editorial cards
+          aspectRatio={16 / 9}
           onClose={() => setIsCropperOpen(false)}
           onSave={handleCropSave}
         />

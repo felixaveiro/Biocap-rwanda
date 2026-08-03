@@ -52,22 +52,28 @@ export default function OfficerPublishingDeskPage() {
     }
   }, [currentOfficerUser, isPermissionAllowed, fetchPublishingQueue]);
 
-  const handlePublishArticle = async (targetArticleId: string) => {
+  // ✅ Fixed signature: Accepts BlogPost | string to match BlogTable's onPublish prop
+  const handlePublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
+
+    const articleId = typeof target === "string" ? target : target._id;
+
     try {
-      // Passes ID and officer role to match blogs.ts signature
-      await blogsApi.publishBlog(targetArticleId, currentOfficerUser.role as Role);
+      await blogsApi.publishBlog(articleId, currentOfficerUser.role as Role);
       await fetchPublishingQueue();
     } catch (error) {
       console.error("Failed to publish article live:", error);
     }
   };
 
-  const handleUnpublishArticle = async (targetArticleId: string) => {
+  // ✅ Fixed signature: Accepts BlogPost | string to match BlogTable's onUnpublish prop
+  const handleUnpublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
+
+    const articleId = typeof target === "string" ? target : target._id;
+
     try {
-      // Passes ID, empty payload object, and officer role
-      await blogsApi.unpublishBlog(targetArticleId, {}, currentOfficerUser.role as Role);
+      await blogsApi.unpublishBlog(articleId, {}, currentOfficerUser.role as Role);
       await fetchPublishingQueue();
     } catch (error) {
       console.error("Failed to unpublish article:", error);

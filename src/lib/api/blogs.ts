@@ -176,8 +176,8 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
   if (payload.title) formData.append("title", payload.title);
   if (payload.tag) formData.append("tag", payload.tag);
   if (payload.excerpt) formData.append("excerpt", payload.excerpt);
-  if (payload.blocks) formData.append("blocks", JSON.stringify(payload.blocks));
-  if (payload.modal) formData.append("modal", JSON.stringify(payload.modal));
+  if (payload.blocks) formData.append("blocks", typeof payload.blocks === "string" ? payload.blocks : JSON.stringify(payload.blocks));
+  if (payload.modal) formData.append("modal", typeof payload.modal === "string" ? payload.modal : JSON.stringify(payload.modal));
   if (payload.socialHandle) formData.append("socialHandle", payload.socialHandle);
   if (payload.organizationLink) formData.append("organizationLink", payload.organizationLink);
 
