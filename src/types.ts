@@ -45,6 +45,7 @@ export interface User {
   lastName: string;
   role: Role;
   isActive: boolean;
+  receiveNotifications?: boolean;
   dateOfBirth?: string;
   avatar?: string;
   organization?: string;
@@ -70,7 +71,7 @@ export interface User {
 
 export type SessionUser = User;
 
-// 🚨 UPDATED: Extended BlogStatus to include 'rejected' and 'revision_requested'
+// Extended BlogStatus
 export type BlogStatus =
   | 'draft'
   | 'pending_review'
@@ -79,7 +80,6 @@ export type BlogStatus =
   | 'rejected'
   | 'revision_requested';
 
-// 🚨 UPDATED: Added labels for the new statuses
 export const BLOG_STATUS_LABELS: Record<BlogStatus, string> = {
   draft: 'Draft',
   pending_review: 'Pending Review',
@@ -121,6 +121,59 @@ export interface ReviewLog {
   reviewedAt: string;
 }
 
+// ─── Comment Interface for Published Articles ────────────────────────────────
+export interface Comment {
+  _id: string;
+  user: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+    role: Role;
+  };
+  content: string;
+  createdAt: string;
+}
+
+// ─── Proposed Editor Modifications ───────────────────────────────────────────
+export interface EditorModification {
+  editor?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  } | string;
+  title?: string;
+  excerpt?: string;
+  blocks?: BlogBlock[];
+  modifiedAt?: string;
+}
+
+// ─── Notification Alert Interface ───────────────────────────────────────────
+export type NotificationType = 'ARTICLE_COMMENT' | 'EDITOR_EDIT_PROMPT' | 'BLOG_APPROVED';
+
+export interface Notification {
+  _id: string;
+  recipient: string;
+  sender: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    role: Role;
+    username: string;
+  };
+  type: NotificationType;
+  message: string;
+  article: {
+    _id: string;
+    title: string;
+    slug: string;
+  };
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Main Article Interface ──────────────────────────────────────────────────
 export interface BlogPost {
   _id: string;
   title: string;
@@ -165,6 +218,15 @@ export interface BlogPost {
   submittedAt?: string;
   lastRejectionNote?: string;
   reviewHistory: ReviewLog[];
+
+  // ─── Officer Review & Change Approvals ────────────────────────────────────
+  editorModifications?: EditorModification;
+  officerAcceptedChanges?: boolean;
+  officerApprovalNote?: string;
+
+  // ─── Published Article Comments ────────────────────────────────────────────
+  comments?: Comment[];
+
   publishedAt?: string;
   publishedBy?: {
     _id: string;

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
-import { blogsApi } from "@/lib/api/blogs";
+import { blogsApi, officerApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
 import { AlertCircle, RefreshCw } from "lucide-react";
@@ -25,8 +25,8 @@ export default function OfficerPublishingDeskPage() {
     setFetchErrorMessage(null);
 
     try {
-      const officerRole = currentOfficerUser.role as Role;
-      const apiResponse = await blogsApi.getBlogs(officerRole);
+      // Fetch published articles using dedicated officer endpoint (/api/officer/published)
+      const apiResponse = await officerApi.getPublishedBlogs();
 
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(apiResponse)) {
@@ -52,7 +52,7 @@ export default function OfficerPublishingDeskPage() {
     }
   }, [currentOfficerUser, isPermissionAllowed, fetchPublishingQueue]);
 
-  // ✅ Fixed signature: Accepts BlogPost | string to match BlogTable's onPublish prop
+  // Accepts BlogPost | string to match BlogTable's onPublish prop
   const handlePublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
 
@@ -66,7 +66,7 @@ export default function OfficerPublishingDeskPage() {
     }
   };
 
-  // ✅ Fixed signature: Accepts BlogPost | string to match BlogTable's onUnpublish prop
+  // Accepts BlogPost | string to match BlogTable's onUnpublish prop
   const handleUnpublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
 

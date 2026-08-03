@@ -1,5 +1,14 @@
 import { apiRequest, apiFormRequest } from "./client";
-import { BlogPost, BlogBlock, BlogModalMetadata, PaginatedResponse, Role, User } from "@/types";
+import { 
+  BlogPost, 
+  BlogBlock, 
+  BlogModalMetadata, 
+  PaginatedResponse, 
+  Role, 
+  User, 
+  Comment, 
+  Notification 
+} from "@/types";
 
 // ─── Payload Interfaces ────────────────────────────────────────────────────────
 
@@ -36,6 +45,10 @@ export interface UnpublishBlogPayload {
   note?: string;
 }
 
+export interface AcceptEditorChangesPayload {
+  approvalNote?: string;
+}
+
 export interface BlogFilterOptions {
   status?: string;
   tag?: string;
@@ -62,6 +75,16 @@ export interface CreatorActivity {
   timestamp: string;
 }
 
+export interface ActivityLog {
+  _id: string;
+  user: string | { _id: string; username: string; firstName: string; lastName: string; role: Role };
+  action: string;
+  resource?: string;
+  resourceId?: string;
+  details?: string;
+  createdAt: string;
+}
+
 // ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
 
 function getBlogBasePath(role?: Role): string {
@@ -69,7 +92,7 @@ function getBlogBasePath(role?: Role): string {
     case "admin":
       return "/api/blogs";
     case "communication_officer":
-      return "/api/officer/blogs";
+      return "/api/officer/published";
     case "editor":
       return "/api/editor/blogs";
     case "broadcast_content_creator":
@@ -81,9 +104,7 @@ function getBlogBasePath(role?: Role): string {
 }
 
 function getTrashBasePath(role?: Role): string {
-  if (role === "communication_officer") {
-    return "/api/officer/trash";
-  }
+  // Trashing/Restoring is strictly managed via standard blog/admin endpoints
   return "/api/blogs/trash";
 }
 
@@ -139,10 +160,10 @@ export async function getBlogById(id: string, role?: Role): Promise<BlogPost> {
 }
 
 /**
- * GET /api/blogs/stats or /api/officer/stats — Count metrics by status
+ * GET /api/blogs/stats or /api/officer/dashboard-stats — Count metrics by status
  */
 export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
-  const endpoint = role === "communication_officer" ? "/api/officer/stats" : `${getBlogBasePath(role)}/stats`;
+  const endpoint = role === "communication_officer" ? "/api/officer/dashboard-stats" : `${getBlogBasePath(role)}/stats`;
   return apiRequest<BlogStatsResponse>(endpoint, { auth: true });
 }
 
@@ -225,7 +246,7 @@ export async function deleteBlog(id: string, role?: Role): Promise<{ message: st
 // ─── Trash & Permanent Wipe Operations ───────────────────────────────────────
 
 /**
- * GET /api/blogs/trash or /api/officer/trash — Fetch soft-deleted posts
+ * GET /api/blogs/trash — Fetch soft-deleted posts
  */
 export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | PaginatedResponse<BlogPost>> {
   const endpoint = getTrashBasePath(role);
@@ -233,28 +254,20 @@ export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | Paginat
 }
 
 /**
- * PATCH /api/blogs/:id/restore or /api/officer/trash/:id/restore — Restore a soft-deleted blog
+ * PATCH /api/blogs/:id/restore — Restore a soft-deleted blog
  */
 export async function restoreBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const endpoint = role === "communication_officer" 
-    ? `/api/officer/trash/${id}/restore` 
-    : `/api/blogs/${id}/restore`;
-
-  return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {
+  return apiRequest<{ message: string; blog: BlogPost }>(`/api/blogs/${id}/restore`, {
     method: "PATCH",
     auth: true,
   });
 }
 
 /**
- * DELETE /api/blogs/:id/hard-delete or /api/officer/trash/:id/permanent — Destroy blog & Cloudinary assets
+ * DELETE /api/blogs/:id/hard-delete — Destroy blog & Cloudinary assets
  */
 export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ message: string }> {
-  const endpoint = role === "communication_officer" 
-    ? `/api/officer/trash/${id}/permanent` 
-    : `/api/blogs/${id}/hard-delete`;
-
-  return apiRequest<{ message: string }>(endpoint, {
+  return apiRequest<{ message: string }>(`/api/blogs/${id}/hard-delete`, {
     method: "DELETE",
     auth: true,
   });
@@ -324,6 +337,96 @@ export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, 
   });
 }
 
+// ─── Communication Officer Dedicated Operations ───────────────────────────────
+
+/**
+ * GET /api/officer/published — List published articles for Communication Officers
+ */
+export async function getOfficerPublishedBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  if (params.tag) query.append("tag", params.tag);
+  if (params.search) query.append("search", params.search);
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/officer/published${queryString}`, { auth: true });
+}
+
+/**
+ * GET /api/officer/published/:id — Detail of a published article
+ */
+export async function getOfficerPublishedBlogById(id: string): Promise<BlogPost> {
+  return apiRequest<BlogPost>(`/api/officer/published/${id}`, { auth: true });
+}
+
+/**
+ * GET /api/officer/published/:id/comments — Fetch comments on a published article
+ */
+export async function getArticleComments(articleId: string): Promise<Comment[]> {
+  return apiRequest<Comment[]>(`/api/officer/published/${articleId}/comments`, { auth: true });
+}
+
+/**
+ * POST /api/officer/published/:id/comments — Post a comment on a published article
+ */
+export async function addArticleComment(articleId: string, content: string): Promise<{ message: string; comment: Comment }> {
+  return apiRequest<{ message: string; comment: Comment }>(`/api/officer/published/${articleId}/comments`, {
+    method: "POST",
+    body: { content },
+    auth: true,
+  });
+}
+
+/**
+ * GET /api/officer/blogs/:id/editor-changes — Inspect edits made by the Editor
+ */
+export async function getEditorChanges(id: string): Promise<BlogPost> {
+  return apiRequest<BlogPost>(`/api/officer/blogs/${id}/editor-changes`, { auth: true });
+}
+
+/**
+ * PATCH /api/officer/blogs/:id/accept-editor-changes — Accept changes submitted by the Editor
+ */
+export async function acceptEditorChanges(id: string, payload?: AcceptEditorChangesPayload): Promise<{ message: string; blog: BlogPost }> {
+  return apiRequest<{ message: string; blog: BlogPost }>(`/api/officer/blogs/${id}/accept-editor-changes`, {
+    method: "PATCH",
+    body: payload || {},
+    auth: true,
+  });
+}
+
+/**
+ * GET /api/officer/notifications — Fetch Officer notifications
+ */
+export async function getOfficerNotifications(): Promise<Notification[]> {
+  return apiRequest<Notification[]>("/api/officer/notifications", { auth: true });
+}
+
+/**
+ * PATCH /api/officer/notifications/:id/read — Mark notification as read
+ */
+export async function markNotificationRead(id: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/officer/notifications/${id}/read`, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+/**
+ * GET /api/officer/activity-logs — Fetch Officer audit history log
+ */
+export async function getOfficerActivityLogs(): Promise<ActivityLog[]> {
+  return apiRequest<ActivityLog[]>("/api/officer/activity-logs", { auth: true });
+}
+
+/**
+ * GET /api/officer/activity-logs/:id — Fetch detail of a single activity log entry
+ */
+export async function getOfficerActivityLogById(id: string): Promise<ActivityLog> {
+  return apiRequest<ActivityLog>(`/api/officer/activity-logs/${id}`, { auth: true });
+}
+
 // ─── Content Creator Dedicated Operations ────────────────────────────────────
 
 /**
@@ -361,7 +464,20 @@ export async function getCreatorPublishedBySlug(slug: string): Promise<BlogPost>
   return apiRequest<BlogPost>(`/api/contributor/published/${slug}`, { auth: true });
 }
 
-// ─── Unified Namespace Export ─────────────────────────────────────────────────
+// ─── Unified Namespace Exports ────────────────────────────────────────────────
+
+export const officerApi = {
+  getPublishedBlogs: getOfficerPublishedBlogs,
+  getPublishedBlogById: getOfficerPublishedBlogById,
+  getArticleComments,
+  addArticleComment,
+  getEditorChanges,
+  acceptEditorChanges,
+  getNotifications: getOfficerNotifications,
+  markNotificationRead,
+  getActivityLogs: getOfficerActivityLogs,
+  getActivityLogById: getOfficerActivityLogById,
+};
 
 export const blogsApi = {
   getPublicBlogs,
@@ -381,7 +497,18 @@ export const blogsApi = {
   rejectBlog,
   publishBlog,
   unpublishBlog,
-  // Added Creator methods
+  // Officer methods
+  getOfficerPublishedBlogs,
+  getOfficerPublishedBlogById,
+  getArticleComments,
+  addArticleComment,
+  getEditorChanges,
+  acceptEditorChanges,
+  getOfficerNotifications,
+  markNotificationRead,
+  getOfficerActivityLogs,
+  getOfficerActivityLogById,
+  // Creator methods
   getCreatorProfile,
   getCreatorActivity,
   getCreatorPublishedFeed,

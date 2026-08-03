@@ -20,6 +20,7 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Bell, 
 } from "lucide-react";
 
 interface NavItem {
@@ -63,7 +64,7 @@ export default function Sidebar() {
     navItems = [
       { label: "Overview", href: "/officer", icon: LayoutDashboard },
       { label: "All Stories", href: "/officer/stories", icon: Globe, badge: "Live" },
-      { label: "Trash History", href: "/officer/trash", icon: Trash2 },
+      { label: "Alerts & Activity", href: "/officer/activity", icon: Bell },
     ];
   } else if (role === "broadcast_content_creator" || role === "social_media_content_creator") {
     navItems = [
@@ -119,7 +120,7 @@ export default function Sidebar() {
                     <span className="text-[#E52B67]">Bio</span>Cap
                   </span>
                   <span className="text-[10px] font-bold tracking-widest uppercase text-slate-400">
-                    Workspace Desk
+                    Workspace 
                   </span>
                 </div>
               )}
