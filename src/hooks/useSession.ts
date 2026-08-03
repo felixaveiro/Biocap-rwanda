@@ -27,7 +27,7 @@ export function useSession(requiredPermission?: Permission) {
     let isMounted = true;
 
     async function verifySession() {
-      // 1. If no token exists, immediately mark logged out
+      // 1. If no token exists in cookies, immediately mark logged out without making network calls
       if (!authCookies.isLoggedIn()) {
         cachedUser = null;
         if (isMounted) {
@@ -50,17 +50,18 @@ export function useSession(requiredPermission?: Permission) {
           setUser(currentUser);
         }
       } catch (error: unknown) {
-        console.error("Session verification failed:", error);
-
-        // 3. ONLY clear cookies and cache if backend explicitly returned 401 Unauthorized
+        // 3. Clear session and cache if backend explicitly returned 401 Unauthorized or invalid token
         if (error instanceof ApiError && error.status === 401) {
+          console.warn("[Session] Token expired or unauthorized (401). Redirecting to login.");
           authCookies.clearAll();
           cachedUser = null;
           if (isMounted) {
             setUser(null);
           }
+        } else {
+          // For network glitches, 5xx server errors, or Render cold-starts, log a soft warning
+          console.warn("[Session] Temporary session verification error:", error);
         }
-        // For network glitches, 5xx backend errors, or Render cold starts, keep user session intact
       } finally {
         if (isMounted) {
           setLoading(false);

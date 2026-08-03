@@ -1,5 +1,5 @@
 import { apiRequest, apiFormRequest } from "./client";
-import { BlogPost, BlogBlock, BlogModalMetadata, PaginatedResponse, Role } from "@/types";
+import { BlogPost, BlogBlock, BlogModalMetadata, PaginatedResponse, Role, User } from "@/types";
 
 // ─── Payload Interfaces ────────────────────────────────────────────────────────
 
@@ -50,8 +50,16 @@ export interface BlogStatsResponse {
   pending_review: number;
   approved: number;
   published: number;
+  rejected?: number;
   deleted?: number;
   total: number;
+}
+
+export interface CreatorActivity {
+  id: string;
+  action: string;
+  storyTitle?: string;
+  timestamp: string;
 }
 
 // ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
@@ -72,10 +80,17 @@ function getBlogBasePath(role?: Role): string {
   }
 }
 
-// ─── Individual Function Exports ───────────────────────────────────────────────
+function getTrashBasePath(role?: Role): string {
+  if (role === "communication_officer") {
+    return "/api/officer/trash";
+  }
+  return "/api/blogs/trash";
+}
+
+// ─── Public Endpoints (No Auth Required) ──────────────────────────────────────
 
 /**
- * GET /api/blogs/public — Public endpoint for live website feed (No Auth Required)
+ * GET /api/blogs/public — Live website feed
  */
 export async function getPublicBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
   const query = new URLSearchParams();
@@ -95,6 +110,8 @@ export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
   return apiRequest<BlogPost>(`/api/blogs/public/${slug}`);
 }
 
+// ─── Protected CRUD Operations ────────────────────────────────────────────────
+
 /**
  * GET /api/blogs (or role-specific path) — List dashboard blogs
  */
@@ -104,6 +121,7 @@ export async function getBlogs(role?: Role, params: BlogFilterOptions = {}): Pro
 
   if (params.status) query.append("status", params.status);
   if (params.search) query.append("search", params.search);
+  if (params.tag) query.append("tag", params.tag);
   if (params.author) query.append("author", params.author);
   if (params.page) query.append("page", params.page.toString());
   if (params.limit) query.append("limit", params.limit.toString());
@@ -121,11 +139,11 @@ export async function getBlogById(id: string, role?: Role): Promise<BlogPost> {
 }
 
 /**
- * GET /api/blogs/stats — Get count metrics by status
+ * GET /api/blogs/stats or /api/officer/stats — Count metrics by status
  */
 export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
-  const basePath = getBlogBasePath(role);
-  return apiRequest<BlogStatsResponse>(`${basePath}/stats`, { auth: true });
+  const endpoint = role === "communication_officer" ? "/api/officer/stats" : `${getBlogBasePath(role)}/stats`;
+  return apiRequest<BlogStatsResponse>(endpoint, { auth: true });
 }
 
 /**
@@ -204,39 +222,48 @@ export async function deleteBlog(id: string, role?: Role): Promise<{ message: st
   });
 }
 
-// ─── Trash & Permanent Operations ────────────────────────────────────────────
+// ─── Trash & Permanent Wipe Operations ───────────────────────────────────────
 
 /**
- * GET /api/blogs/trash — Fetch soft-deleted posts for Trash Bin
+ * GET /api/blogs/trash or /api/officer/trash — Fetch soft-deleted posts
  */
 export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | PaginatedResponse<BlogPost>> {
-  return apiRequest<BlogPost[] | PaginatedResponse<BlogPost>>("/api/blogs/trash", { auth: true });
+  const endpoint = getTrashBasePath(role);
+  return apiRequest<BlogPost[] | PaginatedResponse<BlogPost>>(endpoint, { auth: true });
 }
 
 /**
- * PATCH /api/blogs/:id/restore — Restore a soft-deleted blog
+ * PATCH /api/blogs/:id/restore or /api/officer/trash/:id/restore — Restore a soft-deleted blog
  */
 export async function restoreBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  return apiRequest<{ message: string; blog: BlogPost }>(`/api/blogs/${id}/restore`, {
+  const endpoint = role === "communication_officer" 
+    ? `/api/officer/trash/${id}/restore` 
+    : `/api/blogs/${id}/restore`;
+
+  return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {
     method: "PATCH",
     auth: true,
   });
 }
 
 /**
- * DELETE /api/blogs/:id/hard-delete — Wipe blog permanently & destroy Cloudinary media
+ * DELETE /api/blogs/:id/hard-delete or /api/officer/trash/:id/permanent — Destroy blog & Cloudinary assets
  */
 export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ message: string }> {
-  return apiRequest<{ message: string }>(`/api/blogs/${id}/hard-delete`, {
+  const endpoint = role === "communication_officer" 
+    ? `/api/officer/trash/${id}/permanent` 
+    : `/api/blogs/${id}/hard-delete`;
+
+  return apiRequest<{ message: string }>(endpoint, {
     method: "DELETE",
     auth: true,
   });
 }
 
-// ─── Workflow Operations ───────────────────────────────────────────────────────
+// ─── Editorial Workflow Operations ───────────────────────────────────────────
 
 /**
- * PATCH /api/blogs/:id/submit — Submit draft for staff review
+ * PATCH /api/blogs/:id/submit — Submit draft for review
  */
 export async function submitBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
@@ -249,7 +276,7 @@ export async function submitBlog(id: string, role?: Role): Promise<{ message: st
 }
 
 /**
- * PATCH /api/blogs/:id/review — Approve or reject pending blog
+ * PATCH /api/blogs/:id/review — Review (Approve or Reject)
  */
 export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
@@ -261,21 +288,21 @@ export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: 
 }
 
 /**
- * Helper alias to approve a blog post
+ * Helper: Approve a blog post
  */
 export async function approveBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   return reviewBlog(id, { decision: "approved" }, role);
 }
 
 /**
- * Helper alias to reject a blog post with an optional note
+ * Helper: Reject a blog post with revision notes
  */
 export async function rejectBlog(id: string, note?: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   return reviewBlog(id, { decision: "rejected", note }, role);
 }
 
 /**
- * PATCH /api/blogs/:id/publish — Publish approved blog to live site (Admin & Officer)
+ * PATCH /api/blogs/:id/publish — Publish approved blog to live feed (Admin & Officer)
  */
 export async function publishBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
@@ -286,7 +313,7 @@ export async function publishBlog(id: string, role?: Role): Promise<{ message: s
 }
 
 /**
- * PATCH /api/blogs/:id/unpublish — Unpublish live blog back to approved state
+ * PATCH /api/blogs/:id/unpublish — Return published blog back to queue with optional note
  */
 export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
@@ -297,7 +324,44 @@ export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, 
   });
 }
 
-// ─── Unified Namespace Export Object ──────────────────────────────────────────
+// ─── Content Creator Dedicated Operations ────────────────────────────────────
+
+/**
+ * GET /api/contributor/profile — Creator personal profile
+ */
+export async function getCreatorProfile(): Promise<User> {
+  return apiRequest<User>("/api/contributor/profile", { auth: true });
+}
+
+/**
+ * GET /api/contributor/activity — Creator studio activity feed
+ */
+export async function getCreatorActivity(): Promise<CreatorActivity[]> {
+  return apiRequest<CreatorActivity[]>("/api/contributor/activity", { auth: true });
+}
+
+/**
+ * GET /api/contributor/published — Read-only published feed for creators
+ */
+export async function getCreatorPublishedFeed(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  if (params.tag) query.append("tag", params.tag);
+  if (params.search) query.append("search", params.search);
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/contributor/published${queryString}`, { auth: true });
+}
+
+/**
+ * GET /api/contributor/published/:slug — Published blog post by slug for creators
+ */
+export async function getCreatorPublishedBySlug(slug: string): Promise<BlogPost> {
+  return apiRequest<BlogPost>(`/api/contributor/published/${slug}`, { auth: true });
+}
+
+// ─── Unified Namespace Export ─────────────────────────────────────────────────
 
 export const blogsApi = {
   getPublicBlogs,
@@ -317,4 +381,9 @@ export const blogsApi = {
   rejectBlog,
   publishBlog,
   unpublishBlog,
+  // Added Creator methods
+  getCreatorProfile,
+  getCreatorActivity,
+  getCreatorPublishedFeed,
+  getCreatorPublishedBySlug,
 };
