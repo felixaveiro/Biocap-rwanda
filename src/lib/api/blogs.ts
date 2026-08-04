@@ -104,7 +104,6 @@ function getBlogBasePath(role?: Role): string {
 }
 
 function getTrashBasePath(role?: Role): string {
-  // Trashing/Restoring is strictly managed via standard blog/admin endpoints
   return "/api/blogs/trash";
 }
 
@@ -463,6 +462,66 @@ export async function getCreatorPublishedFeed(params: BlogFilterOptions = {}): P
 export async function getCreatorPublishedBySlug(slug: string): Promise<BlogPost> {
   return apiRequest<BlogPost>(`/api/contributor/published/${slug}`, { auth: true });
 }
+
+// ─── Communication Editor Dedicated Operations (Swagger Aligned) ─────────────
+
+export const editorApi = {
+  // GET /api/editor/blogs/stats
+  getBlogStats: async (): Promise<BlogStatsResponse> => {
+    return apiRequest<BlogStatsResponse>("/api/editor/blogs/stats", { auth: true });
+  },
+
+  // GET /api/editor/blogs/review-queue
+  getReviewQueue: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
+    const query = new URLSearchParams();
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+    return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs/review-queue${queryString}`, { auth: true });
+  },
+
+  // GET /api/editor/blogs
+  getBlogs: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
+    const query = new URLSearchParams();
+    if (params.status) query.append("status", params.status);
+    if (params.search) query.append("search", params.search);
+    if (params.tag) query.append("tag", params.tag);
+    if (params.page) query.append("page", params.page.toString());
+    if (params.limit) query.append("limit", params.limit.toString());
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+    return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs${queryString}`, { auth: true });
+  },
+
+  // GET /api/editor/blogs/:id
+  getBlogById: async (id: string): Promise<BlogPost> => {
+    return apiRequest<BlogPost>(`/api/editor/blogs/${id}`, { auth: true });
+  },
+
+  // POST /api/editor/blogs
+  createBlog: async (payload: CreateBlogPayload): Promise<BlogPost> => {
+    return createBlog(payload, "editor");
+  },
+
+  // PUT /api/editor/blogs/:id
+  updateBlog: async (id: string, payload: UpdateBlogPayload): Promise<BlogPost> => {
+    return updateBlog(id, payload, "editor");
+  },
+
+  // PATCH /api/editor/blogs/:id/submit
+  submitBlog: async (id: string): Promise<{ message: string; blog: BlogPost }> => {
+    return submitBlog(id, "editor");
+  },
+
+  // PATCH /api/editor/blogs/:id/review
+  reviewBlog: async (id: string, payload: ReviewBlogPayload): Promise<{ message: string; blog: BlogPost }> => {
+    return reviewBlog(id, payload, "editor");
+  },
+
+  // PATCH /api/editor/blogs/:id/unpublish
+  unpublishBlog: async (id: string, payload?: UnpublishBlogPayload): Promise<{ message: string; blog: BlogPost }> => {
+    return unpublishBlog(id, payload, "editor");
+  },
+};
 
 // ─── Unified Namespace Exports ────────────────────────────────────────────────
 

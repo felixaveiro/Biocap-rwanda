@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BlogPost, User, Role } from "@/types";
-import { blogsApi } from "@/lib/api/blogs";
+import { blogsApi, editorApi } from "@/lib/api/blogs";
 import EditStoryModal from "@/components/EditStoryModal";
 import ReviewStoryModal from "@/components/ReviewStoryModal";
 import {
@@ -51,9 +51,15 @@ export default function BlogTable({
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const isCreator = user.role.includes("creator");
-  const isEditor = user.role === "editor" || user.role === "admin";
-  const isOfficer = user.role === "communication_officer" || user.role === "admin";
+  // Normalize user.role whether it's a string or an array
+  const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+  const isCreator = userRoles.some(
+    (r) => r.includes("creator") || r.includes("contributor")
+  );
+  const isEditor = userRoles.some((r) => r === "editor" || r === "admin");
+  const isOfficer = userRoles.some(
+    (r) => r === "communication_officer" || r === "admin"
+  );
 
   // Creator Action: Submit Draft for Review
   const handleSubmitForReview = async (storyId: string) => {
@@ -71,7 +77,29 @@ export default function BlogTable({
     }
   };
 
-  // Creator Action: Delete Story Draft (Soft Delete)
+  // Editor Action: Unpublish Article
+  const handleUnpublishStory = async (storyId: string) => {
+    if (!window.confirm("Are you sure you want to return this article to review status?")) return;
+
+    setActiveActionId(storyId);
+    setActionError(null);
+    try {
+      if (onUnpublish) {
+        await onUnpublish(storyId);
+      } else {
+        await editorApi.unpublishBlog(storyId, { note: "Unpublished by Editor from Catalog" });
+      }
+      if (onRefreshNeeded) onRefreshNeeded();
+    } catch (err: unknown) {
+      console.error("Failed to unpublish story:", err);
+      const msg = err instanceof Error ? err.message : "Failed to unpublish story.";
+      setActionError(msg);
+    } finally {
+      setActiveActionId(null);
+    }
+  };
+
+  // Delete Action (Soft Delete)
   const handleDeleteStory = async (storyId: string, title: string) => {
     if (onDelete) {
       onDelete(storyId);
@@ -101,6 +129,7 @@ export default function BlogTable({
       case "approved":
         return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
       case "pending_review":
+      case "submitted":
         return "bg-amber-50 text-amber-700 border-amber-200/80";
       case "rejected":
         return "bg-rose-50 text-rose-700 border-rose-200/80";
@@ -247,15 +276,28 @@ export default function BlogTable({
                               </>
                             )}
 
-                            {/* EDITOR ACTION */}
+                            {/* EDITOR ACTIONS */}
                             {isEditor && (
-                              <button
-                                onClick={() => setReviewingStory(story)}
-                                className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
-                                title="Review Submission"
-                              >
-                                <Eye size={15} />
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => setReviewingStory(story)}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs"
+                                  title="Review Submission Workspace"
+                                >
+                                  <Eye size={13} /> Review
+                                </button>
+
+                                {story.status === "published" && (
+                                  <button
+                                    disabled={isBusy}
+                                    onClick={() => handleUnpublishStory(story._id)}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition disabled:opacity-50"
+                                    title="Unpublish Article"
+                                  >
+                                    <XCircle size={13} /> Unpublish
+                                  </button>
+                                )}
+                              </>
                             )}
 
                             {/* OFFICER & ADMIN PUBLISH ACTIONS */}
@@ -265,15 +307,6 @@ export default function BlogTable({
                                 className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition flex items-center gap-1"
                               >
                                 <CheckCircle2 size={13} /> Publish
-                              </button>
-                            )}
-
-                            {isOfficer && story.status === "published" && (onUnpublish || onPublish) && (
-                              <button
-                                onClick={() => (onUnpublish ? onUnpublish(story._id) : onPublish!(story))}
-                                className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition flex items-center gap-1"
-                              >
-                                <XCircle size={13} /> Unpublish
                               </button>
                             )}
                           </>

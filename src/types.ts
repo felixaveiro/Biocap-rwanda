@@ -137,14 +137,17 @@ export interface Comment {
 
 // ─── Proposed Editor Modifications ───────────────────────────────────────────
 export interface EditorModification {
-  editor?: {
-    _id: string;
-    firstName: string;
-    lastName: string;
-  } | string;
+  editor?:
+    | {
+        _id: string;
+        firstName: string;
+        lastName: string;
+      }
+    | string;
   title?: string;
   excerpt?: string;
   blocks?: BlogBlock[];
+  img?: string; // 👈 Fixed: Added cover image edit support
   modifiedAt?: string;
 }
 
@@ -183,7 +186,7 @@ export interface BlogPost {
   blocks: BlogBlock[];
   modal?: BlogModalMetadata;
   img: string;
-  imgPublicId: string;
+  imgPublicId?: string;
   documentUrl?: string;
   documentPublicId?: string;
   documentName?: string;
@@ -220,7 +223,7 @@ export interface BlogPost {
   reviewHistory: ReviewLog[];
 
   // ─── Officer Review & Change Approvals ────────────────────────────────────
-  editorModifications?: EditorModification;
+  editorModifications?: EditorModification | null; // 👈 Fixed: Added null allowance
   officerAcceptedChanges?: boolean;
   officerApprovalNote?: string;
 
@@ -249,4 +252,15 @@ export interface PaginatedResponse<T> {
     limit: number;
     pages: number;
   };
+}
+
+// Dashboard & Stats Summary Response
+export interface BlogStatsResponse {
+  draft: number;
+  pending_review: number;
+  approved: number;
+  published: number;
+  rejected?: number;
+  deleted?: number;
+  total: number;
 }

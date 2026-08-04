@@ -109,27 +109,28 @@ export default function ReviewStoryModal({
 
     try {
       if (decision === "approve") {
-        // 1. If Editor made text edits or cropped the image, apply modifications first
-        const hasContentEdits = 
-          editedTitle !== story.title || 
-          editedExcerpt !== story.excerpt || 
-          editedContentText !== (story.blocks?.[0]?.text || "") || 
+        const hasContentEdits =
+          editedTitle !== story.title ||
+          editedExcerpt !== story.excerpt ||
+          editedContentText !== (story.blocks?.[0]?.text || "") ||
           croppedImageFile !== null;
 
+        // 1. If the Editor modified text or image, submit update payload
         if (isEditor && hasContentEdits) {
-          await blogsApi.updateBlog(
-            story._id,
-            {
-              title: editedTitle,
-              excerpt: editedExcerpt,
-              blocks: [{ type: "p", text: editedContentText }],
-              ...(croppedImageFile && { img: croppedImageFile }),
-            },
-            currentUserRole
-          );
+          const updatePayload: Record<string, any> = {
+            title: editedTitle,
+            excerpt: editedExcerpt,
+            blocks: JSON.stringify([{ type: "p", text: editedContentText }]),
+          };
+
+          if (croppedImageFile) {
+            updatePayload.img = croppedImageFile;
+          }
+
+          await blogsApi.updateBlog(story._id, updatePayload, currentUserRole);
         }
 
-        // 2. Perform role-specific approval
+        // 2. Perform role-specific decision approval
         if (isOfficer && story.editorModifications) {
           await officerApi.acceptEditorChanges(story._id, {
             approvalNote: revisionFeedbackNote,
@@ -217,7 +218,9 @@ export default function ReviewStoryModal({
                   /* Editor Editing Form Mode */
                   <div className="space-y-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 p-4">
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Title</label>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">
+                        Title
+                      </label>
                       <input
                         type="text"
                         value={editedTitle}
@@ -226,7 +229,9 @@ export default function ReviewStoryModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Excerpt</label>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">
+                        Excerpt
+                      </label>
                       <textarea
                         rows={2}
                         value={editedExcerpt}
@@ -235,7 +240,9 @@ export default function ReviewStoryModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">Body Text</label>
+                      <label className="block text-[11px] font-bold uppercase text-indigo-900 mb-1">
+                        Body Text
+                      </label>
                       <textarea
                         rows={6}
                         value={editedContentText}
