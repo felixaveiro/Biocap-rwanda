@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { usersApi, CreateUserPayload } from "@/lib/api/users";
 import { useSession } from "@/hooks/useSession";
-import { ROLES, ROLE_LABELS, Role } from "@/types";
+import { 
+  ROLE_LABELS, 
+  Role, 
+  ORGANIZATIONS, 
+  getRolesForOrganization 
+} from "@/types";
 import {
   ArrowLeft,
   UserPlus,
@@ -19,6 +24,7 @@ import {
   Globe,
   AtSign,
   Calendar,
+  Briefcase,
 } from "lucide-react";
 
 export default function CreateTeamMemberPage() {
@@ -32,8 +38,9 @@ export default function CreateTeamMemberPage() {
   const [memberUsername, setMemberUsername] = useState("");
   const [memberEmail, setMemberEmail] = useState("");
   const [memberPassword, setMemberPassword] = useState("");
-  const [assignedRole, setAssignedRole] = useState<Role>("broadcast_content_creator");
-  const [organization, setOrganization] = useState("");
+  const [organization, setOrganization] = useState<string>(ORGANIZATIONS[0]);
+  const [jobTitle, setJobTitle] = useState("");
+  const [assignedRole, setAssignedRole] = useState<Role>("media_correspondent");
   const [organizationLink, setOrganizationLink] = useState("");
   const [socialHandle, setSocialHandle] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -41,6 +48,26 @@ export default function CreateTeamMemberPage() {
   // Status States
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [submissionErrorMessage, setSubmissionErrorMessage] = useState<string | null>(null);
+
+  // Check if AfS-Rwanda is selected
+  const isAfSRwanda = organization === "Alliance for Science Rwanda (AfS-Rwanda)";
+
+  // Dynamically calculate available roles whenever organization changes
+  const availableRoles = useMemo(() => {
+    return getRolesForOrganization(organization);
+  }, [organization]);
+
+  // Handle Organization Change & sync default valid role
+  const handleOrganizationChange = (newOrg: string) => {
+    const validRoles = getRolesForOrganization(newOrg);
+    const selectedIsAfS = newOrg === "Alliance for Science Rwanda (AfS-Rwanda)";
+
+    setOrganization(newOrg);
+    setAssignedRole(validRoles[0]);
+    if (selectedIsAfS) {
+      setJobTitle("");
+    }
+  };
 
   const handleCreateMemberSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -56,14 +83,15 @@ export default function CreateTeamMemberPage() {
       firstName: memberFirstName.trim(),
       lastName: memberLastName.trim(),
       role: assignedRole,
-      organization: organization.trim() || undefined,
+      organization: organization,
+      jobTitle: isAfSRwanda ? undefined : jobTitle.trim(),
       organizationLink: organizationLink.trim() || undefined,
       socialHandle: socialHandle.trim() || undefined,
       dateOfBirth: dateOfBirth || undefined,
-    };
+    } as any;
 
     try {
-      // Pass only payload as required by usersApi.createUser
+      // Pass payload as required by usersApi.createUser
       await usersApi.createUser(payload);
 
       // Successfully provisioned user -> Navigate back to team list
@@ -189,7 +217,7 @@ export default function CreateTeamMemberPage() {
             </div>
           </div>
 
-          {/* Password & Role */}
+          {/* Password & Organization */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
@@ -212,6 +240,52 @@ export default function CreateTeamMemberPage() {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                Partner Institution *
+              </label>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <Building2 size={16} />
+                </div>
+                <select
+                  value={organization}
+                  onChange={(e) => handleOrganizationChange(e.target.value)}
+                  className="w-full appearance-none rounded-xl border border-slate-200 pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer truncate"
+                >
+                  {ORGANIZATIONS.map((orgOption) => (
+                    <option key={orgOption} value={orgOption}>
+                      {orgOption}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Job Title & Dynamic Role selection */}
+          <div className={`grid gap-6 ${isAfSRwanda ? "grid-cols-1" : "sm:grid-cols-2"}`}>
+            {!isAfSRwanda && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                  Job Title (Author Byline) *
+                </label>
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                    <Briefcase size={16} />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    placeholder="e.g. Senior Research Fellow"
+                    className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                 Assigned Role *
               </label>
               <div className="relative">
@@ -221,9 +295,9 @@ export default function CreateTeamMemberPage() {
                 <select
                   value={assignedRole}
                   onChange={(e) => setAssignedRole(e.target.value as Role)}
-                  className="w-full appearance-none rounded-xl border border-slate-200 pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                  className="w-full appearance-none rounded-xl border border-slate-200 pl-10 pr-8 py-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
                 >
-                  {ROLES.map((roleOption) => (
+                  {availableRoles.map((roleOption) => (
                     <option key={roleOption} value={roleOption}>
                       {ROLE_LABELS[roleOption] || roleOption}
                     </option>
@@ -233,29 +307,11 @@ export default function CreateTeamMemberPage() {
             </div>
           </div>
 
-          {/* Organization & Organization Link */}
+          {/* Organization Link & Social Handle */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                Organization
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                  <Building2 size={16} />
-                </div>
-                <input
-                  type="text"
-                  value={organization}
-                  onChange={(e) => setOrganization(e.target.value)}
-                  placeholder="e.g. BioCap Research Hub"
-                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                Organization Link
+                Organization Link {assignedRole === "media_correspondent" ? "*" : ""}
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
@@ -263,6 +319,7 @@ export default function CreateTeamMemberPage() {
                 </div>
                 <input
                   type="url"
+                  required={assignedRole === "media_correspondent"}
                   value={organizationLink}
                   onChange={(e) => setOrganizationLink(e.target.value)}
                   placeholder="https://biocap.org"
@@ -270,10 +327,7 @@ export default function CreateTeamMemberPage() {
                 />
               </div>
             </div>
-          </div>
 
-          {/* Social Handle & Date of Birth */}
-          <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
                 Social Handle
@@ -291,22 +345,23 @@ export default function CreateTeamMemberPage() {
                 />
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                Date of Birth
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                  <Calendar size={16} />
-                </div>
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
-                />
+          {/* Date of Birth */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+              Date of Birth
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                <Calendar size={16} />
               </div>
+              <input
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 pl-10 pr-4 py-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+              />
             </div>
           </div>
 

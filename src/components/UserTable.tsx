@@ -34,7 +34,7 @@ export default function UserTable({
   const [editFirstName, setEditFirstName] = useState("");
   const [editLastName, setEditLastName] = useState("");
   const [editEmail, setEditEmail] = useState("");
-  const [editRole, setEditRole] = useState<Role>("broadcast_content_creator");
+  const [editRole, setEditRole] = useState<Role>("media_correspondent");
   const [isModalSubmitting, setIsModalSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -120,6 +120,10 @@ export default function UserTable({
         return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
       case "editor":
         return "bg-amber-50 text-amber-700 border-amber-200/80";
+      case "principal_investigator":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+      case "media_correspondent":
+        return "bg-rose-50 text-rose-700 border-rose-200/80";
       default:
         return "bg-sky-50 text-sky-700 border-sky-200/80";
     }

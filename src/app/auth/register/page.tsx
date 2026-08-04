@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -14,10 +14,16 @@ import {
 } from "lucide-react";
 import { registerUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { Role } from "@/types";
+import { 
+  Role, 
+  ORGANIZATIONS, 
+  ROLE_LABELS, 
+  getRolesForOrganization 
+} from "@/types";
 
 export default function RegisterPage() {
   const router = useRouter();
+
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -25,30 +31,60 @@ export default function RegisterPage() {
     firstName: "",
     lastName: "",
     dateOfBirth: "",
-    organization: "",
+    organization: ORGANIZATIONS[0] as string,
+    jobTitle: "",
     organizationLink: "",
     socialHandle: "",
-    role: "social_media_content_creator" as Role,
+    role: "principal_investigator" as Role,
   });
+
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check if AfS-Rwanda is selected
+  const isAfSRwanda = form.organization === "Alliance for Science Rwanda (AfS-Rwanda)";
+
+  // Dynamically calculate available roles whenever organization changes
+  const availableRoles = useMemo(() => {
+    return getRolesForOrganization(form.organization);
+  }, [form.organization]);
+
+  // Handle Organization Change & sync default valid role and reset jobTitle if AfS-Rwanda
+  const handleOrganizationChange = (newOrg: string) => {
+    const validRoles = getRolesForOrganization(newOrg);
+    const selectedIsAfS = newOrg === "Alliance for Science Rwanda (AfS-Rwanda)";
+
+    setForm((prev) => ({
+      ...prev,
+      organization: newOrg,
+      role: validRoles[0], // Auto-select first available valid role
+      jobTitle: selectedIsAfS ? "" : prev.jobTitle, // Clear jobTitle if AfS
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
 
+    // Job Title is mandatory EXCEPT when Alliance for Science Rwanda is selected
     if (
       !form.username.trim() ||
       !form.email.trim() ||
       !form.password ||
       !form.firstName.trim() ||
       !form.lastName.trim() ||
+      !form.organization ||
+      (!isAfSRwanda && !form.jobTitle.trim()) ||
       !form.role
     ) {
-      setError("Please fill out all required fields.");
+      setError(
+        isAfSRwanda
+          ? "Please fill out all required fields."
+          : "Please fill out all required fields, including Organization and Job Title."
+      );
       return;
     }
 
@@ -57,8 +93,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (form.role === "broadcast_content_creator" && !form.organizationLink.trim()) {
-      setError("An organization link is required for Broadcast Content Creator accounts.");
+    if (form.role === "media_correspondent" && !form.organizationLink.trim()) {
+      setError("An organization link is required for Media Correspondent accounts.");
       return;
     }
 
@@ -72,14 +108,14 @@ export default function RegisterPage() {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth || undefined,
-        organization: form.organization.trim() || undefined,
+        organization: form.organization,
+        jobTitle: isAfSRwanda ? undefined : form.jobTitle.trim(),
         organizationLink: form.organizationLink.trim() || undefined,
         socialHandle: form.socialHandle.trim() || undefined,
         role: form.role,
-      });
+      } as any);
 
       setSuccessMessage(response.message || "Registration successful!");
-      // Redirect to correct /login route
       setTimeout(() => router.push("/login"), 1800);
     } catch (err: unknown) {
       console.error("Registration error:", err);
@@ -98,7 +134,7 @@ export default function RegisterPage() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#133248] via-[#235D74] to-[#632B70] overflow-hidden px-4 py-10 selection:bg-[#E52B67] selection:text-white">
       
-      {/* ── BIOCAP DNA HELIX & MOLECULAR BACKGROUND GRAPHICS ── */}
+      {/* ── BIOCAP DNA HELIX GRAPHICS ── */}
       <div className="absolute top-[-10%] left-[-5%] w-[380px] h-[800px] text-[#E52B67]/20 pointer-events-none -rotate-12 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
@@ -118,7 +154,7 @@ export default function RegisterPage() {
         </svg>
       </div>
 
-      {/* ── MAIN BIOCAP GLASS CARD ── */}
+      {/* ── MAIN GLASS CARD ── */}
       <div className="relative z-10 w-full max-w-2xl bg-white/25 backdrop-blur-md border border-white/40 rounded-[38px] p-7 sm:p-10 shadow-2xl shadow-[#133248]/50 my-6">
         
         {/* Avatar Header */}
@@ -138,7 +174,7 @@ export default function RegisterPage() {
           <span className="text-[#133248] font-medium">Registration</span>
         </h1>
         <p className="text-center text-xs sm:text-sm text-[#133248]/80 font-medium mb-6">
-          Create an account to join the BioCap platform
+          Create an account to join the Rwanda BioCap platform
         </p>
 
         {/* Alerts */}
@@ -228,34 +264,108 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Organization & Account Role */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Organization"
-              value={form.organization}
-              onChange={(e) => setForm({ ...form, organization: e.target.value })}
-              disabled={isSubmitting}
-              className="w-full px-6 py-3.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60"
-            />
-            <select
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
-              disabled={isSubmitting}
-              className="w-full px-6 py-3.5 bg-white/95 text-[#133248] font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60 cursor-pointer"
-            >
-              <option value="social_media_content_creator">Social Media Content Creator</option>
-              <option value="broadcast_content_creator">Broadcast Content Creator</option>
-              <option value="editor">Editor</option>
-              <option value="communication_officer">Communication Officer</option>
-            </select>
-          </div>
+          {/* Partner Institution & Account Role Layout */}
+          {isAfSRwanda ? (
+            /* ── AFS-RWANDA ROW LAYOUT: Institution + Role side-by-side (No Job Title) ── */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
+                  Partner Institution *
+                </label>
+                <select
+                  value={form.organization}
+                  onChange={(e) => handleOrganizationChange(e.target.value)}
+                  disabled={isSubmitting}
+                  className="w-full px-5 py-3.5 bg-white/95 text-[#133248] font-medium text-xs sm:text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer truncate disabled:opacity-60"
+                >
+                  {ORGANIZATIONS.map((org) => (
+                    <option key={org} value={org}>
+                      {org}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          {/* Role Specific Inputs: Link & Social Handle */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
+                  Account Role *
+                </label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+                  disabled={isSubmitting}
+                  className="w-full px-6 py-3.5 bg-white/95 text-[#133248] font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer disabled:opacity-60"
+                >
+                  {availableRoles.map((roleKey) => (
+                    <option key={roleKey} value={roleKey}>
+                      {ROLE_LABELS[roleKey]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ) : (
+            /* ── OTHER INSTITUTIONS LAYOUT: Institution + Mandatory Job Title, followed by Role ── */
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
+                    Partner Institution *
+                  </label>
+                  <select
+                    value={form.organization}
+                    onChange={(e) => handleOrganizationChange(e.target.value)}
+                    disabled={isSubmitting}
+                    className="w-full px-5 py-3.5 bg-white/95 text-[#133248] font-medium text-xs sm:text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer truncate disabled:opacity-60"
+                  >
+                    {ORGANIZATIONS.map((org) => (
+                      <option key={org} value={org}>
+                        {org}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
+                    Job Title (Author Byline) *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Senior Research Fellow *"
+                    value={form.jobTitle}
+                    onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
+                    disabled={isSubmitting}
+                    className="w-full px-6 py-3.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
+                  Account Role *
+                </label>
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
+                  disabled={isSubmitting}
+                  className="w-full px-6 py-3.5 bg-white/95 text-[#133248] font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer disabled:opacity-60"
+                >
+                  {availableRoles.map((roleKey) => (
+                    <option key={roleKey} value={roleKey}>
+                      {ROLE_LABELS[roleKey]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* Optional Links & Social Handle */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <input
               type="url"
-              placeholder={form.role === "broadcast_content_creator" ? "Organization Link (Required) *" : "Organization Link (Optional)"}
+              placeholder={form.role === "media_correspondent" ? "Organization Link (Required) *" : "Organization Link (Optional)"}
               value={form.organizationLink}
               onChange={(e) => setForm({ ...form, organizationLink: e.target.value })}
               disabled={isSubmitting}

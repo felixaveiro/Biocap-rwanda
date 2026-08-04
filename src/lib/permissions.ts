@@ -1,7 +1,7 @@
-import { Role, User, BlogPost, BlogStatus } from "@/types";
+import { Role, BlogPost } from "@/types";
 
 export type Permission =
-  | "blog:view"       // 👈 Added to resolve TypeScript build errors in useSession("blog:view")
+  | "blog:view"       // Resolves useSession("blog:view") TypeScript checks
   | "blog:view:all"
   | "blog:create"
   | "blog:edit"
@@ -71,7 +71,12 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:create",
     "blog:submit",
   ],
-  broadcast_content_creator: [
+  media_correspondent: [
+    "blog:view",
+    "blog:create",
+    "blog:submit",
+  ],
+  principal_investigator: [
     "blog:view",
     "blog:create",
     "blog:submit",

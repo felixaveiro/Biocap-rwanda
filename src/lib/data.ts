@@ -22,6 +22,8 @@ const SEED_USERS: User[] = [
     firstName: "Alice",
     lastName: "Admin",
     role: "admin",
+    organization: "Alliance for Science Rwanda (AfS-Rwanda)",
+    jobTitle: "System Administrator",
     isActive: true,
     profileReviewStatus: "verified",
     createdAt: nowIso(),
@@ -34,6 +36,8 @@ const SEED_USERS: User[] = [
     firstName: "Eddie",
     lastName: "Officer",
     role: "communication_officer",
+    organization: "Rwanda Agriculture and Animal Resources Development Board (RAB)",
+    jobTitle: "Communication Officer",
     isActive: true,
     profileReviewStatus: "verified",
     createdAt: nowIso(),
@@ -46,6 +50,8 @@ const SEED_USERS: User[] = [
     firstName: "Nadia",
     lastName: "Editor",
     role: "editor",
+    organization: "Alliance for Science Rwanda (AfS-Rwanda)",
+    jobTitle: "Senior Managing Editor",
     isActive: true,
     profileReviewStatus: "verified",
     createdAt: nowIso(),
@@ -58,6 +64,8 @@ const SEED_USERS: User[] = [
     firstName: "Ivy",
     lastName: "Social",
     role: "social_media_content_creator",
+    organization: "Alliance for Science Rwanda (AfS-Rwanda)",
+    jobTitle: "Social Media Strategist",
     isActive: true,
     profileReviewStatus: "verified",
     createdAt: nowIso(),
@@ -65,11 +73,13 @@ const SEED_USERS: User[] = [
   },
   {
     _id: "u5",
-    username: "ben_broadcast",
+    username: "ben_correspondent",
     email: "ben@example.com",
     firstName: "Ben",
-    lastName: "Broadcast",
-    role: "broadcast_content_creator",
+    lastName: "Correspondent",
+    role: "media_correspondent",
+    organization: "Alliance for Science Rwanda (AfS-Rwanda)",
+    jobTitle: "Broadcast Media Correspondent",
     isActive: true,
     profileReviewStatus: "verified",
     createdAt: nowIso(),
@@ -92,6 +102,8 @@ const SEED_BLOGS: BlogPost[] = [
       username: "nadia_editor",
       firstName: "Nadia",
       lastName: "Editor",
+      jobTitle: "Senior Managing Editor",
+      organization: "Alliance for Science Rwanda (AfS-Rwanda)",
     },
     originalAuthorRole: "editor",
     author: {
@@ -99,6 +111,7 @@ const SEED_BLOGS: BlogPost[] = [
       username: "nadia_editor",
       firstName: "Nadia",
       lastName: "Editor",
+      jobTitle: "Senior Managing Editor",
       role: "editor",
     },
     authorRole: "editor",
@@ -123,6 +136,8 @@ const SEED_BLOGS: BlogPost[] = [
       username: "nadia_editor",
       firstName: "Nadia",
       lastName: "Editor",
+      jobTitle: "Senior Managing Editor",
+      organization: "Alliance for Science Rwanda (AfS-Rwanda)",
     },
     originalAuthorRole: "editor",
     author: {
@@ -130,6 +145,7 @@ const SEED_BLOGS: BlogPost[] = [
       username: "nadia_editor",
       firstName: "Nadia",
       lastName: "Editor",
+      jobTitle: "Senior Managing Editor",
       role: "editor",
     },
     authorRole: "editor",
@@ -170,12 +186,15 @@ export async function getUser(id: string): Promise<User | undefined> {
   return (await listUsers()).find((u) => u._id === id);
 }
 
-export async function createUser(data: Pick<User, "firstName" | "lastName" | "email" | "role" | "username">): Promise<User> {
+export async function createUser(
+  data: Pick<User, "firstName" | "lastName" | "email" | "role" | "username" | "organization"> & { jobTitle?: string }
+): Promise<User> {
   const users = await listUsers();
   const user: User = {
     _id: uid("u"),
     isActive: true,
     profileReviewStatus: "verified",
+    jobTitle: data.jobTitle || "",
     createdAt: nowIso(),
     updatedAt: nowIso(),
     ...data,
@@ -239,6 +258,8 @@ export async function createBlog(
       username: author.username,
       firstName: author.firstName,
       lastName: author.lastName,
+      jobTitle: author.jobTitle,
+      organization: typeof author.organization === 'string' ? author.organization : undefined,
     },
     originalAuthorRole: author.role,
     author: {
@@ -246,6 +267,7 @@ export async function createBlog(
       username: author.username,
       firstName: author.firstName,
       lastName: author.lastName,
+      jobTitle: author.jobTitle,
       role: author.role,
     },
     authorRole: author.role,

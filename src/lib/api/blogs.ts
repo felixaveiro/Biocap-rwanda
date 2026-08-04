@@ -95,8 +95,9 @@ function getBlogBasePath(role?: Role): string {
       return "/api/officer/published";
     case "editor":
       return "/api/editor/blogs";
-    case "broadcast_content_creator":
+    case "media_correspondent":
     case "social_media_content_creator":
+    case "principal_investigator":
       return "/api/contributor/my-blogs";
     default:
       return "/api/blogs";
@@ -105,6 +106,14 @@ function getBlogBasePath(role?: Role): string {
 
 function getTrashBasePath(role?: Role): string {
   return "/api/blogs/trash";
+}
+
+function isContributorRole(role?: Role): boolean {
+  return (
+    role === "media_correspondent" ||
+    role === "social_media_content_creator" ||
+    role === "principal_investigator"
+  );
 }
 
 // ─── Public Endpoints (No Auth Required) ──────────────────────────────────────
@@ -170,7 +179,7 @@ export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
  * POST /api/blogs — Create new blog with multipart FormData
  */
 export async function createBlog(payload: CreateBlogPayload, role?: Role): Promise<BlogPost> {
-  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const isContributor = isContributorRole(role);
   const endpoint = isContributor ? "/api/contributor/blogs" : getBlogBasePath(role);
 
   const formData = new FormData();
@@ -207,7 +216,7 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
  * PUT /api/blogs/:id — Update existing blog
  */
 export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: Role): Promise<BlogPost> {
-  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const isContributor = isContributorRole(role);
   const endpoint = isContributor ? `/api/contributor/blogs/${id}` : `${getBlogBasePath(role)}/${id}`;
 
   const formData = new FormData();
@@ -233,7 +242,7 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
  * DELETE /api/blogs/:id — Soft-delete blog
  */
 export async function deleteBlog(id: string, role?: Role): Promise<{ message: string }> {
-  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const isContributor = isContributorRole(role);
   const endpoint = isContributor ? `/api/contributor/blogs/${id}` : `${getBlogBasePath(role)}/${id}`;
 
   return apiRequest<{ message: string }>(endpoint, {
@@ -278,7 +287,7 @@ export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ me
  * PATCH /api/blogs/:id/submit — Submit draft for review
  */
 export async function submitBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const isContributor = role === "broadcast_content_creator" || role === "social_media_content_creator";
+  const isContributor = isContributorRole(role);
   const endpoint = isContributor ? `/api/contributor/blogs/${id}/submit` : `${getBlogBasePath(role)}/${id}/submit`;
 
   return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {

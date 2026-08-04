@@ -3,14 +3,16 @@ export type Role =
   | 'communication_officer'
   | 'editor'
   | 'social_media_content_creator'
-  | 'broadcast_content_creator';
+  | 'media_correspondent'
+  | 'principal_investigator';
 
 export const ROLES: Role[] = [
   'admin',
   'communication_officer',
   'editor',
   'social_media_content_creator',
-  'broadcast_content_creator',
+  'media_correspondent',
+  'principal_investigator',
 ];
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -18,8 +20,33 @@ export const ROLE_LABELS: Record<Role, string> = {
   communication_officer: 'Communication Officer',
   editor: 'Editor',
   social_media_content_creator: 'Social Media Content Creator',
-  broadcast_content_creator: 'Broadcast Content Creator',
+  media_correspondent: 'Media Correspondent',
+  principal_investigator: 'Principal Investigator (PI)',
 };
+
+// ─── Rwanda BioCap Partner Institutions ─────────────────────────────────────
+export const ORGANIZATIONS = [
+  'International Potato Center (CIP)',
+  'International Institute of Tropical Agriculture (IITA)',
+  'Donald Danforth Plant Science Center (DDPSC)',
+  'Michigan State University (MSU)',
+  'Rwanda Agriculture and Animal Resources Development Board (RAB)',
+  'Alliance for Science Rwanda (AfS-Rwanda)',
+] as const;
+
+export type Organization = (typeof ORGANIZATIONS)[number];
+
+// Helper to resolve available registration roles based on selected institution
+export function getRolesForOrganization(organization: string): Role[] {
+  if (organization === 'Alliance for Science Rwanda (AfS-Rwanda)') {
+    return [
+      'social_media_content_creator',
+      'media_correspondent',
+      'communication_officer',
+    ];
+  }
+  return ['principal_investigator', 'communication_officer'];
+}
 
 export type ProfileReviewStatus = 'pending' | 'verified' | 'needs_attention';
 
@@ -48,7 +75,8 @@ export interface User {
   receiveNotifications?: boolean;
   dateOfBirth?: string;
   avatar?: string;
-  organization?: string;
+  organization: Organization | string;
+  jobTitle: string; // Mandatory: Displayed as Author byline with articles
   organizationLink?: string;
   socialHandle?: string;
   createdBy?:
@@ -147,12 +175,15 @@ export interface EditorModification {
   title?: string;
   excerpt?: string;
   blocks?: BlogBlock[];
-  img?: string; // 👈 Fixed: Added cover image edit support
+  img?: string;
   modifiedAt?: string;
 }
 
 // ─── Notification Alert Interface ───────────────────────────────────────────
-export type NotificationType = 'ARTICLE_COMMENT' | 'EDITOR_EDIT_PROMPT' | 'BLOG_APPROVED';
+export type NotificationType =
+  | 'ARTICLE_COMMENT'
+  | 'EDITOR_EDIT_PROMPT'
+  | 'BLOG_APPROVED';
 
 export interface Notification {
   _id: string;
@@ -198,6 +229,7 @@ export interface BlogPost {
     email?: string;
     firstName: string;
     lastName: string;
+    jobTitle?: string;
     socialHandle?: string;
     organizationLink?: string;
     organization?: string;
@@ -211,6 +243,7 @@ export interface BlogPost {
     email?: string;
     firstName: string;
     lastName: string;
+    jobTitle?: string;
     role?: Role;
   };
   authorRole: Role;
@@ -223,7 +256,7 @@ export interface BlogPost {
   reviewHistory: ReviewLog[];
 
   // ─── Officer Review & Change Approvals ────────────────────────────────────
-  editorModifications?: EditorModification | null; // 👈 Fixed: Added null allowance
+  editorModifications?: EditorModification | null;
   officerAcceptedChanges?: boolean;
   officerApprovalNote?: string;
 

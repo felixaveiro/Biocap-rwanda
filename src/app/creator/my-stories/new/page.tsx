@@ -43,7 +43,7 @@ export default function CreateNewStoryPage() {
   }
 
   const isSocialCreator = user.role === "social_media_content_creator";
-  const isBroadcastCreator = user.role === "broadcast_content_creator";
+  const isMediaCorrespondent = user.role === "media_correspondent";
 
   // Triggered when user picks an image file
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,8 +80,8 @@ export default function CreateNewStoryPage() {
       return;
     }
 
-    if (isBroadcastCreator && !finalOrgLink) {
-      setErrorMsg("An organization link is required for your account type.");
+    if (isMediaCorrespondent && !finalOrgLink) {
+      setErrorMsg("An organization link is required for Media Correspondent accounts.");
       return;
     }
 
@@ -222,7 +222,7 @@ export default function CreateNewStoryPage() {
             </div>
           )}
 
-          {isBroadcastCreator && (
+          {isMediaCorrespondent && (
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Organization Link *
