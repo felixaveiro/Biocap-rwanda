@@ -6,7 +6,7 @@ import Link from "next/link";
 import { User, Loader2, AlertCircle, Eye, EyeOff, Dna } from "lucide-react";
 import { loginUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { authCookies } from "@/lib/auth/cookies";
+import { Role } from "@/types";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +14,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  /**
+   * Helper function to map user roles to their respective dashboards
+   */
+  const getRedirectPathForRole = (role: Role | string): string => {
+    switch (role) {
+      case "admin":
+        return "/admin";
+      case "communication_officer":
+        return "/officer";
+      case "editor":
+        return "/editor";
+      case "social_media_content_creator":
+      case "media_correspondent":
+      case "principal_investigator":
+        return "/creator/my-stories";
+      default:
+        return "/dashboard";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,21 +47,17 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const { accessToken, refreshToken, role, username } = await loginUser({
+      // loginUser() automatically handles persisting session cookies via authCookies.setSession
+      const response = await loginUser({
         email: form.identifier.trim(),
         password: form.password,
       });
 
-      // Save tokens & auth user state
-      authCookies.setSession({
-        token: accessToken,
-        refreshToken,
-        role,
-        username,
-      });
+      // Extract user role from response and route to their dashboard
+      const userRole = response.role || response.user?.role || "";
+      const redirectPath = getRedirectPathForRole(userRole);
 
-      // Navigate to smart role redirect dashboard
-      router.push("/dashboard");
+      router.push(redirectPath);
       router.refresh();
     } catch (err: unknown) {
       console.error("Login failed:", err);

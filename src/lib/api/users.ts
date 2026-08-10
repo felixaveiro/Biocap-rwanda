@@ -8,7 +8,8 @@ export interface CreateUserPayload {
   firstName: string;
   lastName: string;
   role: Role;
-  organization?: string;
+  organization: string; // Rwanda BioCap partner institution
+  jobTitle?: string;     // Required for partner institutions, omitted for AfS-Rwanda
   organizationLink?: string;
   socialHandle?: string;
   dateOfBirth?: string;
@@ -20,6 +21,7 @@ export interface UpdateUserPayload {
   lastName?: string;
   role?: Role;
   organization?: string;
+  jobTitle?: string;
   organizationLink?: string;
   socialHandle?: string;
 }

@@ -38,6 +38,7 @@ export default function ForgotPasswordPage() {
         response.message || 
         'If an account exists with this email, a password reset link has been sent.'
       );
+      setEmail('');
     } catch (err: unknown) {
       console.error('Password reset request error:', err);
       const message =
@@ -135,7 +136,7 @@ export default function ForgotPasswordPage() {
         {/* Back Link */}
         <div className="mt-8 text-center border-t border-[#133248]/15 pt-4">
           <Link
-            href="/login"
+            href="/auth/login" // 👈 Fixed route from /login to /auth/login
             className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#133248] hover:text-[#E52B67] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Login

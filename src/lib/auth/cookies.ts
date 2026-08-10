@@ -1,3 +1,5 @@
+// ─── Cookie Management Utilities ────────────────────────────────────────────
+
 const TOKEN_COOKIE = "biocap_token";
 const REFRESH_TOKEN_COOKIE = "biocap_refresh_token";
 const USER_ID_COOKIE = "biocap_user_id";
@@ -6,14 +8,17 @@ const USERNAME_COOKIE = "biocap_username";
 
 const DEFAULT_EXPIRY_DAYS = 7;
 
-function setCookie(name: string, value: string, days = DEFAULT_EXPIRY_DAYS) {
+export function setCookie(name: string, value: string, days = DEFAULT_EXPIRY_DAYS) {
   if (typeof document === "undefined") return;
 
   const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  const isSecure = typeof window !== "undefined" && window.location.protocol === "https:";
+  const secureFlag = isSecure ? "; Secure" : "";
+
+  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax${secureFlag}`;
 }
 
-function getCookie(name: string): string | null {
+export function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
 
   const match = document.cookie
@@ -25,7 +30,7 @@ function getCookie(name: string): string | null {
   return decodeURIComponent(match.split("=")[1]);
 }
 
-function deleteCookie(name: string) {
+export function deleteCookie(name: string) {
   if (typeof document === "undefined") return;
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 }
@@ -50,6 +55,10 @@ export const authCookies = {
 
   setToken(token: string) {
     setCookie(TOKEN_COOKIE, token);
+  },
+
+  setRefreshToken(refreshToken: string) {
+    setCookie(REFRESH_TOKEN_COOKIE, refreshToken);
   },
 
   getToken(): string | null {

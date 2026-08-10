@@ -60,12 +60,13 @@ function ResetPasswordForm() {
     try {
       const response = await resetPassword({
         token,
+        newPassword,
         new_password: newPassword,
       });
 
       setSuccess(response.message || 'Password reset successful! Redirecting to login...');
-      // Updated route to match /login
-      setTimeout(() => router.push('/login'), 2200);
+      // Updated route to match /auth/login
+      setTimeout(() => router.push('/auth/login'), 2200);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Reset failed. Link may have expired.';
@@ -192,7 +193,7 @@ function ResetPasswordForm() {
           <p className="text-xs sm:text-sm text-[#133248] font-medium">
             Remembered your password?{' '}
             <Link
-              href="/login"
+              href="/auth/login"
               className="font-bold text-[#E52B67] hover:underline"
             >
               Go to Login

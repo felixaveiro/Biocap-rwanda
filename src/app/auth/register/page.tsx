@@ -113,10 +113,10 @@ export default function RegisterPage() {
         organizationLink: form.organizationLink.trim() || undefined,
         socialHandle: form.socialHandle.trim() || undefined,
         role: form.role,
-      } as any);
+      });
 
       setSuccessMessage(response.message || "Registration successful!");
-      setTimeout(() => router.push("/login"), 1800);
+      setTimeout(() => router.push("/auth/login"), 1800);
     } catch (err: unknown) {
       console.error("Registration error:", err);
       const message =

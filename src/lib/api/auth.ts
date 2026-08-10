@@ -1,7 +1,8 @@
 import { apiRequest } from "./client";
 import { User, Role } from "@/types";
+import { authCookies } from "@/lib/auth/cookies";
 
-// ---- Request Payload Types ----
+// ─── Request Payload Types ───────────────────────────────────────────────────
 
 export interface RegisterPayload {
   username: string;
@@ -12,6 +13,7 @@ export interface RegisterPayload {
   role: Role;
   dateOfBirth?: string; // "YYYY-MM-DD"
   organization?: string;
+  jobTitle?: string;
   organizationLink?: string;
   socialHandle?: string;
 }
@@ -27,7 +29,8 @@ export interface ForgotPasswordPayload {
 
 export interface ResetPasswordPayload {
   token: string;
-  new_password: string;
+  newPassword?: string;
+  new_password?: string;
 }
 
 export interface ChangePasswordPayload {
@@ -35,22 +38,28 @@ export interface ChangePasswordPayload {
   newPassword: string;
 }
 
+export interface RefreshTokenPayload {
+  refreshToken: string;
+}
+
 export interface UpdateMePayload {
   username?: string;
   firstName?: string;
   lastName?: string;
   organization?: string;
+  jobTitle?: string;
   organizationLink?: string;
   socialHandle?: string;
   dateOfBirth?: string;
 }
 
-// ---- Response Types ----
+// ─── Response Types ──────────────────────────────────────────────────────────
 
 export interface RegisterResponse {
   message: string;
-  username: string;
-  role: Role;
+  username?: string;
+  role?: Role;
+  user?: User;
 }
 
 export interface LoginResponse {
@@ -58,18 +67,24 @@ export interface LoginResponse {
   refreshToken: string;
   role: Role;
   username: string;
-  expiresIn: string;
+  expiresIn?: string;
+  user?: User;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn?: string;
 }
 
 export interface UserProfile extends User {}
 
-// ---- API Functions ----
+// ─── API Functions ───────────────────────────────────────────────────────────
 
 /**
  * Public direct registration with user-provided password.
- * (Role 'admin' cannot be self-assigned)
  */
-export function registerUser(payload: RegisterPayload) {
+export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
   return apiRequest<RegisterResponse>("/api/auth/register", {
     method: "POST",
     body: payload,
@@ -78,19 +93,57 @@ export function registerUser(payload: RegisterPayload) {
 
 /**
  * Public login endpoint.
- * Returns access token, refresh token, role, and username.
+ * Returns access token, refresh token, role, and username, and persists session cookies.
  */
-export function loginUser(payload: LoginPayload) {
-  return apiRequest<LoginResponse>("/api/auth/login", {
+export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
+  const res = await apiRequest<LoginResponse>("/api/auth/login", {
     method: "POST",
     body: payload,
   });
+
+  if (res.accessToken) {
+    authCookies.setSession({
+      token: res.accessToken,
+      refreshToken: res.refreshToken,
+      userId: res.user?._id,
+      role: res.role || res.user?.role || "",
+      username: res.username || res.user?.username || "",
+    });
+  }
+
+  return res;
+}
+
+/**
+ * Refresh access token using current refresh token.
+ */
+export async function refreshSession(): Promise<RefreshTokenResponse | null> {
+  const currentRefreshToken = authCookies.getRefreshToken();
+  if (!currentRefreshToken) return null;
+
+  try {
+    const res = await apiRequest<RefreshTokenResponse>("/api/auth/refresh-token", {
+      method: "POST",
+      body: { refreshToken: currentRefreshToken },
+    });
+
+    if (res.accessToken) {
+      authCookies.setToken(res.accessToken);
+      if (res.refreshToken) {
+        authCookies.setRefreshToken(res.refreshToken);
+      }
+    }
+    return res;
+  } catch {
+    authCookies.clearSession();
+    return null;
+  }
 }
 
 /**
  * Requests a password reset link sent via email.
  */
-export function forgotPassword(payload: ForgotPasswordPayload) {
+export async function forgotPassword(payload: ForgotPasswordPayload): Promise<{ message: string }> {
   return apiRequest<{ message: string }>("/api/auth/forgot-password", {
     method: "POST",
     body: payload,
@@ -100,17 +153,22 @@ export function forgotPassword(payload: ForgotPasswordPayload) {
 /**
  * Verifies reset token and updates the user's password.
  */
-export function resetPassword(payload: ResetPasswordPayload) {
+export async function resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }> {
+  const body = {
+    token: payload.token,
+    newPassword: payload.newPassword || payload.new_password,
+  };
+
   return apiRequest<{ message: string }>("/api/auth/reset-password", {
     method: "POST",
-    body: payload,
+    body,
   });
 }
 
 /**
  * Changes current logged-in user password.
  */
-export function changePassword(payload: ChangePasswordPayload) {
+export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
   return apiRequest<{ message: string }>("/api/auth/change-password", {
     method: "POST",
     auth: true,
@@ -121,7 +179,7 @@ export function changePassword(payload: ChangePasswordPayload) {
 /**
  * Fetches current logged-in user's profile.
  */
-export function getMe() {
+export async function getMe(): Promise<UserProfile> {
   return apiRequest<UserProfile>("/api/auth/me", {
     method: "GET",
     auth: true,
@@ -131,7 +189,7 @@ export function getMe() {
 /**
  * Updates logged-in user's profile fields.
  */
-export function updateMe(payload: UpdateMePayload) {
+export async function updateMe(payload: UpdateMePayload): Promise<UserProfile> {
   return apiRequest<UserProfile>("/api/auth/me", {
     method: "PUT",
     body: payload,
@@ -140,11 +198,16 @@ export function updateMe(payload: UpdateMePayload) {
 }
 
 /**
- * Logs out the user and invalidates the session refresh token.
+ * Logs out the user, clears local cookies, and invalidates session on backend.
  */
-export function logoutUser() {
-  return apiRequest<{ message: string }>("/api/auth/logout", {
-    method: "POST",
-    auth: true,
-  });
+export async function logoutUser(): Promise<{ message: string }> {
+  try {
+    const res = await apiRequest<{ message: string }>("/api/auth/logout", {
+      method: "POST",
+      auth: true,
+    });
+    return res;
+  } finally {
+    authCookies.clearSession();
+  }
 }

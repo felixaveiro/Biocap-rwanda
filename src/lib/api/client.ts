@@ -29,9 +29,8 @@ let refreshPromise: Promise<string | null> | null = null;
 
 async function tryRefreshToken(): Promise<string | null> {
   const refreshToken = authCookies.getRefreshToken();
-  const userId = authCookies.getUserId();
 
-  if (!refreshToken || !userId) {
+  if (!refreshToken) {
     authCookies.clearAll();
     return null;
   }
@@ -43,10 +42,10 @@ async function tryRefreshToken(): Promise<string | null> {
 
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+      const res = await fetch(`${BASE_URL}/api/auth/refresh-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken, userId }),
+        body: JSON.stringify({ refreshToken }),
       });
 
       // Explicit Check: ONLY clear session if server returns explicit Auth failure
@@ -63,6 +62,9 @@ async function tryRefreshToken(): Promise<string | null> {
       const data = await res.json();
       if (data.accessToken) {
         authCookies.setToken(data.accessToken);
+        if (data.refreshToken) {
+          authCookies.setRefreshToken(data.refreshToken);
+        }
         return data.accessToken;
       }
     } catch (err) {
@@ -114,8 +116,8 @@ export async function apiRequest<T>(
     );
   }
 
-  // ✅ FIX: Exclude ONLY /refresh route to prevent infinite loops. Allow /api/auth/me to refresh!
-  if (response.status === 401 && auth && !path.includes("/api/auth/refresh")) {
+  // Exclude /refresh-token route to prevent infinite loops
+  if (response.status === 401 && auth && !path.includes("/refresh-token")) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;
@@ -188,8 +190,8 @@ export async function apiFormRequest<T>(
     );
   }
 
-  // ✅ FIX: Exclude ONLY /refresh route
-  if (response.status === 401 && auth && !path.includes("/api/auth/refresh")) {
+  // Exclude /refresh-token route
+  if (response.status === 401 && auth && !path.includes("/refresh-token")) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;
