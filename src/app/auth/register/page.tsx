@@ -403,7 +403,7 @@ export default function RegisterPage() {
           <p className="text-xs sm:text-sm text-[#133248] font-medium">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href="/auth/login"
               className="font-bold text-[#E52B67] hover:underline"
             >
               Sign in here
