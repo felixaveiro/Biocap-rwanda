@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import ReviewStoryModal from "@/components/ReviewStoryModal";
@@ -68,6 +69,13 @@ export default function CommunicationOfficerOverviewPage() {
       fetchDashboardData();
     }
   }, [currentOfficerUser, isPermissionAllowed, fetchDashboardData]);
+
+  const router = useRouter();
+
+  const handleNotificationViewArticle = (articleId?: string) => {
+    if (!articleId) return;
+    router.push(`/creator/my-stories?open=${articleId}`);
+  };
 
   // Handler to Accept Editor Modifications (Fixed Payload Argument)
   const handleAcceptEditorChanges = async (articleId: string) => {
@@ -264,6 +272,14 @@ export default function CommunicationOfficerOverviewPage() {
                         )}
                       </div>
                       <p className="text-xs text-slate-700 mb-2">{notif.message}</p>
+                      {(notif.type === "CHANGE_REQUEST" || notif.type === "CHANGE_REQUEST_IMPLEMENTED") && notif.article && (
+                        <button
+                          onClick={() => handleNotificationViewArticle(notif.article._id)}
+                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-600 shadow-xs transition hover:bg-indigo-50"
+                        >
+                          View Article
+                        </button>
+                      )}
                       {notif.type === "EDITOR_EDIT_PROMPT" && notif.article && (
                         <button
                           disabled={processingId === notif.article._id}

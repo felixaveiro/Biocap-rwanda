@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BlogPost, User, Role } from "@/types";
 import { blogsApi, editorApi } from "@/lib/api/blogs";
 import EditStoryModal from "@/components/EditStoryModal";
@@ -30,6 +30,8 @@ interface BlogTableProps {
   onRestore?: (id: string) => void;
   onPermanentDelete?: (id: string) => void;
   onRefreshNeeded?: () => void;
+  /** Optional: externally request opening an edit modal for a specific story id */
+  openStoryId?: string | null;
 }
 
 export default function BlogTable({
@@ -44,9 +46,17 @@ export default function BlogTable({
   onRestore,
   onPermanentDelete,
   onRefreshNeeded,
+  openStoryId = null,
 }: BlogTableProps) {
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
   const [reviewingStory, setReviewingStory] = useState<BlogPost | null>(null);
+
+  // If parent requests opening a specific story, set editingStory when available
+  useEffect(() => {
+    if (!openStoryId) return;
+    const match = blogs.find((b) => b._id === openStoryId);
+    if (match) setEditingStory(match);
+  }, [openStoryId, blogs]);
 
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -57,8 +67,9 @@ export default function BlogTable({
     (r) => r.includes("creator") || r.includes("contributor")
   );
   const isEditor = userRoles.some((r) => r === "editor" || r === "admin");
-  const isOfficer = userRoles.some(
-    (r) => r === "communication_officer" || r === "admin"
+  // Publisher roles now include admin, communication_officer, and editor
+  const canPublish = userRoles.some(
+    (r) => r === "communication_officer" || r === "admin" || r === "editor"
   );
 
   // Creator Action: Submit Draft for Review
@@ -185,6 +196,13 @@ export default function BlogTable({
                           </span>
                         </div>
                       )}
+
+                      {story.changeRequests && story.changeRequests.filter((c) => !c.implemented).length > 0 && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-800 border border-rose-200/60">
+                          <MessageSquare size={12} className="shrink-0 text-rose-600" />
+                          <span className="truncate max-w-xs">Changes requested: {story.changeRequests.filter((c) => !c.implemented).length}</span>
+                        </div>
+                      )}
                     </td>
 
                     <td className="px-6 py-4">
@@ -300,8 +318,8 @@ export default function BlogTable({
                               </>
                             )}
 
-                            {/* OFFICER & ADMIN PUBLISH ACTIONS */}
-                            {isOfficer && story.status === "approved" && onPublish && (
+                            {/* PUBLISHER ACTIONS: admin, communication_officer, editor */}
+                            {canPublish && story.status === "approved" && onPublish && (
                               <button
                                 onClick={() => onPublish(story)}
                                 className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition flex items-center gap-1"

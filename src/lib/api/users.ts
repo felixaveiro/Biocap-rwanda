@@ -154,4 +154,13 @@ export const usersApi = {
       auth: true,
     });
   },
+  /**
+   * POST /api/admin/users/:id/reset-password — Trigger password reset for a user
+   */
+  async resetUserPassword(id: string): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>(`/api/admin/users/${id}/reset-password`, {
+      method: "POST",
+      auth: true,
+    });
+  },
 };

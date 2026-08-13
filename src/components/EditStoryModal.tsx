@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { BlogPost, Role, BlogBlock } from "@/types";
+import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
 import {
   X,
@@ -11,6 +11,9 @@ import {
   AlertCircle,
   MessageSquare,
   FileText,
+  CheckCircle2,
+  Clock,
+  User,
 } from "lucide-react";
 
 export interface EditStoryModalProps {
@@ -36,6 +39,11 @@ export default function EditStoryModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const editorFeedbackNote = story.lastRejectionNote || null;
+
+  // Change Requests UI state
+  const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
+  const [implementationNote, setImplementationNote] = useState("");
+  const [isImplementing, setIsImplementing] = useState(false);
 
   const handleUpdateStory = async (e: React.FormEvent, submitForReview = false) => {
     e.preventDefault();
@@ -79,6 +87,32 @@ export default function EditStoryModal({
     }
   };
 
+  const openImplementModal = (cr: ChangeRequest) => {
+    setImplementingChange(cr);
+    setImplementationNote(cr.implementationNote || "");
+  };
+
+  const handleConfirmImplement = async () => {
+    if (!implementingChange) return;
+    setIsImplementing(true);
+    try {
+      await blogsApi.markChangeImplemented(story._id, {
+        changeId: implementingChange._id,
+        implementationNote: implementationNote || undefined,
+      }, currentUserRole);
+
+      // Refresh parent list/detail
+      onStoryUpdated();
+      setImplementingChange(null);
+      setImplementationNote("");
+    } catch (err) {
+      console.error("Failed to mark change implemented:", err);
+      alert("Failed to mark change implemented.");
+    } finally {
+      setIsImplementing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
       <div className="w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-150">
@@ -104,6 +138,92 @@ export default function EditStoryModal({
                 <MessageSquare size={14} /> Editor Feedback & Revision Request:
               </div>
               <p className="text-xs font-medium text-amber-800/90">{editorFeedbackNote}</p>
+            </div>
+          )}
+
+          {story.changeRequests && story.changeRequests.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-800">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 font-bold text-slate-800 text-xs">
+                  <FileText size={14} /> Change Requests
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {story.changeRequests.map((cr) => {
+                  const commenterName = typeof cr.commenter === "string"
+                    ? cr.commenter
+                    : cr.commenter?.firstName
+                    ? `${cr.commenter.firstName} ${cr.commenter.lastName || ""}`.trim()
+                    : cr.commenter?.username || "Reviewer";
+
+                  return (
+                    <div key={cr._id} className="rounded-lg border border-slate-100 p-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <User size={16} className="text-slate-500" />
+                          <div>
+                            <div className="text-xs font-semibold text-slate-900">{commenterName} <span className="text-[11px] text-slate-400">{cr.role ? ` — ${cr.role}` : ''}</span></div>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-2"><Clock size={12} /> <span>{new Date(cr.requestedAt).toLocaleString()}</span></div>
+                          </div>
+                        </div>
+
+                        <div>
+                          {cr.implemented ? (
+                            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+                              <CheckCircle2 size={14} /> Implemented
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => openImplementModal(cr)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                            >
+                              Mark implemented
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 text-sm text-slate-700">{cr.comment}</div>
+
+                      {cr.implemented && cr.implementationNote && (
+                        <div className="mt-2 rounded-md bg-emerald-50 p-2 text-[12px] text-emerald-800 border border-emerald-100">
+                          <div className="font-semibold text-emerald-900">Implementation Note</div>
+                          <div className="text-[13px]">{cr.implementationNote}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Implement modal inline */}
+              {implementingChange && (
+                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-bold">Mark Change Implemented</div>
+                    <button onClick={() => setImplementingChange(null)} className="text-xs text-slate-500">Cancel</button>
+                  </div>
+                  <div className="text-xs text-slate-600 mb-2">Optional note describing the implementation</div>
+                  <textarea
+                    rows={3}
+                    value={implementationNote}
+                    onChange={(e) => setImplementationNote(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 p-2 text-sm text-slate-800"
+                  />
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    <button onClick={() => setImplementingChange(null)} className="rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">Cancel</button>
+                    <button
+                      onClick={handleConfirmImplement}
+                      disabled={isImplementing}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
+                    >
+                      {isImplementing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                      Confirm Implemented
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

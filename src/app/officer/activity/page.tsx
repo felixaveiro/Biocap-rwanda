@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { officerApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
@@ -45,6 +46,14 @@ export default function OfficerActivityNotificationsPage() {
     } catch (err) {
       console.error("Failed to mark as read", err);
     }
+  };
+
+  const router = useRouter();
+
+  const handleViewArticle = (articleId?: string) => {
+    if (!articleId) return;
+    // Navigate to creator's my-stories page and open the edit modal via query param
+    router.push(`/creator/my-stories?open=${articleId}`);
   };
 
   if (sessionLoading || !allowed || !currentOfficerUser) {
@@ -119,7 +128,7 @@ export default function OfficerActivityNotificationsPage() {
                       : "border-indigo-100 bg-indigo-50/40"
                   }`}
                 >
-                  <div className="space-y-1">
+                    <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="inline-block rounded-md bg-indigo-100 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
                         {item.type}
@@ -129,6 +138,17 @@ export default function OfficerActivityNotificationsPage() {
                         {new Date(item.createdAt).toLocaleDateString()}
                       </span>
                     </div>
+
+                  {item.article && (item.type === "CHANGE_REQUEST" || item.type === "CHANGE_REQUEST_IMPLEMENTED") && (
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        onClick={() => handleViewArticle(item.article._id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50"
+                      >
+                        View Article
+                      </button>
+                    </div>
+                  )}
                     <p className="text-xs font-medium text-slate-800">{item.message}</p>
                   </div>
 

@@ -28,6 +28,8 @@ export default function UserTable({
 }: UserTableProps) {
   const [activeDeletingUserId, setActiveDeletingUserId] = useState<string | null>(null);
   const [tableActionError, setTableActionError] = useState<string | null>(null);
+  const [tableActionSuccess, setTableActionSuccess] = useState<string | null>(null);
+  const [activeResettingUserId, setActiveResettingUserId] = useState<string | null>(null);
 
   // Modal State
   const [selectedMemberToEdit, setSelectedMemberToEdit] = useState<User | null>(null);
@@ -112,6 +114,32 @@ export default function UserTable({
     }
   };
 
+  const handleResetPassword = async (targetUserId: string, targetMemberName: string) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to trigger a password reset email for: ${targetMemberName}?`
+    );
+    if (!isConfirmed) return;
+
+    setActiveResettingUserId(targetUserId);
+    setTableActionError(null);
+    setTableActionSuccess(null);
+
+    try {
+      await usersApi.resetUserPassword(targetUserId);
+      setTableActionSuccess("Password reset triggered successfully.");
+      if (onUserUpdated) onUserUpdated();
+      else window.location.reload();
+      // Clear success message after a short delay
+      setTimeout(() => setTableActionSuccess(null), 5000);
+    } catch (error: unknown) {
+      console.error("Failed to trigger password reset:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to trigger password reset.";
+      setTableActionError(errorMessage);
+    } finally {
+      setActiveResettingUserId(null);
+    }
+  };
+
   const getRoleBadgeStyle = (userRole: Role) => {
     switch (userRole) {
       case "admin":
@@ -134,6 +162,11 @@ export default function UserTable({
       {tableActionError && (
         <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
           {tableActionError}
+        </div>
+      )}
+      {tableActionSuccess && (
+        <div className="m-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-700">
+          {tableActionSuccess}
         </div>
       )}
 
@@ -210,6 +243,21 @@ export default function UserTable({
                             title="Edit User Role"
                           >
                             <Edit3 size={15} />
+                          </button>
+                        )}
+
+                        {can(currentUser.role, "user:deactivate") && !isSelfAccount && (
+                          <button
+                            disabled={activeResettingUserId === memberId}
+                            onClick={() => handleResetPassword(memberId, memberFullName)}
+                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
+                            title="Reset Password"
+                          >
+                            {activeResettingUserId === memberId ? (
+                              <Loader2 size={15} className="animate-spin" />
+                            ) : (
+                              <Shield size={15} />
+                            )}
                           </button>
                         )}
 

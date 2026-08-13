@@ -97,6 +97,25 @@ export interface User {
   updatedAt: string;
 }
 
+// ─── Change Request Interface ───────────────────────────────────────────────
+export interface ChangeRequest {
+  _id: string;
+  commenter?: {
+    _id?: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    role?: Role;
+  } | string;
+  role?: string;
+  comment: string;
+  requestedAt: string;
+  implemented?: boolean;
+  implementedBy?: { _id: string; username?: string; firstName?: string; lastName?: string } | string;
+  implementedAt?: string;
+  implementationNote?: string;
+}
+
 export type SessionUser = User;
 
 // Extended BlogStatus
@@ -183,7 +202,9 @@ export interface EditorModification {
 export type NotificationType =
   | 'ARTICLE_COMMENT'
   | 'EDITOR_EDIT_PROMPT'
-  | 'BLOG_APPROVED';
+  | 'BLOG_APPROVED'
+  | 'CHANGE_REQUEST'
+  | 'CHANGE_REQUEST_IMPLEMENTED';
 
 export interface Notification {
   _id: string;
@@ -259,6 +280,7 @@ export interface BlogPost {
   editorModifications?: EditorModification | null;
   officerAcceptedChanges?: boolean;
   officerApprovalNote?: string;
+  changeRequests?: ChangeRequest[];
 
   // ─── Published Article Comments ────────────────────────────────────────────
   comments?: Comment[];

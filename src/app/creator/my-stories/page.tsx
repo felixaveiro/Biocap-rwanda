@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
@@ -20,6 +21,8 @@ export default function CreatorMyStoriesPage() {
   const [personalStoriesList, setPersonalStoriesList] = useState<BlogPost[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
+
+  const searchParams = useSearchParams();
 
   // Edit Modal State
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
@@ -157,6 +160,7 @@ export default function CreatorMyStoriesPage() {
               blogs={personalStoriesList}
               user={currentCreatorUser}
               onRefreshNeeded={fetchPersonalStories}
+              openStoryId={searchParams.get("open")}
             />
           </div>
         )}

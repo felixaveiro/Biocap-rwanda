@@ -1,4 +1,4 @@
-import { apiRequest, apiFormRequest } from "./client";
+import { apiRequest, apiFormRequest, ApiError } from "./client";
 import { 
   BlogPost, 
   BlogBlock, 
@@ -85,6 +85,18 @@ export interface ActivityLog {
   createdAt: string;
 }
 
+// Admin Audit Logs filter options
+export interface AuditLogFilterOptions {
+  action?: string;
+  actor?: string;
+  target?: string;
+  targetId?: string;
+  from?: string;
+  to?: string;
+  page?: number;
+  limit?: number;
+}
+
 // ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
 
 function getBlogBasePath(role?: Role): string {
@@ -106,6 +118,51 @@ function getBlogBasePath(role?: Role): string {
 
 function getTrashBasePath(role?: Role): string {
   return "/api/blogs/trash";
+}
+
+// Helper to normalize backend responses that may wrap the blog
+// in different fields (e.g. { message, blog }, { message, data: { blog } }, or the blog directly).
+function extractBlogFromResponse(payload: any): { message: string; blog: BlogPost } {
+  if (!payload) {
+    return { message: "", blog: (null as unknown) as BlogPost };
+  }
+
+  // Common shapes prioritized
+  if (payload.blog && typeof payload.blog === "object") {
+    return { message: payload.message || "", blog: payload.blog };
+  }
+
+  if (payload.data && payload.data.blog && typeof payload.data.blog === "object") {
+    return { message: payload.message || "", blog: payload.data.blog };
+  }
+
+  // Some endpoints return { data: <blog[]> } or { data: <blog> }
+  if (payload.data && typeof payload.data === "object") {
+    // If data looks like a blog (has _id and title), treat it as the blog
+    if (payload.data._id && payload.data.title) {
+      return { message: payload.message || "", blog: payload.data };
+    }
+    // If data.docs or data[0] exists, return first doc as blog
+    if (Array.isArray(payload.data.docs) && payload.data.docs[0]) {
+      return { message: payload.message || "", blog: payload.data.docs[0] };
+    }
+  }
+
+  // If the payload itself looks like a BlogPost, return it
+  if (payload._id && payload.title) {
+    return { message: payload.message || "", blog: payload };
+  }
+
+  // Last-resort: search nested keys for a blog-like object
+  for (const key of Object.keys(payload)) {
+    const candidate = payload[key];
+    if (candidate && typeof candidate === "object" && candidate._id && candidate.title) {
+      return { message: payload.message || "", blog: candidate };
+    }
+  }
+
+  // Fallback: return empty blog placeholder (caller should handle nulls)
+  return { message: payload.message || "", blog: (null as unknown) as BlogPost };
 }
 
 function isContributorRole(role?: Role): boolean {
@@ -205,11 +262,15 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
     formData.append("document", payload.document);
   }
 
-  return apiFormRequest<BlogPost>(endpoint, {
+  const res = await apiFormRequest<any>(endpoint, {
     method: "POST",
     formData,
     auth: true,
   });
+
+  // Some backends return { message, blog } while others return the blog directly
+  const normalized = extractBlogFromResponse(res);
+  return normalized.blog;
 }
 
 /**
@@ -231,11 +292,14 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
   if (payload.img) formData.append("img", payload.img);
   if (payload.document) formData.append("document", payload.document);
 
-  return apiFormRequest<BlogPost>(endpoint, {
+  const res = await apiFormRequest<any>(endpoint, {
     method: "PUT",
     formData,
     auth: true,
   });
+
+  const normalized = extractBlogFromResponse(res);
+  return normalized.blog;
 }
 
 /**
@@ -265,10 +329,12 @@ export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | Paginat
  * PATCH /api/blogs/:id/restore — Restore a soft-deleted blog
  */
 export async function restoreBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  return apiRequest<{ message: string; blog: BlogPost }>(`/api/blogs/${id}/restore`, {
+  const res = await apiRequest<any>(`/api/blogs/${id}/restore`, {
     method: "PATCH",
     auth: true,
   });
+
+  return extractBlogFromResponse(res);
 }
 
 /**
@@ -290,10 +356,12 @@ export async function submitBlog(id: string, role?: Role): Promise<{ message: st
   const isContributor = isContributorRole(role);
   const endpoint = isContributor ? `/api/contributor/blogs/${id}/submit` : `${getBlogBasePath(role)}/${id}/submit`;
 
-  return apiRequest<{ message: string; blog: BlogPost }>(endpoint, {
+  const res = await apiRequest<any>(endpoint, {
     method: "PATCH",
     auth: true,
   });
+
+  return extractBlogFromResponse(res);
 }
 
 /**
@@ -301,11 +369,13 @@ export async function submitBlog(id: string, role?: Role): Promise<{ message: st
  */
 export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
-  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/review`, {
+  const res = await apiRequest<any>(`${basePath}/${id}/review`, {
     method: "PATCH",
     auth: true,
     body: payload,
   });
+
+  return extractBlogFromResponse(res);
 }
 
 /**
@@ -327,10 +397,28 @@ export async function rejectBlog(id: string, note?: string, role?: Role): Promis
  */
 export async function publishBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
-  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/publish`, {
-    method: "PATCH",
-    auth: true,
-  });
+  const endpoint = `${basePath}/${id}/publish`;
+
+  try {
+    const res = await apiRequest<any>(endpoint, {
+      method: "PATCH",
+      auth: true,
+    });
+
+    return extractBlogFromResponse(res);
+  } catch (err: unknown) {
+    // If role-specific publish endpoint is not found (404), try the generic admin publish endpoint.
+    if (err instanceof ApiError && err.status === 404) {
+      const adminFallback = `/api/blogs/${id}/publish`;
+      const res = await apiRequest<any>(adminFallback, {
+        method: "PATCH",
+        auth: true,
+      });
+
+      return extractBlogFromResponse(res);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -338,11 +426,13 @@ export async function publishBlog(id: string, role?: Role): Promise<{ message: s
  */
 export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
   const basePath = getBlogBasePath(role);
-  return apiRequest<{ message: string; blog: BlogPost }>(`${basePath}/${id}/unpublish`, {
+  const res = await apiRequest<any>(`${basePath}/${id}/unpublish`, {
     method: "PATCH",
     auth: true,
     body: payload || {},
   });
+
+  return extractBlogFromResponse(res);
 }
 
 // ─── Communication Officer Dedicated Operations ───────────────────────────────
@@ -397,11 +487,13 @@ export async function getEditorChanges(id: string): Promise<BlogPost> {
  * PATCH /api/officer/blogs/:id/accept-editor-changes — Accept changes submitted by the Editor
  */
 export async function acceptEditorChanges(id: string, payload?: AcceptEditorChangesPayload): Promise<{ message: string; blog: BlogPost }> {
-  return apiRequest<{ message: string; blog: BlogPost }>(`/api/officer/blogs/${id}/accept-editor-changes`, {
+  const res = await apiRequest<any>(`/api/officer/blogs/${id}/accept-editor-changes`, {
     method: "PATCH",
     body: payload || {},
     auth: true,
   });
+
+  return extractBlogFromResponse(res);
 }
 
 /**
@@ -433,6 +525,38 @@ export async function getOfficerActivityLogs(): Promise<ActivityLog[]> {
  */
 export async function getOfficerActivityLogById(id: string): Promise<ActivityLog> {
   return apiRequest<ActivityLog>(`/api/officer/activity-logs/${id}`, { auth: true });
+}
+
+/**
+ * GET /api/admin/audit-logs — Fetch admin audit logs with filters
+ */
+export async function getAdminAuditLogs(params: AuditLogFilterOptions = {}): Promise<PaginatedResponse<ActivityLog> | ActivityLog[]> {
+  const query = new URLSearchParams();
+  if (params.action) query.append("action", params.action);
+  if (params.actor) query.append("actor", params.actor);
+  if (params.target) query.append("target", params.target);
+  if (params.targetId) query.append("targetId", params.targetId);
+  if (params.from) query.append("from", params.from);
+  if (params.to) query.append("to", params.to);
+  if (params.page) query.append("page", String(params.page));
+  if (params.limit) query.append("limit", String(params.limit));
+
+  const q = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<ActivityLog> | ActivityLog[]>(`/api/admin/audit-logs${q}`, { auth: true });
+}
+
+/**
+ * GET /api/admin/audit-logs/blog/:id — Full change history for a specific blog
+ */
+export async function getAdminAuditLogsByBlog(id: string): Promise<ActivityLog[]> {
+  return apiRequest<ActivityLog[]>(`/api/admin/audit-logs/blog/${id}`, { auth: true });
+}
+
+/**
+ * GET /api/admin/audit-logs/user/:id — Full audit history for a specific user
+ */
+export async function getAdminAuditLogsByUser(id: string): Promise<ActivityLog[]> {
+  return apiRequest<ActivityLog[]>(`/api/admin/audit-logs/user/${id}`, { auth: true });
 }
 
 // ─── Content Creator Dedicated Operations ────────────────────────────────────
@@ -470,6 +594,27 @@ export async function getCreatorPublishedFeed(params: BlogFilterOptions = {}): P
  */
 export async function getCreatorPublishedBySlug(slug: string): Promise<BlogPost> {
   return apiRequest<BlogPost>(`/api/contributor/published/${slug}`, { auth: true });
+}
+
+/**
+ * PATCH /api/contributor/blogs/:id/change-implemented — Mark a change request implemented
+ */
+export interface MarkChangeImplementedPayload {
+  changeId?: string;
+  implementationNote?: string;
+}
+
+export async function markChangeImplemented(id: string, payload?: MarkChangeImplementedPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const isContributor = isContributorRole(role);
+  const endpoint = isContributor ? `/api/contributor/blogs/${id}/change-implemented` : `${getBlogBasePath(role)}/${id}/change-implemented`;
+
+  const res = await apiRequest<any>(endpoint, {
+    method: "PATCH",
+    auth: true,
+    body: payload || {},
+  });
+
+  return extractBlogFromResponse(res);
 }
 
 // ─── Communication Editor Dedicated Operations (Swagger Aligned) ─────────────
@@ -576,9 +721,14 @@ export const blogsApi = {
   markNotificationRead,
   getOfficerActivityLogs,
   getOfficerActivityLogById,
+  // Admin audit methods
+  getAdminAuditLogs,
+  getAdminAuditLogsByBlog,
+  getAdminAuditLogsByUser,
   // Creator methods
   getCreatorProfile,
   getCreatorActivity,
   getCreatorPublishedFeed,
   getCreatorPublishedBySlug,
+  markChangeImplemented,
 };

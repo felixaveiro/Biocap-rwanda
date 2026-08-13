@@ -59,6 +59,8 @@ export default function Sidebar() {
     navItems = [
       { label: "Overview", href: "/editor", icon: LayoutDashboard },
       { label: "Review Queue", href: "/editor/review", icon: CheckSquare, badge: "Review" },
+      { label: "All Stories", href: "/editor/manage", icon: FileText },
+      { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
     ];
   } else if (role === "communication_officer") {
     navItems = [

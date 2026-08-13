@@ -63,6 +63,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:delete",
     "blog:approve",
     "blog:reject",
+    "blog:publish",
     "blog:unpublish",
     "blog:submit",
   ],

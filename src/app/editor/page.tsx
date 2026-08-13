@@ -202,6 +202,12 @@ export default function EditorOverviewPage() {
               >
                 Full Queue Catalog <ArrowRight size={13} />
               </Link>
+              <Link
+                href="/editor/manage"
+                className="ml-3 inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+              >
+                Full Editor Catalog <ArrowRight size={13} />
+              </Link>
             </div>
 
             {reviewQueueList.length === 0 ? (

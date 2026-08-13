@@ -22,6 +22,8 @@ import {
   FlaskConical, 
   Globe2 
 } from 'lucide-react';
+import { blogsApi } from '@/lib/api/blogs';
+import { BlogPost } from '@/types';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -578,6 +580,28 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
 function StewardshipNewsContent() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const searchParams = useSearchParams();
+  const [latestStories, setLatestStories] = useState<BlogPost[]>([]);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchLatest = async () => {
+      setStoriesLoading(true);
+      try {
+        const res: any = await blogsApi.getPublicBlogs({ page: 1, limit: 6 });
+        let items: BlogPost[] = [];
+        if (Array.isArray(res)) items = res;
+        else if (Array.isArray(res?.data)) items = res.data;
+        else if (Array.isArray(res?.docs)) items = res.docs;
+        setLatestStories(items);
+      } catch (err) {
+        console.error('Failed to load latest stories:', err);
+      } finally {
+        setStoriesLoading(false);
+      }
+    };
+
+    fetchLatest();
+  }, []);
 
   useEffect(() => {
     const slug = searchParams.get('project');
@@ -756,6 +780,41 @@ function StewardshipNewsContent() {
               />
             </svg>
           </div>
+        </section>
+
+        {/* Latest published stories */}
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+          <h2 className="mb-4 text-2xl font-bold text-slate-900">Latest Stories</h2>
+          {storiesLoading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+            </div>
+          ) : latestStories.length === 0 ? (
+            <p className="text-sm text-slate-500">No published stories are available yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {latestStories.map((s) => (
+                <a
+                  key={s._id}
+                  href={`/Stewardship-News/${s.slug}`}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-sm transition"
+                >
+                  <div className="mb-3 h-36 w-full overflow-hidden rounded-lg bg-slate-100">
+                    {s.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.img} alt={s.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full bg-slate-200" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
+                  <p className="mt-2 text-sm text-slate-500 line-clamp-3">{s.excerpt}</p>
+                </a>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* ── CORE CONTENT ── */}

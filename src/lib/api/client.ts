@@ -41,35 +41,48 @@ async function tryRefreshToken(): Promise<string | null> {
   }
 
   refreshPromise = (async () => {
+    const endpoints = [
+      `${BASE_URL}/api/auth/refresh-token`,
+      `${BASE_URL}/api/auth/refresh`,
+    ];
+
     try {
-      const res = await fetch(`${BASE_URL}/api/auth/refresh-token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
 
-      // Explicit Check: ONLY clear session if server returns explicit Auth failure
-      if (res.status === 401 || res.status === 403 || res.status === 400) {
-        authCookies.clearAll();
-        return null;
-      }
+          // If explicit auth failure, clear session and stop trying
+          if (res.status === 401 || res.status === 403 || res.status === 400) {
+            authCookies.clearAll();
+            return null;
+          }
 
-      // If backend is sleeping/returning 5xx, keep cookies intact and fail request gracefully
-      if (!res.ok) {
-        return null;
-      }
+          // If endpoint not found, try next fallback
+          if (res.status === 404) {
+            continue;
+          }
 
-      const data = await res.json();
-      if (data.accessToken) {
-        authCookies.setToken(data.accessToken);
-        if (data.refreshToken) {
-          authCookies.setRefreshToken(data.refreshToken);
+          if (!res.ok) {
+            // For 5xx and network issues, don't clear cookies — allow later manual retry
+            return null;
+          }
+
+          const data = await res.json().catch(() => null);
+          if (data && data.accessToken) {
+            authCookies.setToken(data.accessToken);
+            if (data.refreshToken) authCookies.setRefreshToken(data.refreshToken);
+            return data.accessToken;
+          }
+        } catch (innerErr) {
+          // Try next endpoint; don't clear session on transient network errors
+          console.warn("Refresh endpoint attempt failed, trying fallback:", innerErr);
+          continue;
         }
-        return data.accessToken;
       }
-    } catch (err) {
-      console.error("Token refresh network attempt failed:", err);
-      // Do NOT clear cookies on network drop or Render sleep cold-start timeouts
     } finally {
       refreshPromise = null;
     }
@@ -116,8 +129,13 @@ export async function apiRequest<T>(
     );
   }
 
-  // Exclude /refresh-token route to prevent infinite loops
-  if (response.status === 401 && auth && !path.includes("/refresh-token")) {
+  // Exclude refresh endpoints to prevent infinite loops
+  if (
+    response.status === 401 &&
+    auth &&
+    !path.includes("/refresh-token") &&
+    !path.includes("/refresh")
+  ) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;
@@ -190,8 +208,13 @@ export async function apiFormRequest<T>(
     );
   }
 
-  // Exclude /refresh-token route
-  if (response.status === 401 && auth && !path.includes("/refresh-token")) {
+  // Exclude refresh endpoints
+  if (
+    response.status === 401 &&
+    auth &&
+    !path.includes("/refresh-token") &&
+    !path.includes("/refresh")
+  ) {
     const newToken = await tryRefreshToken();
     if (newToken) {
       headers.Authorization = `Bearer ${newToken}`;

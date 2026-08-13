@@ -220,6 +220,12 @@ export default function AdminOverviewDashboardPage() {
                 View Directory <ArrowRight size={14} />
               </Link>
               <Link
+                href="/admin/audit"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50"
+              >
+                <Clock size={14} /> Audit Logs
+              </Link>
+              <Link
                 href="/admin/team/new"
                 className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-700"
               >
