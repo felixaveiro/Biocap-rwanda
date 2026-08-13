@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
@@ -22,7 +21,6 @@ export default function CreatorMyStoriesPage() {
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
 
-  const searchParams = useSearchParams();
 
   // Edit Modal State
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
@@ -156,12 +154,20 @@ export default function CreatorMyStoriesPage() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-            <BlogTable
-              blogs={personalStoriesList}
-              user={currentCreatorUser}
-              onRefreshNeeded={fetchPersonalStories}
-              openStoryId={searchParams.get("open")}
-            />
+            <Suspense fallback={<div className="p-6">Loading...</div>}>
+              {/* useSearchParams must be called inside a Suspense boundary to avoid CSR bailout during prerender */}
+              {(() => {
+                const searchParams = require("next/navigation").useSearchParams();
+                return (
+                  <BlogTable
+                    blogs={personalStoriesList}
+                    user={currentCreatorUser}
+                    onRefreshNeeded={fetchPersonalStories}
+                    openStoryId={searchParams.get("open")}
+                  />
+                );
+              })()}
+            </Suspense>
           </div>
         )}
       </main>
