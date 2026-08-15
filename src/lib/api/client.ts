@@ -49,27 +49,59 @@ async function tryRefreshToken(): Promise<string | null> {
     try {
       for (const url of endpoints) {
         try {
-          const res = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
-          });
+          // Try common body shapes that backends might expect
+          const candidates = [
+            JSON.stringify({ refreshToken }),
+            JSON.stringify({ token: refreshToken }),
+            JSON.stringify({ refresh_token: refreshToken }),
+            null, // allow sending no body (some servers rely on cookies)
+          ];
 
-          // If explicit auth failure, clear session and stop trying
-          if (res.status === 401 || res.status === 403 || res.status === 400) {
-            authCookies.clearAll();
-            return null;
+          let res: Response | null = null;
+
+          for (const body of candidates) {
+            try {
+              res = await fetch(url, {
+                method: "POST",
+                headers: body ? { "Content-Type": "application/json" } : {},
+                // If the backend uses cookie-based refresh we still attempt a credentials-included request
+                credentials: "include",
+                body: body ?? undefined,
+              });
+            } catch (innerErr) {
+              console.warn("Refresh attempt failed, trying next candidate:", innerErr);
+              res = null;
+            }
+
+            if (!res) continue;
+
+            // If explicit auth failure, clear session and stop trying
+            if (res.status === 401 || res.status === 403) {
+              authCookies.clearAll();
+              return null;
+            }
+
+            // If endpoint not found, try next fallback endpoint
+            if (res.status === 404) {
+              res = null;
+              continue;
+            }
+
+            // For bad request (400) or other client errors, try other candidates/endpoints instead of clearing session
+            if (res.status >= 400 && res.status < 500) {
+              // allow trying other payload shapes or endpoints
+              res = null;
+              continue;
+            }
+
+            // For server errors, give up and return null (transient)
+            if (res.status >= 500) return null;
+
+            // Successful-ish response
+            break;
           }
 
-          // If endpoint not found, try next fallback
-          if (res.status === 404) {
-            continue;
-          }
-
-          if (!res.ok) {
-            // For 5xx and network issues, don't clear cookies — allow later manual retry
-            return null;
-          }
+          if (!res) continue;
 
           const data = await res.json().catch(() => null);
           if (data && data.accessToken) {

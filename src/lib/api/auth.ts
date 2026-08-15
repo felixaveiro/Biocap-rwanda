@@ -1,4 +1,4 @@
-import { apiRequest } from "./client";
+import { apiRequest, ApiError } from "./client";
 import { User, Role } from "@/types";
 import { authCookies } from "@/lib/auth/cookies";
 
@@ -121,23 +121,42 @@ export async function refreshSession(): Promise<RefreshTokenResponse | null> {
   const currentRefreshToken = authCookies.getRefreshToken();
   if (!currentRefreshToken) return null;
 
-  try {
-    const res = await apiRequest<RefreshTokenResponse>("/api/auth/refresh-token", {
-      method: "POST",
-      body: { refreshToken: currentRefreshToken },
-    });
+  const userId = authCookies.getUserId();
+  const payload = { refreshToken: currentRefreshToken, userId };
 
-    if (res.accessToken) {
-      authCookies.setToken(res.accessToken);
-      if (res.refreshToken) {
-        authCookies.setRefreshToken(res.refreshToken);
+  const endpoints = ["/api/auth/refresh", "/api/auth/refresh-token"];
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await apiRequest<RefreshTokenResponse>(endpoint, {
+        method: "POST",
+        body: payload,
+      });
+
+      if (res && res.accessToken) {
+        authCookies.setToken(res.accessToken);
+        if (res.refreshToken) authCookies.setRefreshToken(res.refreshToken);
       }
+
+      return res;
+    } catch (err) {
+      // If endpoint doesn't exist, try next fallback
+      if (err instanceof ApiError && err.status === 404) continue;
+
+      // If explicitly unauthorized/forbidden, clear session and stop
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        authCookies.clearSession();
+        return null;
+      }
+
+      // Otherwise try next endpoint
+      continue;
     }
-    return res;
-  } catch {
-    authCookies.clearSession();
-    return null;
   }
+
+  // If all attempts failed, ensure local session is cleared
+  authCookies.clearSession();
+  return null;
 }
 
 /**

@@ -75,7 +75,7 @@ const CROPS: CropData[] = [
         body: 'These activities lay the groundwork for Rwanda to take a leadership role in agricultural biotechnology. Through targeted investments in infrastructure, capacity building, and product innovation, the Centre of Excellence for Crop Biotechnology at RAB Rubona will become a nationally anchored platform for science-based food security solutions.',
       },
     ],
-    docName: 'A5-Biotech-Cassava-General-FAQ-2025',
+    docName: 'Biotech-Cassava_Flyer/BioCap',
   },
   {
     key: 'potato',

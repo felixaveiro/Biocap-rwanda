@@ -675,6 +675,10 @@ export const editorApi = {
   unpublishBlog: async (id: string, payload?: UnpublishBlogPayload): Promise<{ message: string; blog: BlogPost }> => {
     return unpublishBlog(id, payload, "editor");
   },
+  // PATCH /api/editor/blogs/:id/publish
+  publishBlog: async (id: string): Promise<{ message: string; blog: BlogPost }> => {
+    return publishBlog(id, "editor");
+  },
 };
 
 // ─── Unified Namespace Exports ────────────────────────────────────────────────
