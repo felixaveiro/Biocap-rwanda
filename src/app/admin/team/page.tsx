@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import UserTable from "@/components/UserTable";
 import { usersApi } from "@/lib/api/users";
@@ -17,6 +18,27 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
+
+// ── Same editorial system as Header / Overview / BlogTable / Trash:
+// canvas #FAF9F5 · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #E2DDCF
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
 
 export default function AdminTeamPage() {
   const {
@@ -105,19 +127,53 @@ export default function AdminTeamPage() {
     });
   }, [teamMembersList, searchQuery, selectedRoleFilter]);
 
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  // Ledger strip entries — same three-color language the Overview page
+  // uses (ink for neutral counts, moss for the healthy/active signal,
+  // gold for the privileged/watch signal).
+  const ledgerEntries = [
+    {
+      label: "Total Team Members",
+      value: directoryMetrics.totalCount,
+      icon: UsersIcon,
+      color: "#1E2620",
+      border: "border-r border-[#E2DDCF]",
+    },
+    {
+      label: "Active Accounts",
+      value: directoryMetrics.activeCount,
+      icon: UserCheck,
+      color: "#3F6B4F",
+      border: "border-r border-[#E2DDCF]",
+    },
+    {
+      label: "Admins & Officers",
+      value: directoryMetrics.adminsAndOfficersCount,
+      icon: ShieldCheck,
+      color: "#A9812F",
+      border: "",
+    },
+  ];
+
   if (sessionLoading || !isPermissionAllowed || !currentAdminUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
-        <Header title="Team Directory" subtitle="Verifying permissions…" />
+      <div className={`${fontVars} min-h-screen bg-[#FAF9F5] pb-16`} style={{ fontFamily: "var(--font-body)" }}>
+        <Header title="Team Directory" subtitle="Authenticating session credentials…" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="animate-pulse space-y-6">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
+            <div className="grid grid-cols-1 border border-[#E2DDCF] bg-white sm:grid-cols-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="border-[#E2DDCF] p-5 sm:border-r last:border-r-0">
+                  <div className="h-3 w-24 bg-[#EDEAE0]" />
+                  <div className="mt-4 h-8 w-10 bg-[#EDEAE0]" />
+                </div>
+              ))}
             </div>
-            <div className="h-12 w-full rounded-2xl bg-slate-200/80" />
-            <div className="h-96 w-full rounded-2xl bg-slate-200/80" />
+            <div className="h-11 w-full bg-[#EDEAE0]" />
+            <div className="h-96 w-full border border-[#E2DDCF] bg-white" />
           </div>
         </div>
       </div>
@@ -125,80 +181,62 @@ export default function AdminTeamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className={`${fontVars} min-h-screen bg-[#FAF9F5] pb-16`} style={{ fontFamily: "var(--font-body)" }}>
       <Header
         title="Team Directory"
         subtitle="Manage active accounts, assigned roles, and platform access control"
       />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Directory Summary Metric Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-              <UsersIcon size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Total Team Members
-              </p>
-              <p className="text-2xl font-bold text-slate-900">{directoryMetrics.totalCount}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <UserCheck size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Active Accounts
-              </p>
-              <p className="text-2xl font-bold text-slate-900">{directoryMetrics.activeCount}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <ShieldCheck size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Admins & Officers
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {directoryMetrics.adminsAndOfficersCount}
+        {/* ─── Ledger strip ─────────────────────────────────────────────── */}
+        <div className="mb-8 grid grid-cols-1 border border-[#E2DDCF] bg-white sm:grid-cols-3">
+          {ledgerEntries.map((entry) => (
+            <div key={entry.label} className={`p-5 ${entry.border}`}>
+              <div className="flex items-center gap-1.5" style={{ color: entry.color }}>
+                <entry.icon size={13} strokeWidth={2} />
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B9188]"
+                  style={monoFont}
+                >
+                  {entry.label}
+                </p>
+              </div>
+              <p
+                className="mt-2 text-4xl italic leading-none"
+                style={{ ...displayFont, color: entry.color }}
+              >
+                {entry.value}
               </p>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Toolbar & Filters */}
+        {/* ─── Toolbar & Filters ────────────────────────────────────────── */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+            <div className="relative max-w-md flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#8B9188]">
                 <Search size={16} />
               </div>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, email, or username..."
-                className="w-full rounded-xl border border-slate-200/80 bg-white pl-10 pr-4 py-2 text-sm font-medium text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                placeholder="Search by name, email, or username…"
+                className="w-full border border-[#D9D4C6] bg-white pl-10 pr-4 py-2.5 text-sm font-medium text-[#1E2620] placeholder:text-[#B3AF9F] transition focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
               />
             </div>
 
             {/* Role Filter Selector */}
             <div className="relative min-w-[180px]">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#8B9188]">
                 <Filter size={14} />
               </div>
               <select
                 value={selectedRoleFilter}
                 onChange={(e) => setSelectedRoleFilter(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-slate-200/80 bg-white pl-9 pr-8 py-2 text-sm font-medium text-slate-700 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                className="w-full appearance-none border border-[#D9D4C6] bg-white pl-9 pr-8 py-2.5 text-sm font-medium text-[#3A4239] transition cursor-pointer focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
               >
                 <option value="ALL">All Roles</option>
                 {ROLES.map((roleKey) => (
@@ -213,23 +251,23 @@ export default function AdminTeamPage() {
           {/* Create User Button */}
           <Link
             href="/admin/team/new"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-700 active:bg-indigo-800"
+            className="inline-flex items-center justify-center gap-2 border border-[#3F6B4F]/40 bg-[#3F6B4F] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#2C4B38] hover:border-[#2C4B38]"
           >
-            <UserPlus size={16} />
+            <UserPlus size={14} />
             Create Member
           </Link>
         </div>
 
-        {/* Connection Error Banner */}
+        {/* ─── Connection Error Banner ──────────────────────────────────── */}
         {fetchErrorMessage && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-4 text-[#8B4136]">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
+              <AlertCircle size={18} />
               <p className="text-sm font-medium">{fetchErrorMessage}</p>
             </div>
             <button
               onClick={fetchTeamMembers}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#8B4136] transition hover:bg-[#B65C4B] hover:text-white"
             >
               <RefreshCw size={13} />
               Retry Sync
@@ -237,9 +275,9 @@ export default function AdminTeamPage() {
           </div>
         )}
 
-        {/* User Data Table */}
+        {/* ─── User Data Table ──────────────────────────────────────────── */}
         {isDataLoading ? (
-          <div className="h-64 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
+          <div className="h-64 w-full animate-pulse border border-[#E2DDCF] bg-white" />
         ) : (
           <UserTable
             users={filteredTeamMembers}

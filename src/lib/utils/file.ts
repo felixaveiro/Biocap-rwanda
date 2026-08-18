@@ -1,6 +1,11 @@
 // src/lib/utils/file.ts
 
 export function base64ToFile(base64String: string, filename: string): File {
+  // Safe environment check for Next.js SSR
+  if (typeof window === "undefined") {
+    throw new Error("base64ToFile can only be executed in a browser environment.");
+  }
+
   // 1. Extract mime type dynamically (e.g. "image/png", "image/jpeg", "image/webp")
   const mimeMatch = base64String.match(/^data:(image\/[a-zA-Z+]+);base64,/);
   const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
@@ -13,7 +18,7 @@ export function base64ToFile(base64String: string, filename: string): File {
     ? filename.replace(/\.[^/.]+$/, `.${extension}`)
     : `${filename}.${extension}`;
 
-  // 4. Decode base64 string
+  // 4. Decode base64 string safely
   const base64Data = base64String.replace(/^data:image\/[a-zA-Z+]+;base64,/, '');
   const byteCharacters = atob(base64Data);
   const byteNumbers = new Array(byteCharacters.length);

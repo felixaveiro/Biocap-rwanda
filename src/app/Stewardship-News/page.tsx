@@ -782,41 +782,7 @@ function StewardshipNewsContent() {
           </div>
         </section>
 
-        {/* Latest published stories */}
-        <section className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
-          <h2 className="mb-4 text-2xl font-bold text-slate-900">Latest Stories</h2>
-          {storiesLoading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-            </div>
-          ) : latestStories.length === 0 ? (
-            <p className="text-sm text-slate-500">No published stories are available yet.</p>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {latestStories.map((s) => (
-                <a
-                  key={s._id}
-                  href={`/Stewardship-News/${s.slug}`}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-sm transition"
-                >
-                  <div className="mb-3 h-36 w-full overflow-hidden rounded-lg bg-slate-100">
-                    {s.img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.img} alt={s.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full bg-slate-200" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
-                  <p className="mt-2 text-sm text-slate-500 line-clamp-3">{s.excerpt}</p>
-                </a>
-              ))}
-            </div>
-          )}
-        </section>
-
+      
         {/* ── CORE CONTENT ── */}
         <section className="py-16 px-6 lg:px-12 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center bg-white">
           <div className="relative">
@@ -904,6 +870,41 @@ function StewardshipNewsContent() {
             </div>
           </div>
         </section>
+          {/* Latest published stories */}
+        <section className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+          <h2 className="mb-4 text-2xl font-bold text-slate-900">Published News</h2>
+          {storiesLoading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+            </div>
+          ) : latestStories.length === 0 ? (
+            <p className="text-sm text-slate-500">No published stories are available yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {latestStories.map((s) => (
+                <a
+                  key={s._id}
+                  href={`/Stewardship-News/${s.slug}`}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-sm transition"
+                >
+                  <div className="mb-3 h-36 w-full overflow-hidden rounded-lg bg-slate-100">
+                    {s.img ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.img} alt={s.title} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full bg-slate-200" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
+                  <p className="mt-2 text-sm text-slate-500 line-clamp-3">{s.excerpt}</p>
+                </a>
+              ))}
+            </div>
+          )}
+        </section>
+
 
         {/* ── TESTIMONIAL ── */}
         <section className="py-16 px-6 lg:px-12 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f2240 0%, #254a7a 55%, #1e4976 100%)' }}>

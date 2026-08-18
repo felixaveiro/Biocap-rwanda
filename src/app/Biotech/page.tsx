@@ -15,8 +15,6 @@ import {
   CheckCircle,
   Clock,
   Microscope,
-  Sprout,
-  ChevronRight,
 } from 'lucide-react';
 
 // ─── BioCap Brand Colors (shared with About / Environment pages) ──
@@ -27,6 +25,13 @@ import {
 // ──────────────────────────────────────────────────────────────────
 
 type CropKey = 'cassava' | 'potato' | 'banana';
+
+interface CropDocument {
+  title: string;
+  filename: string;
+  fileSize: string;
+  downloadUrl: string;
+}
 
 interface CropData {
   key: CropKey;
@@ -39,7 +44,7 @@ interface CropData {
   statusLabel: string;
   subtitle: string;
   sections: { title: string; body: string; SectionIcon: React.ElementType }[];
-  docName: string;
+  documents: CropDocument[];
 }
 
 const CROPS: CropData[] = [
@@ -75,7 +80,14 @@ const CROPS: CropData[] = [
         body: 'These activities lay the groundwork for Rwanda to take a leadership role in agricultural biotechnology. Through targeted investments in infrastructure, capacity building, and product innovation, the Centre of Excellence for Crop Biotechnology at RAB Rubona will become a nationally anchored platform for science-based food security solutions.',
       },
     ],
-    docName: 'Biotech-Cassava_Flyer/BioCap',
+    documents: [
+      {
+        title: 'Biotech-Cassava_Flyer/BioCap',
+        filename: 'Biotech-Cassava_Flyer_BioCap.pdf',
+        fileSize: '2.4 MB',
+        downloadUrl: '/documents/Biotech-Cassava_Flyer.pdf',
+      },
+    ],
   },
   {
     key: 'potato',
@@ -109,7 +121,14 @@ const CROPS: CropData[] = [
         body: 'Resulting transformation events will advance to confined field trials (CFTs) across three existing RABP-CMP sites, with all activities led by trained Rwandan scientists. RAB will carefully select recipient varieties distinct from any pending biotech releases to avoid regulatory complications, as tuber morphology remains the primary field-level identification method.',
       },
     ],
-    docName: 'A5-Biotech-Potato-General-FAQ-2025',
+    documents: [
+      {
+        title: 'Biotech-Potato_Flyer/BioCap',
+        filename: 'Biotech-Potato_Flyer_BioCap.pdf',
+        fileSize: '3.1 MB',
+        downloadUrl: '/documents/Biotech-Potato_Flyer.pdf',
+      },
+    ],
   },
   {
     key: 'banana',
@@ -143,7 +162,14 @@ const CROPS: CropData[] = [
         body: 'Upon training completion, RAB will have an in-country self-sustaining banana gene editing pipeline. The RAB team will lead edited line development, biosafety data generation, phenotypic evaluation under high-disease pressure, and integration into national seed systems — positioning Rwanda as a regional leader in banana biotechnology.',
       },
     ],
-    docName: 'A5-Biotech-Banana-General-FAQ-2025',
+    documents: [
+      {
+        title: 'Biotech-Banana_Flyer/BioCap',
+        filename: 'Biotech-Banana_Flyer_BioCap.pdf',
+        fileSize: '2.9 MB',
+        downloadUrl: '/documents/Biotech-Banana_Flyer.pdf',
+      },
+    ],
   },
 ];
 
@@ -266,7 +292,7 @@ function CropPanel({ crop }: { crop: CropData }) {
         )}
       </div>
 
-      {/* Secondary banner — 80% width, mirrors header style with different content */}
+      {/* Secondary banner */}
       <div className="flex justify-end">
         <div
           className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
@@ -315,21 +341,26 @@ function CropPanel({ crop }: { crop: CropData }) {
             className="rounded-full text-white text-[0.7rem] px-2.5 py-0.5"
             style={{ background: crop.color }}
           >
-            1
+            {crop.documents.length}
           </span>
         </p>
-        <div className="bg-[#f7f6f4] rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <p className="m-0 text-[0.82rem] font-semibold text-[#1B3A5C]">{crop.docName}</p>
-            <p className="m-0 text-[0.72rem] text-slate-400">{crop.docName}</p>
+
+        {crop.documents.map((doc, idx) => (
+          <div key={idx} className="bg-[#f7f6f4] rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap my-2">
+            <div>
+              <p className="m-0 text-[0.82rem] font-semibold text-[#1B3A5C]">{doc.title}</p>
+              <p className="m-0 text-[0.72rem] text-slate-400 font-mono">{doc.filename} • {doc.fileSize}</p>
+            </div>
+            <a
+              href={doc.downloadUrl}
+              download={doc.filename}
+              className="flex items-center gap-1.5 rounded-lg text-white text-[0.78rem] font-bold px-4 py-2 whitespace-nowrap transition-transform hover:-translate-y-0.5"
+              style={{ background: crop.color, boxShadow: `0 6px 18px ${crop.color}45` }}
+            >
+              <Download size={13} aria-hidden="true" /> Download PDF
+            </a>
           </div>
-          <button
-            className="flex items-center gap-1.5 rounded-lg text-white text-[0.78rem] font-bold px-4 py-2 whitespace-nowrap transition-transform hover:-translate-y-0.5"
-            style={{ background: crop.color, boxShadow: `0 6px 18px ${crop.color}45` }}
-          >
-            <Download size={13} aria-hidden="true" /> Download PDF
-          </button>
-        </div>
+        ))}
       </div>
     </div>
   );
@@ -386,12 +417,12 @@ export default function BiotechCropsPage() {
             <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
               Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
             </h1>
-             <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
+            <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
               Under RAB's <span className="text-[#E8185A]">Center of <br /> Excellence in </span>Crop <br />Biotechnology
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
               Starting with three main food-security crops: cassava, potato and banana;
-               RAB is advancing its national biotechnology pipeline for an accelerated development and 
+              RAB is advancing its national biotechnology pipeline for an accelerated development and 
               deployment of climate-smart, and improved farmer-preferred varieties.
             </p>
           </div>

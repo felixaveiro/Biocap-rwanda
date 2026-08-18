@@ -1,14 +1,65 @@
 'use client';
 
 import { Suspense, useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
 import EditStoryModal from "@/components/EditStoryModal";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
-import { Plus, AlertCircle, RefreshCw, FileText, Sparkles, MessageSquare } from "lucide-react";
+import { Plus, AlertCircle, RefreshCw, FileText, PenLine } from "lucide-react";
+
+// ── Type system ───────────────────────────────────────────────
+// Display: Fraunces (serif, editorial, used sparingly for headline moments)
+// Body/UI: Inter (clean, functional)
+// Data: IBM Plex Mono (tabular figures, eyebrows — "ledger" feel)
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
+
+// ── Palette (used via inline hex, no Tailwind config needed) ──
+// canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
+
+// Sub-component wrapper that uses useSearchParams at top level
+function StoryTableWrapper({
+  stories,
+  user,
+  onRefresh,
+}: {
+  stories: BlogPost[];
+  user: any;
+  onRefresh: () => void;
+}) {
+  const searchParams = useSearchParams();
+  const openStoryId = searchParams ? searchParams.get("open") : null;
+
+  return (
+    <BlogTable
+      blogs={stories}
+      user={user}
+      onRefreshNeeded={onRefresh}
+      openStoryId={openStoryId}
+    />
+  );
+}
 
 export default function CreatorMyStoriesPage() {
   const {
@@ -20,7 +71,6 @@ export default function CreatorMyStoriesPage() {
   const [personalStoriesList, setPersonalStoriesList] = useState<BlogPost[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
-
 
   // Edit Modal State
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
@@ -56,17 +106,21 @@ export default function CreatorMyStoriesPage() {
     }
   }, [currentCreatorUser, isPermissionAllowed, fetchPersonalStories]);
 
-  // Check if any articles have rejection notes needing attention
   const rejectedCount = personalStoriesList.filter((s) => s.status === "rejected").length;
+
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   if (sessionLoading || !isPermissionAllowed || !currentCreatorUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16`} style={bodyFont}>
         <Header title="My Stories" subtitle="Verifying author credentials…" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="animate-pulse space-y-6">
-            <div className="h-14 w-full rounded-2xl bg-slate-200" />
-            <div className="h-96 w-full rounded-2xl bg-slate-200" />
+            <div className="h-14 w-full bg-[#E7E3D6]" />
+            <div className="h-96 w-full bg-[#E7E3D6]" />
           </div>
         </div>
       </div>
@@ -74,42 +128,71 @@ export default function CreatorMyStoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]`} style={bodyFont}>
       <Header
         title="My Article Catalog"
         subtitle="Track publishing status, review editor feedback, and update your draft submissions"
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        {/* Action Header Banner */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600">
-              <Sparkles size={13} /> {personalStoriesList.length} Total Stories
-            </span>
-            {rejectedCount > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                <MessageSquare size={13} /> {rejectedCount} Needs Revision
-              </span>
-            )}
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+        {/* Masthead strip */}
+        <div className="border-b border-[#D9D4C6] pb-5">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p
+                className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]"
+                style={monoFont}
+              >
+                Editorial desk
+              </p>
+              <h1
+                className="mt-1 text-2xl italic text-[#1E2620]"
+                style={displayFont}
+              >
+                Your submissions, at a BioCap Rwanda
+              </h1>
+            </div>
+
+            <Link
+              href="/creator/my-stories/new"
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors duration-200 hover:bg-[#3F6B4F] hover:border-[#3F6B4F]"
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              New story
+            </Link>
           </div>
 
-          <Link
-            href="/creator/my-stories/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-indigo-700 active:scale-95"
-          >
-            <Plus size={16} />
-            Create New Story
-          </Link>
+          <div className="mt-4 flex flex-wrap items-center gap-5">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg tabular-nums text-[#1E2620]" style={monoFont}>
+                {String(personalStoriesList.length).padStart(2, "0")}
+              </span>
+              <span className="text-xs text-[#6B7268]">total stories</span>
+            </div>
+
+            {rejectedCount > 0 && (
+              <div className="flex items-center gap-1.5 border-l border-[#D9D4C6] pl-5">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#A9812F]" />
+                <span className="text-xs tabular-nums text-[#8A6A24]" style={monoFont}>
+                  {rejectedCount}
+                </span>
+                <span className="text-xs text-[#6B7268]">
+                  {rejectedCount > 1 ? "need revision" : "needs revision"}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Rejection Alert Callout */}
         {rejectedCount > 0 && (
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900 shadow-xs">
-            <MessageSquare size={18} className="mt-0.5 text-amber-600 shrink-0" />
+          <div className="flex items-start gap-3 border-l-2 border-[#A9812F] bg-[#FBF6E9] px-4 py-3.5">
+            <PenLine size={16} className="mt-0.5 shrink-0 text-[#8A6A24]" />
             <div>
-              <h4 className="text-xs font-bold">Editorial Revisions Requested</h4>
-              <p className="mt-0.5 text-xs text-amber-800/90 leading-relaxed">
+              <h4 className="text-xs font-semibold text-[#5C4715]">
+                Editorial revisions requested
+              </h4>
+              <p className="mt-0.5 text-xs leading-relaxed text-[#5C4715]/80">
                 You have {rejectedCount} article{rejectedCount > 1 ? "s" : ""} returned with feedback notes from the reviewer. Click <strong>Edit</strong> inside the table to inspect reviewer feedback and resubmit changes.
               </p>
             </div>
@@ -118,55 +201,50 @@ export default function CreatorMyStoriesPage() {
 
         {/* Sync Error Callout */}
         {fetchErrorMessage && (
-          <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="flex items-center justify-between gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+              <AlertCircle size={16} className="shrink-0 text-[#B65C4B]" />
+              <p className="text-xs font-medium text-[#7A362A]">{fetchErrorMessage}</p>
             </div>
             <button
               type="button"
               onClick={fetchPersonalStories}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors duration-200 hover:bg-[#B65C4B] hover:text-white"
             >
-              <RefreshCw size={13} /> Retry Sync
+              <RefreshCw size={12} /> Retry Sync
             </button>
           </div>
         )}
 
         {/* Content Table or Empty State */}
         {isDataLoading ? (
-          <div className="h-72 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
+          <div className="h-72 w-full animate-pulse border border-[#E2DDCF] bg-white" />
         ) : personalStoriesList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-xs">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 mb-4">
-              <FileText size={32} />
+          <div className="flex flex-col items-center justify-center border border-dashed border-[#D9D4C6] bg-white px-12 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center border border-[#D9D4C6] text-[#3F6B4F]">
+              <FileText size={24} strokeWidth={1.5} />
             </div>
-            <h3 className="text-base font-bold text-slate-800">Your article catalog is empty</h3>
-            <p className="mt-1 text-xs text-slate-400 max-w-sm">
+            <h3 className="mt-5 text-lg italic text-[#1E2620]" style={displayFont}>
+              Your article catalog is empty
+            </h3>
+            <p className="mt-1.5 max-w-sm text-xs leading-relaxed text-[#6B7268]">
               Write and submit draft articles with images and supporting materials to send them to the editorial desk.
             </p>
             <Link
               href="/creator/my-stories/new"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-indigo-700"
+              className="mt-6 inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors duration-200 hover:bg-[#3F6B4F] hover:border-[#3F6B4F]"
             >
-              <Plus size={16} /> Draft Your First Article
+              <Plus size={14} /> Draft Your First Article
             </Link>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-            <Suspense fallback={<div className="p-6">Loading...</div>}>
-              {/* useSearchParams must be called inside a Suspense boundary to avoid CSR bailout during prerender */}
-              {(() => {
-                const searchParams = require("next/navigation").useSearchParams();
-                return (
-                  <BlogTable
-                    blogs={personalStoriesList}
-                    user={currentCreatorUser}
-                    onRefreshNeeded={fetchPersonalStories}
-                    openStoryId={searchParams.get("open")}
-                  />
-                );
-              })()}
+          <div className="overflow-hidden border border-[#E2DDCF] bg-white">
+            <Suspense fallback={<div className="p-6 text-xs text-[#6B7268]">Loading catalog table...</div>}>
+              <StoryTableWrapper
+                stories={personalStoriesList}
+                user={currentCreatorUser}
+                onRefresh={fetchPersonalStories}
+              />
             </Suspense>
           </div>
         )}

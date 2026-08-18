@@ -1,3 +1,5 @@
+// src/types/index.ts
+
 export type Role =
   | 'admin'
   | 'communication_officer'
@@ -136,21 +138,27 @@ export const BLOG_STATUS_LABELS: Record<BlogStatus, string> = {
   revision_requested: 'Revision Requested',
 };
 
-// Flexible block structure matching article component
-export type BlockType = 'p' | 'h2' | 'quote' | 'emphasis' | 'image';
+// Flexible block structure matching article & editor components
+export type BlockType = 'p' | 'h2' | 'quote' | 'emphasis' | 'image' | 'hero' | 'embed';
 
 export interface BlogBlock {
   type: BlockType;
   text?: string;
   source?: string;
   src?: string;
+  url?: string;
+  fileKey?: string;
   caption?: string;
+  fitMode?: 'cover' | 'contain';
 }
 
 export interface BlogModalMetadata {
+  intro?: string;
   date?: string;
   organizer?: string;
   partners?: string;
+  keyTakeaways?: string[];
+  [key: string]: any;
 }
 
 export interface ReviewLog {
@@ -171,12 +179,12 @@ export interface ReviewLog {
 // ─── Comment Interface for Published Articles ────────────────────────────────
 export interface Comment {
   _id: string;
-  user: {
+  user?: {
     _id: string;
     firstName: string;
     lastName: string;
     username: string;
-    role: Role;
+    role?: Role;
   };
   content: string;
   createdAt: string;
@@ -218,12 +226,13 @@ export interface Notification {
   };
   type: NotificationType;
   message: string;
-  article: {
+  article?: {
     _id: string;
     title: string;
     slug: string;
   };
-  isRead: boolean;
+  isRead?: boolean;
+  read?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -237,47 +246,48 @@ export interface BlogPost {
   excerpt: string;
   blocks: BlogBlock[];
   modal?: BlogModalMetadata;
-  img: string;
+  img: string; // Cover photo URL
   imgPublicId?: string;
+  document?: string;
   documentUrl?: string;
   documentPublicId?: string;
   documentName?: string;
 
   // Frozen creator for public bylines
-  originalAuthor: {
+  originalAuthor?: {
     _id: string;
-    username: string;
+    username?: string;
     email?: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
     jobTitle?: string;
     socialHandle?: string;
     organizationLink?: string;
     organization?: string;
   };
-  originalAuthorRole: Role;
+  originalAuthorRole?: Role;
 
   // Responsible editor / staff account
-  author: {
+  author?: {
     _id: string;
-    username: string;
+    username?: string;
     email?: string;
-    firstName: string;
-    lastName: string;
+    firstName?: string;
+    lastName?: string;
     jobTitle?: string;
     role?: Role;
   };
-  authorRole: Role;
+  authorRole?: Role;
 
   socialHandle?: string;
   organizationLink?: string;
   status: BlogStatus;
   submittedAt?: string;
   lastRejectionNote?: string;
-  reviewHistory: ReviewLog[];
+  reviewHistory?: ReviewLog[];
 
   // ─── Officer Review & Change Approvals ────────────────────────────────────
-  editorModifications?: EditorModification | null;
+  editorModifications?: EditorModification | boolean | null;
   officerAcceptedChanges?: boolean;
   officerApprovalNote?: string;
   changeRequests?: ChangeRequest[];
@@ -292,21 +302,26 @@ export interface BlogPost {
     firstName: string;
     lastName: string;
   };
-  isDeleted: boolean;
-  views: number;
-  createdAt: string;
-  updatedAt: string;
+  isDeleted?: boolean;
+  views?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// API Pagination Structure
+// Flexible API Pagination Structure (supports both `data` array and `docs` array responses)
 export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
+  data?: T[];
+  docs?: T[];
+  pagination?: {
     total: number;
     page: number;
     limit: number;
     pages: number;
   };
+  totalDocs?: number;
+  limit?: number;
+  page?: number;
+  totalPages?: number;
 }
 
 // Dashboard & Stats Summary Response

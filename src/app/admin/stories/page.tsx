@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import Link from "next/link";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
 import ImageCropperModal from "@/components/ImageCropperModal";
@@ -23,6 +22,7 @@ import {
   Crop,
   ImageIcon,
   X,
+  Sparkles,
 } from "lucide-react";
 
 export default function AdminStoriesPage() {
@@ -39,14 +39,14 @@ export default function AdminStoriesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // ─── Image Cropping & Quick Create/Edit Modal State ─────────────────────────
+  // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null);
   const [finalImageFile, setFinalImageFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
-  // Form fields for quick story creation
+  // Form fields
   const [storyTitle, setStoryTitle] = useState("");
   const [storyTag, setStoryTag] = useState("");
   const [storyExcerpt, setStoryExcerpt] = useState("");
@@ -107,8 +107,6 @@ export default function AdminStoriesPage() {
     return { total, pending, approved, published };
   }, [blogs]);
 
-  // ─── Image Handlers ──────────────────────────────────────────────────────────
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
@@ -149,7 +147,6 @@ export default function AdminStoriesPage() {
         user?.role as Role
       );
 
-      // Reset Form State
       setIsModalOpen(false);
       setStoryTitle("");
       setStoryTag("");
@@ -167,8 +164,6 @@ export default function AdminStoriesPage() {
     }
   };
 
-  // ─── Workflow Actions ────────────────────────────────────────────────────────
-
   const handlePublishToggle = async (target: BlogPost | string) => {
     if (!user) return;
 
@@ -180,7 +175,6 @@ export default function AdminStoriesPage() {
 
     try {
       if (blog.status === "published") {
-        // ✅ Fixed: Pass `undefined` as 2nd arg (payload) so `user.role` aligns with 3rd arg (role)
         await blogsApi.unpublishBlog(blog._id, undefined, user.role as Role);
       } else {
         await blogsApi.publishBlog(blog._id, user.role as Role);
@@ -243,17 +237,17 @@ export default function AdminStoriesPage() {
 
   if (loading || !allowed || !user) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className="min-h-screen bg-[#FAF9F5] pb-16 font-sans">
         <Header title="Editorial Stories" subtitle="Verifying permissions…" />
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-8 py-10">
           <div className="animate-pulse space-y-6">
             <div className="grid gap-4 sm:grid-cols-4">
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
-              <div className="h-24 rounded-2xl bg-slate-200/80" />
+              <div className="h-24 rounded-sm bg-[#EFECE6]" />
+              <div className="h-24 rounded-sm bg-[#EFECE6]" />
+              <div className="h-24 rounded-sm bg-[#EFECE6]" />
+              <div className="h-24 rounded-sm bg-[#EFECE6]" />
             </div>
-            <div className="h-96 w-full rounded-2xl bg-slate-200/80" />
+            <div className="h-96 w-full rounded-sm bg-[#EFECE6]" />
           </div>
         </div>
       </div>
@@ -261,87 +255,89 @@ export default function AdminStoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className="min-h-screen bg-[#FAF9F5] pb-20 font-sans text-[#1E2620]">
       <Header
         title={showTrash ? "Trash Bin" : "Master Editorial Management"}
         subtitle={
           showTrash
             ? "Restore soft-deleted articles or wipe them permanently from Cloudinary"
-            : "Manage all platform stories, review contributor submissions, and publish to the live feed"
+            : "Manage platform stories, review contributor submissions, and publish to live feeds"
         }
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-8 py-8">
         {/* Metric Cards */}
         {!showTrash && (
-          <div className="mb-8 grid gap-4 sm:grid-cols-4">
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                <FileText size={22} />
+          <div className="mb-10 grid gap-5 sm:grid-cols-4">
+            <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]">
+                  Total Index
+                </span>
+                <FileText size={16} className="text-[#3F6B4F]" />
               </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Stories</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-              </div>
+              <p className="mt-3 text-3xl font-serif italic text-[#1E2620]">{stats.total}</p>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <Clock size={22} />
+            <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]">
+                  Pending Review
+                </span>
+                <Clock size={16} className="text-[#A9812F]" />
               </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Pending Review</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.pending}</p>
-              </div>
+              <p className="mt-3 text-3xl font-serif italic text-[#1E2620]">{stats.pending}</p>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <CheckCircle2 size={22} />
+            <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]">
+                  Approved
+                </span>
+                <CheckCircle2 size={16} className="text-[#3F6B4F]" />
               </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Approved</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.approved}</p>
-              </div>
+              <p className="mt-3 text-3xl font-serif italic text-[#1E2620]">{stats.approved}</p>
             </div>
 
-            <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-                <Globe size={22} />
+            <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]">
+                  Live Published
+                </span>
+                <Globe size={16} className="text-[#1E2620]" />
               </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Published</p>
-                <p className="text-2xl font-bold text-slate-900">{stats.published}</p>
-              </div>
+              <p className="mt-3 text-3xl font-serif italic text-[#1E2620]">{stats.published}</p>
             </div>
           </div>
         )}
 
         {/* Toolbar */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-[#E2DDCF] pb-5">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Search Input */}
             <div className="relative flex-1 max-w-md">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                <Search size={16} />
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#7A8079]">
+                <Search size={14} />
               </div>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search stories by title or category..."
-                className="w-full rounded-xl border border-slate-200/80 bg-white pl-10 pr-4 py-2 text-sm font-medium text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                placeholder="Search index by headline or tag..."
+                className="w-full bg-[#FAF9F5] border border-[#D9D4C6] pl-9 pr-4 py-2 text-xs text-[#1E2620] placeholder-[#7A8079] focus:border-[#3F6B4F] focus:outline-none focus:ring-1 focus:ring-[#3F6B4F]"
               />
             </div>
 
+            {/* Filter Dropdown */}
             {!showTrash && (
               <div className="relative min-w-[160px]">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <Filter size={14} />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-[#7A8079]">
+                  <Filter size={13} />
                 </div>
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-slate-200/80 bg-white pl-9 pr-8 py-2 text-sm font-medium text-slate-700 shadow-xs focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                  className="w-full appearance-none bg-[#FAF9F5] border border-[#D9D4C6] pl-8 pr-8 py-2 text-xs uppercase tracking-wider text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="draft">Draft</option>
@@ -354,53 +350,54 @@ export default function AdminStoriesPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setShowTrash(!showTrash)}
-              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition ${
+              className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] transition-colors ${
                 showTrash
-                  ? "border-amber-300 bg-amber-50 text-amber-800"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "border-[#8B4136] bg-[#8B4136]/10 text-[#8B4136]"
+                  : "border-[#D9D4C6] bg-[#FAF9F5] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]"
               }`}
             >
-              <Trash2 size={16} />
-              {showTrash ? "Back to Active Stories" : "Trash Bin"}
+              <Trash2 size={13} />
+              {showTrash ? "Active Catalog" : "Trash Bin"}
             </button>
 
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-indigo-700 active:bg-indigo-800"
+              className="inline-flex items-center justify-center gap-2 bg-[#1E2620] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#FAF9F5] transition-colors hover:bg-[#3F6B4F]"
             >
-              <Plus size={16} />
-              Create & Crop Story
+              <Plus size={14} />
+              Draft Story
             </button>
           </div>
         </div>
 
-        {/* Error State */}
+        {/* Error Alert */}
         {fetchError && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between border-l-2 border-[#8B4136] bg-[#8B4136]/5 p-4 text-[#8B4136]">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchError}</p>
+              <AlertCircle size={16} />
+              <p className="text-xs font-medium">{fetchError}</p>
             </div>
             <button
               onClick={fetchBlogs}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#8B4136] underline hover:text-[#1E2620]"
             >
-              <RefreshCw size={13} />
-              Retry
+              <RefreshCw size={12} />
+              Retry Sync
             </button>
           </div>
         )}
 
-        {/* Story Table */}
+        {/* Table Container */}
         {dataLoading ? (
-          <div className="h-64 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
+          <div className="h-64 w-full animate-pulse border border-[#E2DDCF] bg-[#EFECE6]" />
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <div className="border border-[#E2DDCF] bg-[#FAF9F5]">
             <BlogTable
               blogs={blogs}
               user={user}
@@ -418,23 +415,23 @@ export default function AdminStoriesPage() {
 
         {/* Pagination Controls */}
         {!showTrash && totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
-              Page <span className="font-semibold text-slate-900">{page}</span> of{" "}
-              <span className="font-semibold text-slate-900">{totalPages}</span>
+          <div className="mt-6 flex items-center justify-between border-t border-[#E2DDCF] pt-4">
+            <p className="text-[11px] uppercase tracking-wider text-[#7A8079]">
+              Folio <span className="font-semibold text-[#1E2620]">{page}</span> of{" "}
+              <span className="font-semibold text-[#1E2620]">{totalPages}</span>
             </p>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:opacity-40"
+                className="border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#5A6259] disabled:opacity-30 hover:border-[#1E2620] hover:text-[#1E2620]"
               >
                 Previous
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 disabled:opacity-40"
+                className="border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#5A6259] disabled:opacity-30 hover:border-[#1E2620] hover:text-[#1E2620]"
               >
                 Next
               </button>
@@ -443,70 +440,79 @@ export default function AdminStoriesPage() {
         )}
       </main>
 
-      {/* ─── Story Creation Modal with Integrated Image Cropper ─────────────────── */}
+      {/* Story Creation Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <h3 className="text-lg font-bold text-slate-900">Create & Crop Story</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E2620]/40 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg border-t-4 border-[#1E2620] bg-[#FAF9F5] p-6 border-x border-b border-[#E2DDCF] shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#E2DDCF] pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles size={14} className="text-[#A9812F]" />
+                <h3 className="font-serif italic text-lg text-[#1E2620]">New Story Entry</h3>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                className="text-[#7A8079] hover:text-[#1E2620]"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
 
-            <form onSubmit={handleCreateStorySubmit} className="mt-4 space-y-4">
+            <form onSubmit={handleCreateStorySubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Title</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F] mb-1">
+                  Headline
+                </label>
                 <input
                   type="text"
                   required
                   value={storyTitle}
                   onChange={(e) => setStoryTitle(e.target.value)}
-                  placeholder="Story Headline..."
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  placeholder="Article Headline..."
+                  className="w-full border border-[#D9D4C6] bg-[#FAF9F5] p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Category / Tag</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F] mb-1">
+                  Tag / Desk
+                </label>
                 <input
                   type="text"
                   required
                   value={storyTag}
                   onChange={(e) => setStoryTag(e.target.value)}
-                  placeholder="e.g. Technology, Health..."
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  placeholder="e.g. Technology, Biosafety..."
+                  className="w-full border border-[#D9D4C6] bg-[#FAF9F5] p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">
-                  Cover Photo (16:9 Aspect Cropped)
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F] mb-1">
+                  Cover Photo (16:9)
                 </label>
-                <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 p-4 bg-slate-50">
+                <div className="border border-dashed border-[#D9D4C6] bg-[#EFECE6]/40 p-4 text-center">
                   {croppedPreview ? (
-                    <div className="w-full space-y-2 text-center">
+                    <div className="space-y-2">
                       <img
                         src={croppedPreview}
                         alt="Cropped Preview"
-                        className="h-36 w-full object-cover rounded-lg shadow-sm"
+                        className="h-32 w-full object-cover border border-[#E2DDCF]"
                       />
                       <button
                         type="button"
                         onClick={() => setIsCropperOpen(true)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#3F6B4F] underline"
                       >
-                        <Crop size={13} /> Re-crop Image
+                        <Crop size={12} /> Adjust Crop
                       </button>
                     </div>
                   ) : (
-                    <label className="cursor-pointer flex flex-col items-center gap-1.5 py-2">
-                      <ImageIcon size={28} className="text-slate-400" />
-                      <span className="text-xs font-semibold text-indigo-600">Select Image to Crop</span>
+                    <label className="cursor-pointer flex flex-col items-center gap-1 py-2">
+                      <ImageIcon size={22} className="text-[#7A8079]" />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-[#3F6B4F]">
+                        Upload Asset
+                      </span>
                       <input
                         type="file"
                         accept="image/*"
@@ -519,31 +525,33 @@ export default function AdminStoriesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase text-slate-500 mb-1">Excerpt</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F] mb-1">
+                  Excerpt Summary
+                </label>
                 <textarea
-                  rows={2}
+                  rows={3}
                   required
                   value={storyExcerpt}
                   onChange={(e) => setStoryExcerpt(e.target.value)}
-                  placeholder="Brief summary..."
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  placeholder="Brief synopsis..."
+                  className="w-full border border-[#D9D4C6] bg-[#FAF9F5] p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div className="mt-6 flex justify-end gap-3 border-t border-[#E2DDCF] pt-4">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="border border-[#D9D4C6] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5A6259] hover:border-[#1E2620]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingStory}
-                  className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-50"
+                  className="bg-[#1E2620] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#FAF9F5] hover:bg-[#3F6B4F] disabled:opacity-50"
                 >
-                  {isSubmittingStory ? "Creating..." : "Save & Create"}
+                  {isSubmittingStory ? "Recording..." : "Save Draft"}
                 </button>
               </div>
             </form>
@@ -551,7 +559,7 @@ export default function AdminStoriesPage() {
         </div>
       )}
 
-      {/* ─── Image Cropper Viewport Modal ─────────────────────────────────────── */}
+      {/* Image Cropper Viewport Modal */}
       {rawImageSrc && (
         <ImageCropperModal
           isOpen={isCropperOpen}

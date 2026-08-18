@@ -15,6 +15,8 @@ import {
   ArrowRight,
   AlertCircle,
   RefreshCw,
+  PenTool,
+  BookOpen,
 } from "lucide-react";
 
 export default function CreatorOverviewDashboardPage() {
@@ -28,7 +30,6 @@ export default function CreatorOverviewDashboardPage() {
   const [isDataFetching, setIsDataFetching] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
 
-  // Wrapped in useCallback for clean React Hook dependency tracking
   const fetchMyStories = useCallback(async () => {
     if (!currentCreatorUser) return;
     setIsDataFetching(true);
@@ -60,12 +61,11 @@ export default function CreatorOverviewDashboardPage() {
     }
   }, [currentCreatorUser, isPermissionAllowed, fetchMyStories]);
 
-  // Compute story summary stats for the current creator
   const creatorMetrics = useMemo(() => {
     const totalCount = myStoriesList.length;
 
     const pendingReviewCount = myStoriesList.filter(
-      (story) => (story.status as string) === "submitted" || (story.status as string) === "pending"
+      (story) => (story.status as string) === "submitted" || (story.status as string) === "pending_review"
     ).length;
 
     const approvedCount = myStoriesList.filter(
@@ -79,17 +79,24 @@ export default function CreatorOverviewDashboardPage() {
     return { totalCount, pendingReviewCount, approvedCount, publishedCount };
   }, [myStoriesList]);
 
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+
   if (sessionLoading || !isPermissionAllowed || !currentCreatorUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className="min-h-screen bg-[#FAF9F5] pb-16 font-sans">
         <Header title="Creator Hub" subtitle="Verifying author permissions…" />
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-8 py-10">
           <div className="animate-pulse space-y-6">
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
+            <div className="grid gap-5 sm:grid-cols-4">
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="h-44 bg-[#EFECE6]" />
+              <div className="h-44 bg-[#EFECE6]" />
             </div>
           </div>
         </div>
@@ -98,115 +105,156 @@ export default function CreatorOverviewDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className="min-h-screen bg-[#FAF9F5] pb-20 font-sans text-[#1E2620]">
       <Header
         title="Content Creator Workspace"
-        subtitle={`Welcome back, ${currentCreatorUser.firstName || "Author"}. Ready to write your next story?`}
+        subtitle={`Welcome back, ${currentCreatorUser.firstName || "Author"}. Ready to craft your next article?`}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-8 py-8">
         {/* Connection Error Banner */}
         {fetchErrorMessage && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between border-l-2 border-[#8B4136] bg-[#8B4136]/5 p-4 text-[#8B4136]">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+              <AlertCircle size={16} />
+              <p className="text-xs font-medium">{fetchErrorMessage}</p>
             </div>
             <button
               onClick={fetchMyStories}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#8B4136]/30 bg-[#FAF9F5] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]"
+              style={monoFont}
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               Retry Sync
             </button>
           </div>
         )}
 
         {/* Story Metric Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-              <FileText size={22} />
+        <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                My Portfolio
+              </span>
+              <FileText size={16} className="text-[#3F6B4F]" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                My Total Stories
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataFetching ? "…" : creatorMetrics.totalCount}
-              </p>
-            </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : creatorMetrics.totalCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Clock size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
                 In Review
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataFetching ? "…" : creatorMetrics.pendingReviewCount}
-              </p>
+              </span>
+              <Clock size={16} className="text-[#A9812F]" />
             </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : creatorMetrics.pendingReviewCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
                 Approved
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataFetching ? "…" : creatorMetrics.approvedCount}
-              </p>
+              </span>
+              <CheckCircle2 size={16} className="text-[#3F6B4F]" />
             </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : creatorMetrics.approvedCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-              <Globe size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
                 Live Published
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataFetching ? "…" : creatorMetrics.publishedCount}
-              </p>
+              </span>
+              <Globe size={16} className="text-[#1E2620]" />
             </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : creatorMetrics.publishedCount}
+            </p>
           </div>
         </div>
 
         {/* Creator Action Cards */}
         <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-            <h3 className="text-base font-bold text-slate-900 mb-1">Create New Article</h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Draft your story, attach cover images, and send it directly to editors for review.
-            </p>
-            <Link
-              href="/creator/my-stories/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-700"
-            >
-              <Plus size={14} /> Draft New Story
-            </Link>
+          {/* New Article Box */}
+          <div className="border border-[#E2DDCF] bg-[#FAF9F5] p-8 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <PenTool size={16} className="text-[#3F6B4F]" />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                  style={monoFont}
+                >
+                  Publishing Desk
+                </span>
+              </div>
+              <h3 className="text-xl font-serif italic text-[#1E2620]" style={displayFont}>
+                Compose New Article
+              </h3>
+              <p className="text-xs leading-relaxed text-[#5A6259]">
+                Draft your article, crop cover photos, attach section media, and send your manuscript directly to the editorial desk for review.
+              </p>
+            </div>
+
+            <div className="pt-6 mt-6 border-t border-[#E2DDCF]">
+              <Link
+                href="/creator/my-stories/new"
+                className="inline-flex items-center gap-2 bg-[#1E2620] px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#FAF9F5] transition-colors hover:bg-[#3F6B4F]"
+                style={monoFont}
+              >
+                <Plus size={14} /> Draft New Story
+              </Link>
+            </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-            <h3 className="text-base font-bold text-slate-900 mb-1">Manage My Submissions</h3>
-            <p className="text-xs text-slate-500 mb-4">
-              View review notes, update drafts, or edit your submitted articles.
-            </p>
-            <Link
-              href="/creator/my-stories"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50"
-            >
-              View My Stories <ArrowRight size={14} />
-            </Link>
+          {/* Catalog Management Box */}
+          <div className="border border-[#E2DDCF] bg-[#FAF9F5] p-8 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BookOpen size={16} className="text-[#A9812F]" />
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                  style={monoFont}
+                >
+                  Archive &amp; Revision
+                </span>
+              </div>
+              <h3 className="text-xl font-serif italic text-[#1E2620]" style={displayFont}>
+                Manage My Catalog
+              </h3>
+              <p className="text-xs leading-relaxed text-[#5A6259]">
+                Inspect editorial feedback, address change requests, update draft text, and track your submissions as they progress toward live publication.
+              </p>
+            </div>
+
+            <div className="pt-6 mt-6 border-t border-[#E2DDCF]">
+              <Link
+                href="/creator/my-stories"
+                className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-[#FAF9F5] px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1E2620] transition-colors hover:border-[#1E2620] hover:text-[#3F6B4F]"
+                style={monoFont}
+              >
+                View My Catalog <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         </div>
       </main>

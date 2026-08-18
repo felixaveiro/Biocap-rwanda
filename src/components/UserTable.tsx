@@ -21,6 +21,11 @@ interface UserTableProps {
   onUserUpdated?: () => void;
 }
 
+// ── Same editorial system as Header / Overview / BlogTable / Trash:
+// canvas #FAF9F5 · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #E2DDCF
+const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
 export default function UserTable({
   users: teamMembersList,
   currentUser,
@@ -140,50 +145,80 @@ export default function UserTable({
     }
   };
 
+  // Role badges now speak in the same restrained ink/moss/gold/clay
+  // vocabulary as the rest of the app, rather than a rainbow of
+  // unrelated tailwind hues — each color still maps consistently
+  // to a role, but reads as one deliberate palette.
   const getRoleBadgeStyle = (userRole: Role) => {
     switch (userRole) {
       case "admin":
-        return "bg-purple-50 text-purple-700 border-purple-200/80";
+        return "border-[#1E2620]/25 bg-[#1E2620]/[0.06] text-[#1E2620]";
       case "communication_officer":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+        return "border-[#3F6B4F]/30 bg-[#3F6B4F]/10 text-[#2C4B38]";
       case "editor":
-        return "bg-amber-50 text-amber-700 border-amber-200/80";
+        return "border-[#A9812F]/30 bg-[#A9812F]/10 text-[#7A5D22]";
       case "principal_investigator":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+        return "border-[#3F6B4F]/30 bg-[#3F6B4F]/10 text-[#2C4B38]";
       case "media_correspondent":
-        return "bg-rose-50 text-rose-700 border-rose-200/80";
+        return "border-[#B65C4B]/30 bg-[#B65C4B]/10 text-[#8B4136]";
       default:
-        return "bg-sky-50 text-sky-700 border-sky-200/80";
+        return "border-[#8B9188]/30 bg-[#8B9188]/10 text-[#5C6259]";
     }
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full border border-[#E2DDCF] bg-white">
       {tableActionError && (
-        <div className="m-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+        <div className="m-4 flex items-center gap-2.5 border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-3 text-xs font-medium text-[#8B4136]">
+          <AlertCircle size={14} className="shrink-0" />
           {tableActionError}
         </div>
       )}
       {tableActionSuccess && (
-        <div className="m-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-medium text-emerald-700">
+        <div className="m-4 flex items-center gap-2.5 border border-[#3F6B4F]/40 bg-[#3F6B4F]/10 p-3 text-xs font-medium text-[#2C4B38]">
+          <CheckCircle2 size={14} className="shrink-0" />
           {tableActionSuccess}
         </div>
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="border-b border-slate-200/80 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <table className="w-full text-left text-sm text-[#3A4239]">
+          <thead className="border-b border-[#E2DDCF] bg-[#FAF9F5]">
             <tr>
-              <th scope="col" className="px-6 py-4">User Info</th>
-              <th scope="col" className="px-6 py-4">Role</th>
-              <th scope="col" className="px-6 py-4">Status</th>
-              <th scope="col" className="px-6 py-4 text-right">Actions</th>
+              <th
+                scope="col"
+                className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B9188]"
+                style={monoFont}
+              >
+                User Info
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B9188]"
+                style={monoFont}
+              >
+                Role
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B9188]"
+                style={monoFont}
+              >
+                Status
+              </th>
+              <th
+                scope="col"
+                className="px-6 py-4 text-right text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B9188]"
+                style={monoFont}
+              >
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-[#EDEAE0]">
             {teamMembersList.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
+                <td colSpan={4} className="px-6 py-16 text-center text-sm text-[#8B9188]">
                   No team members match the specified criteria.
                 </td>
               </tr>
@@ -197,39 +232,45 @@ export default function UserTable({
                 const canDeleteAccounts = can(currentUser.role, "user:delete");
 
                 return (
-                  <tr key={memberId} className="transition hover:bg-slate-50/50">
+                  <tr key={memberId} className="transition hover:bg-[#FAF9F5]">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600 uppercase">
+                        <div
+                          className="flex h-10 w-10 items-center justify-center border border-[#E2DDCF] bg-[#FAF9F5] text-xs font-semibold uppercase text-[#5C6259]"
+                          style={displayFont}
+                        >
                           {member.firstName?.[0] || member.username?.[0] || "U"}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 flex items-center gap-1.5">
+                          <p className="flex items-center gap-1.5 font-semibold text-[#1E2620]">
                             {memberFullName}
                             {isSelfAccount && (
-                              <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-600 uppercase">
+                              <span
+                                className="border border-[#3F6B4F]/30 bg-[#3F6B4F]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#2C4B38]"
+                                style={monoFont}
+                              >
                                 You
                               </span>
                             )}
                           </p>
-                          <p className="text-xs text-slate-400">{member.email}</p>
+                          <p className="text-xs text-[#8B9188]">{member.email}</p>
                         </div>
                       </div>
                     </td>
 
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getRoleBadgeStyle(
+                        className={`inline-flex items-center gap-1.5 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide ${getRoleBadgeStyle(
                           member.role
                         )}`}
                       >
-                        <Shield size={12} />
+                        <Shield size={11} />
                         {ROLE_LABELS[member.role] || member.role}
                       </span>
                     </td>
 
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#3F6B4F]">
                         <CheckCircle2 size={14} /> Active
                       </span>
                     </td>
@@ -239,10 +280,10 @@ export default function UserTable({
                         {canModifyRoles && (
                           <button
                             onClick={() => handleOpenEditModal(member)}
-                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-800"
+                            className="border border-[#D9D4C6] p-1.5 text-[#7A8079] transition hover:border-[#1E2620] hover:text-[#1E2620]"
                             title="Edit User Role"
                           >
-                            <Edit3 size={15} />
+                            <Edit3 size={14} />
                           </button>
                         )}
 
@@ -250,13 +291,13 @@ export default function UserTable({
                           <button
                             disabled={activeResettingUserId === memberId}
                             onClick={() => handleResetPassword(memberId, memberFullName)}
-                            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 shadow-xs transition hover:bg-slate-100 hover:text-slate-800 disabled:opacity-50"
+                            className="border border-[#D9D4C6] p-1.5 text-[#7A8079] transition hover:border-[#A9812F] hover:text-[#A9812F] disabled:opacity-50"
                             title="Reset Password"
                           >
                             {activeResettingUserId === memberId ? (
-                              <Loader2 size={15} className="animate-spin" />
+                              <Loader2 size={14} className="animate-spin" />
                             ) : (
-                              <Shield size={15} />
+                              <Shield size={14} />
                             )}
                           </button>
                         )}
@@ -265,12 +306,13 @@ export default function UserTable({
                           <button
                             disabled={activeDeletingUserId === memberId}
                             onClick={() => handleMemberDelete(memberId, memberFullName)}
-                            className="rounded-lg border border-rose-100 p-1.5 text-rose-500 shadow-xs transition hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+                            className="border border-[#B65C4B]/30 p-1.5 text-[#B65C4B] transition hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white disabled:opacity-50"
+                            title="Delete Account"
                           >
                             {activeDeletingUserId === memberId ? (
-                              <Loader2 size={15} className="animate-spin" />
+                              <Loader2 size={14} className="animate-spin" />
                             ) : (
-                              <Trash2 size={15} />
+                              <Trash2 size={14} />
                             )}
                           </button>
                         )}
@@ -286,31 +328,43 @@ export default function UserTable({
 
       {/* EDIT USER MODAL OVERLAY */}
       {selectedMemberToEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">
-                Edit Team Member Account
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1E2620]/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg border border-[#E2DDCF] bg-white p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-4">
+              <div>
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8B9188]"
+                  style={monoFont}
+                >
+                  Edit Member
+                </p>
+                <h3 className="mt-1 text-lg italic text-[#1E2620]" style={displayFont}>
+                  {`${editFirstName || selectedMemberToEdit.firstName || ""} ${
+                    editLastName || selectedMemberToEdit.lastName || ""
+                  }`.trim() || selectedMemberToEdit.username}
+                </h3>
+              </div>
               <button
                 onClick={handleCloseEditModal}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+                className="p-1 text-[#8B9188] transition hover:text-[#1E2620]"
               >
                 <X size={18} />
               </button>
             </div>
 
             {modalError && (
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-                <AlertCircle size={15} />
+              <div className="mt-4 flex items-center gap-2 border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-3 text-xs font-medium text-[#8B4136]">
+                <AlertCircle size={15} className="shrink-0" />
                 <span>{modalError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveUserModalSubmit} className="space-y-4 pt-4">
+            <form onSubmit={handleSaveUserModalSubmit} className="space-y-4 pt-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  <label
+                    className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B9188]"
+                  >
                     First Name
                   </label>
                   <input
@@ -318,12 +372,14 @@ export default function UserTable({
                     required
                     value={editFirstName}
                     onChange={(e) => setEditFirstName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-[#FAF9F5]/40 p-2.5 text-sm font-medium text-[#1E2620] transition focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  <label
+                    className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B9188]"
+                  >
                     Last Name
                   </label>
                   <input
@@ -331,13 +387,15 @@ export default function UserTable({
                     required
                     value={editLastName}
                     onChange={(e) => setEditLastName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-[#FAF9F5]/40 p-2.5 text-sm font-medium text-[#1E2620] transition focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                <label
+                  className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B9188]"
+                >
                   Email Address
                 </label>
                 <input
@@ -345,18 +403,20 @@ export default function UserTable({
                   required
                   value={editEmail}
                   onChange={(e) => setEditEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-900 focus:border-indigo-500 focus:outline-none"
+                  className="w-full border border-[#D9D4C6] bg-[#FAF9F5]/40 p-2.5 text-sm font-medium text-[#1E2620] transition focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
+                <label
+                  className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B9188]"
+                >
                   Assigned System Role
                 </label>
                 <select
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value as Role)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                  className="w-full appearance-none border border-[#D9D4C6] bg-[#FAF9F5]/40 p-2.5 text-sm font-medium text-[#3A4239] transition cursor-pointer focus:border-[#3F6B4F] focus:outline-none focus:ring-4 focus:ring-[#3F6B4F]/10"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
@@ -366,18 +426,18 @@ export default function UserTable({
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2 border-t border-[#EDEAE0] pt-5">
                 <button
                   type="button"
                   onClick={handleCloseEditModal}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+                  className="border border-[#D9D4C6] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#5C6259] transition hover:border-[#1E2620] hover:text-[#1E2620]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isModalSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+                  className="inline-flex items-center gap-2 border border-[#3F6B4F]/40 bg-[#3F6B4F] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#2C4B38] hover:border-[#2C4B38] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isModalSubmitting ? (
                     <Loader2 size={14} className="animate-spin" />

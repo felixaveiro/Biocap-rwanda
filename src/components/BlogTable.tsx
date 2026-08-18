@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, User, Role } from "@/types";
 import { blogsApi, editorApi } from "@/lib/api/blogs";
 import EditStoryModal from "@/components/EditStoryModal";
@@ -17,6 +18,28 @@ import {
   MessageSquare,
   RotateCcw,
 } from "lucide-react";
+
+// ── Type system (matches the rest of the editorial suite) ──────
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
+
+// ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
 
 interface BlogTableProps {
   blogs: BlogPost[];
@@ -133,64 +156,90 @@ export default function BlogTable({
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  // Status → proof-stage styling. Each stage reads like a stamp on a galley:
+  // draft (unmarked) → submitted/pending (awaiting mark) → approved (marked ready)
+  // → published (final) / rejected (sent back).
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case "published":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200/80";
+        return "border-[#3F6B4F] bg-[#3F6B4F]/10 text-[#2C4B38]";
       case "approved":
-        return "bg-indigo-50 text-indigo-700 border-indigo-200/80";
+        return "border-[#A9812F] bg-[#A9812F]/10 text-[#7A5D22]";
       case "pending_review":
       case "submitted":
-        return "bg-amber-50 text-amber-700 border-amber-200/80";
+        return "border-[#A9812F]/60 bg-transparent text-[#A9812F]";
       case "rejected":
-        return "bg-rose-50 text-rose-700 border-rose-200/80";
+        return "border-[#B65C4B] bg-[#B65C4B]/10 text-[#8B4136]";
       default:
-        return "bg-slate-100 text-slate-600 border-slate-200/80";
+        return "border-[#D9D4C6] bg-[#F3F2ED] text-[#5A6259]";
     }
   };
 
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  // Shared button treatments so every action reads from the same rulebook
+  const btnBase =
+    "inline-flex items-center gap-1 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  const btnNeutral = `${btnBase} border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620]`;
+  const btnMoss = `${btnBase} border-[#3F6B4F]/40 bg-[#3F6B4F]/10 text-[#2C4B38] hover:bg-[#3F6B4F] hover:text-white hover:border-[#3F6B4F]`;
+  const btnGold = `${btnBase} border-[#A9812F]/40 bg-[#A9812F]/10 text-[#7A5D22] hover:bg-[#A9812F] hover:text-white hover:border-[#A9812F]`;
+  const btnClay = `${btnBase} border-[#B65C4B]/40 bg-[#B65C4B]/10 text-[#8B4136] hover:bg-[#B65C4B] hover:text-white hover:border-[#B65C4B]`;
+  const iconBtn =
+    "border p-1.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
+
   return (
-    <div className="w-full">
+    <div className={`${fontVars} w-full border border-[#E2DDCF] bg-white`} style={bodyFont}>
       {actionError && (
-        <div className="m-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+        <div className="m-4 flex items-center gap-2 border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-3 text-xs font-medium text-[#8B4136]">
           <AlertTriangle size={15} />
           <span>{actionError}</span>
         </div>
       )}
 
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="border-b border-slate-200/80 bg-slate-50/50 text-xs font-bold uppercase tracking-wider text-slate-400">
+        <table className="w-full text-left text-sm text-[#3A4239]">
+          <thead className="border-b border-[#E2DDCF] bg-[#FAF9F5] text-[10px] font-semibold uppercase tracking-wider text-[#8B9188]" style={monoFont}>
             <tr>
-              <th scope="col" className="px-6 py-4">Title & Excerpt</th>
-              <th scope="col" className="px-6 py-4">Category Tag</th>
-              <th scope="col" className="px-6 py-4">Status</th>
-              <th scope="col" className="px-6 py-4 text-right">Actions</th>
+              <th scope="col" className="px-6 py-3.5">Title &amp; Excerpt</th>
+              <th scope="col" className="px-6 py-3.5">Category Tag</th>
+              <th scope="col" className="px-6 py-3.5">Status</th>
+              <th scope="col" className="px-6 py-3.5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-[#EDEAE0]">
             {blogs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-sm text-slate-400">
-                  {showTrash ? "Trash bin is currently empty." : "No articles found in this catalog."}
+                <td colSpan={4} className="px-6 py-16 text-center">
+                  <p className="text-[13px] italic text-[#B4B0A2]" style={displayFont}>
+                    {showTrash ? "The trash bin is empty." : "No articles found in this catalog."}
+                  </p>
                 </td>
               </tr>
             ) : (
               blogs.map((story) => {
                 const isBusy = activeActionId === story._id;
+                const statusStyle = getStatusStyle(story.status);
+                const accentColor = statusStyle.match(/border-\[(#[0-9A-Fa-f]{6})\]/)?.[1] ?? "#D9D4C6";
 
                 return (
-                  <tr key={story._id} className="transition hover:bg-slate-50/50">
+                  <tr
+                    key={story._id}
+                    className="transition-colors hover:bg-[#FAF9F5]"
+                    style={{ boxShadow: `inset 3px 0 0 ${accentColor}` }}
+                  >
                     <td className="px-6 py-4 max-w-md">
-                      <p className="font-semibold text-slate-900">{story.title}</p>
-                      <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">
+                      <p className="font-semibold text-[#1E2620]">{story.title}</p>
+                      <p className="mt-0.5 line-clamp-1 text-xs italic text-[#8B9188]" style={displayFont}>
                         {story.excerpt || "No excerpt provided."}
                       </p>
 
                       {/* Display Editor Revision Note if Rejected */}
                       {story.status === "rejected" && story.lastRejectionNote && (
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-800 border border-amber-200/60">
-                          <MessageSquare size={12} className="shrink-0 text-amber-600" />
+                        <div className="mt-2 inline-flex items-center gap-1.5 border border-[#A9812F]/30 bg-[#A9812F]/10 px-2.5 py-1 text-[11px] font-medium text-[#7A5D22]">
+                          <MessageSquare size={12} className="shrink-0" />
                           <span className="truncate max-w-xs">
                             Feedback: {story.lastRejectionNote}
                           </span>
@@ -198,24 +247,26 @@ export default function BlogTable({
                       )}
 
                       {story.changeRequests && story.changeRequests.filter((c) => !c.implemented).length > 0 && (
-                        <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-800 border border-rose-200/60">
-                          <MessageSquare size={12} className="shrink-0 text-rose-600" />
+                        <div className="mt-2 inline-flex items-center gap-1.5 border border-[#B65C4B]/30 bg-[#B65C4B]/10 px-2.5 py-1 text-[11px] font-medium text-[#8B4136]">
+                          <MessageSquare size={12} className="shrink-0" />
                           <span className="truncate max-w-xs">Changes requested: {story.changeRequests.filter((c) => !c.implemented).length}</span>
                         </div>
                       )}
                     </td>
 
                     <td className="px-6 py-4">
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                      <span
+                        className="border border-[#D9D4C6] bg-[#F3F2ED] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5A6259]"
+                        style={monoFont}
+                      >
                         {story.tag || "General"}
                       </span>
                     </td>
 
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${getStatusBadge(
-                          story.status
-                        )}`}
+                        className={`inline-flex items-center border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusStyle}`}
+                        style={monoFont}
                       >
                         {story.status?.replace(/_/g, " ")}
                       </span>
@@ -229,7 +280,7 @@ export default function BlogTable({
                             {onRestore && (
                               <button
                                 onClick={() => onRestore(story._id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition"
+                                className={btnMoss}
                                 title="Restore Article"
                               >
                                 <RotateCcw size={13} />
@@ -240,7 +291,7 @@ export default function BlogTable({
                             {onPermanentDelete && (
                               <button
                                 onClick={() => onPermanentDelete(story._id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition"
+                                className={btnClay}
                                 title="Permanently Delete Article"
                               >
                                 <Trash2 size={13} />
@@ -258,7 +309,7 @@ export default function BlogTable({
                                   <button
                                     disabled={isBusy}
                                     onClick={() => handleSubmitForReview(story._id)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition disabled:opacity-50"
+                                    className={btnGold}
                                     title="Submit Draft for Editorial Review"
                                   >
                                     {isBusy ? (
@@ -273,7 +324,7 @@ export default function BlogTable({
                                 <button
                                   disabled={isBusy}
                                   onClick={() => setEditingStory(story)}
-                                  className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition disabled:opacity-50"
+                                  className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
                                   title="Edit Story"
                                 >
                                   <Edit3 size={15} />
@@ -282,7 +333,7 @@ export default function BlogTable({
                                 <button
                                   disabled={isBusy}
                                   onClick={() => handleDeleteStory(story._id, story.title)}
-                                  className="rounded-lg border border-rose-100 p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition disabled:opacity-50"
+                                  className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
                                   title="Delete Story Draft"
                                 >
                                   {isBusy ? (
@@ -299,7 +350,7 @@ export default function BlogTable({
                               <>
                                 <button
                                   onClick={() => setReviewingStory(story)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-xs"
+                                  className={btnNeutral}
                                   title="Review Submission Workspace"
                                 >
                                   <Eye size={13} /> Review
@@ -309,12 +360,25 @@ export default function BlogTable({
                                   <button
                                     disabled={isBusy}
                                     onClick={() => handleUnpublishStory(story._id)}
-                                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition disabled:opacity-50"
+                                    className={btnClay}
                                     title="Unpublish Article"
                                   >
                                     <XCircle size={13} /> Unpublish
                                   </button>
                                 )}
+
+                                <button
+                                  disabled={isBusy}
+                                  onClick={() => handleDeleteStory(story._id, story.title)}
+                                  className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
+                                  title="Move Story to Trash"
+                                >
+                                  {isBusy ? (
+                                    <Loader2 size={15} className="animate-spin" />
+                                  ) : (
+                                    <Trash2 size={15} />
+                                  )}
+                                </button>
                               </>
                             )}
 
@@ -322,7 +386,7 @@ export default function BlogTable({
                             {canPublish && story.status === "approved" && onPublish && (
                               <button
                                 onClick={() => onPublish(story)}
-                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition flex items-center gap-1"
+                                className={btnMoss}
                               >
                                 <CheckCircle2 size={13} /> Publish
                               </button>

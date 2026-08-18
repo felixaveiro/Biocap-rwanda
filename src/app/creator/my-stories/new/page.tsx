@@ -1,15 +1,47 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import ImageCropperModal from "@/components/ImageCropperModal";
+import StoryEditor from "@/components/StoryEditor";
 import { base64ToFile } from "@/lib/utils/file";
 import { useSession } from "@/hooks/useSession";
 import { blogsApi } from "@/lib/api/blogs";
 import { Role } from "@/types";
-import { ArrowLeft, Save, Send, AlertCircle, Crop, Image as ImageIcon, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Send,
+  AlertCircle,
+  Crop,
+  Image as ImageIcon,
+  Loader2,
+  Globe,
+  AtSign,
+  Tag,
+} from "lucide-react";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
 
 export default function CreateNewStoryPage() {
   const router = useRouter();
@@ -19,6 +51,8 @@ export default function CreateNewStoryPage() {
   const [tag, setTag] = useState("General");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
+  const [blocks, setBlocks] = useState<any[]>([]);
+  const [inlineImages, setInlineImages] = useState<File[]>([]);
   const [socialHandle, setSocialHandle] = useState("");
   const [organizationLink, setOrganizationLink] = useState("");
 
@@ -31,12 +65,23 @@ export default function CreateNewStoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Memoized handler prevents re-creation on every render cycle
+  const handleStoryEditorChange = useCallback((b: any[], files: File[]) => {
+    setBlocks(b || []);
+    setInlineImages(files || []);
+  }, []);
+
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
   if (loading || !allowed || !user) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16`} style={bodyFont}>
         <Header title="Create Story" subtitle="Loading editor permissions..." />
         <div className="mx-auto max-w-4xl px-4 py-8">
-          <div className="h-96 animate-pulse rounded-2xl bg-slate-200/80" />
+          <div className="h-96 animate-pulse border border-[#E2DDCF] bg-[#E7E3D6]" />
         </div>
       </div>
     );
@@ -45,7 +90,6 @@ export default function CreateNewStoryPage() {
   const isSocialCreator = user.role === "social_media_content_creator";
   const isMediaCorrespondent = user.role === "media_correspondent";
 
-  // Triggered when user picks an image file
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -58,7 +102,6 @@ export default function CreateNewStoryPage() {
     }
   };
 
-  // Triggered when crop is saved in ImageCropperModal
   const handleCropSave = (croppedBase64: string) => {
     setCroppedPreview(croppedBase64);
     const file = base64ToFile(croppedBase64, `cover-${Date.now()}.jpg`);
@@ -67,8 +110,13 @@ export default function CreateNewStoryPage() {
   };
 
   const handleSubmit = async (shouldSubmitForReview: boolean = false) => {
-    if (!title.trim() || !tag.trim() || !excerpt.trim() || !coverImageFile) {
-      setErrorMsg("Please provide a title, tag, excerpt, and cover image.");
+    if (!title.trim() || !tag.trim() || !coverImageFile) {
+      setErrorMsg("Please provide a title, tag, and cover image.");
+      return;
+    }
+
+    if (!excerpt.trim() && (!blocks || blocks.length === 0)) {
+      setErrorMsg("Please provide either an excerpt or at least one story section.");
       return;
     }
 
@@ -91,21 +139,22 @@ export default function CreateNewStoryPage() {
     try {
       const creatorRole = user.role as Role;
 
-      // 1. Create the blog draft using central blogsApi
+      const payloadBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
+
       const newBlog = await blogsApi.createBlog(
         {
           title: title.trim(),
           tag: tag.trim(),
           excerpt: excerpt.trim(),
-          blocks: [{ type: "p", text: content.trim() }],
+          blocks: payloadBlocks,
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
           img: coverImageFile,
+          images: inlineImages,
         },
         creatorRole
       );
 
-      // 2. Submit for review if requested
       if (shouldSubmitForReview && newBlog?._id) {
         await blogsApi.submitBlog(newBlog._id, creatorRole);
       }
@@ -121,164 +170,188 @@ export default function CreateNewStoryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-24 text-[#1E2620]`} style={bodyFont}>
       <Header
         title="Create New Story"
-        subtitle="Draft a new article and submit it for editorial review"
+        subtitle="Craft an insightful article and publish or submit for review"
       />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex items-center justify-between">
+
+        {/* Navigation & Action Header */}
+        <div className="sticky top-4 z-30 flex items-center justify-between border border-[#D9D4C6] bg-[#F3F2ED]/90 p-3.5 backdrop-blur-xl">
           <Link
             href="/creator/my-stories"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition"
+            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#5A6259] transition-colors hover:text-[#1E2620]"
           >
             <ArrowLeft size={16} />
-            Back to My Stories
+            Back to Stories
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit(false)}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-xs hover:bg-slate-50 disabled:opacity-50 transition"
+              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Draft
             </button>
             <button
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-700 disabled:opacity-50 transition"
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50"
             >
-              {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {isSubmitting ? "Submitting..." : "Submit for Review"}
             </button>
           </div>
         </div>
 
+        {/* Error Notification */}
         {errorMsg && (
-          <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
-            <AlertCircle size={18} className="text-rose-600 shrink-0" />
-            <p className="text-sm font-medium">{errorMsg}</p>
+          <div className="flex items-center gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
+            <AlertCircle size={18} className="shrink-0 text-[#B65C4B]" />
+            <p className="text-xs font-medium text-[#7A362A]">{errorMsg}</p>
           </div>
         )}
 
-        <div className="space-y-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
-          {/* Cover Image Upload Area with Cropper */}
+        {/* Main Content Card */}
+        <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8">
+
+          {/* Eyebrow */}
+          <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
+              Manuscript
+            </p>
+            <h2 className="text-xl italic text-[#1E2620]" style={displayFont}>
+              Begin a new story
+            </h2>
+          </div>
+
+          {/* Cover Image Upload */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Cover Image *
-            </label>
+            <div className="flex items-center justify-between mb-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+                Cover Image <span className="text-[#B65C4B]">*</span>
+              </label>
+              <span className="text-[11px] font-medium text-[#8B9188]" style={monoFont}>16:9 landscape</span>
+            </div>
 
             {croppedPreview ? (
-              <div className="relative group overflow-hidden rounded-2xl bg-slate-100 max-h-72">
-                <img src={croppedPreview} alt="Cover Preview" className="w-full h-full object-cover" />
+              <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+                <img src={croppedPreview} alt="Cover Preview" className="h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-[#1E2620]/20 opacity-0 transition duration-200 group-hover:opacity-100" />
                 <button
                   type="button"
                   onClick={() => setIsCropperOpen(true)}
-                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-xl bg-slate-900/80 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-md hover:bg-slate-900 transition"
+                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620]"
                 >
-                  <Crop size={14} className="text-[#E52B67]" /> Recrop Image
+                  <Crop size={14} className="text-[#8FBF9F]" /> Adjust &amp; crop
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center h-48 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 hover:bg-slate-100/80 transition cursor-pointer">
-                <ImageIcon size={32} className="text-slate-400 mb-2" />
-                <span className="text-xs font-bold text-slate-700">Upload Cover Image</span>
-                <span className="text-[10px] text-slate-400 mt-0.5">JPG, PNG or WEBP (16:9 recommended)</span>
+              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3F6B4F] hover:bg-[#F1F5F1]">
+                <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3F6B4F]">
+                  <ImageIcon size={24} strokeWidth={1.5} className="text-[#8B9188] transition group-hover:text-[#3F6B4F]" />
+                </div>
+                <div className="mt-3 text-center">
+                  <span className="text-xs font-semibold text-[#3A4239] transition group-hover:text-[#3F6B4F]">Upload cover image</span>
+                  <p className="mt-0.5 text-[11px] text-[#8B9188]">Drag and drop or click to browse (JPG, PNG, WEBP)</p>
+                </div>
                 <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
               </label>
             )}
           </div>
 
+          {/* Headline Input */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Story Title *
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+              Story Title <span className="text-[#B65C4B]">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter headline..."
-              className="w-full rounded-xl border border-slate-200/80 px-4 py-2 text-base font-semibold text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+              placeholder="Enter a captivating headline..."
+              style={displayFont}
+              className="w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
             />
           </div>
 
-          {isSocialCreator && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Social Media Handle *
-              </label>
+          {/* Role Specific Fields */}
+          {(isSocialCreator || isMediaCorrespondent) && (
+            <div className="grid grid-cols-1 gap-4 border-t border-[#EDEAE0] pt-6 md:grid-cols-2">
+              {isSocialCreator && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+                    Social Media Handle (Author)<span className="text-[#B65C4B]">*</span>
+                  </label>
+                  <div className="relative">
+                    <AtSign size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
+                    <input
+                      type="text"
+                      value={socialHandle}
+                      onChange={(e) => setSocialHandle(e.target.value)}
+                      placeholder="yourusername"
+                      className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {isMediaCorrespondent && (
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+                    Organization Link <span className="text-[#B65C4B]">*</span>
+                  </label>
+                  <div className="relative">
+                    <Globe size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
+                    <input
+                      type="url"
+                      value={organizationLink}
+                      onChange={(e) => setOrganizationLink(e.target.value)}
+                      placeholder="https://organization.org"
+                      className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Category / Tag */}
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+              Category / Tag <span className="text-[#B65C4B]">*</span>
+            </label>
+            <div className="relative">
+              <Tag size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
               <input
                 type="text"
-                value={socialHandle}
-                onChange={(e) => setSocialHandle(e.target.value)}
-                placeholder="@yourusername"
-                className="w-full rounded-xl border border-slate-200/80 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+                value={tag}
+                onChange={(e) => setTag(e.target.value)}
+                placeholder="e.g. Technology, Innovation, BioCap"
+                className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
               />
             </div>
-          )}
+          </div>
 
-          {isMediaCorrespondent && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Organization Link *
-              </label>
-              <input
-                type="url"
-                value={organizationLink}
-                onChange={(e) => setOrganizationLink(e.target.value)}
-                placeholder="https://yourorganization.org"
-                className="w-full rounded-xl border border-slate-200/80 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Category / Tag *
-            </label>
-            <input
-              type="text"
-              value={tag}
-              onChange={(e) => setTag(e.target.value)}
-              placeholder="e.g. Technology, Science, Culture"
-              className="w-full rounded-xl border border-slate-200/80 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
+          {/* Rich Dynamic Story Editor Component */}
+          <div className="border-t border-[#EDEAE0] pt-6">
+            <StoryEditor
+              excerpt={excerpt}
+              setExcerpt={setExcerpt}
+              onChange={handleStoryEditorChange}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Excerpt / Brief Summary *
-            </label>
-            <textarea
-              rows={2}
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              placeholder="Short description for preview cards..."
-              className="w-full rounded-xl border border-slate-200/80 px-4 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Story Body
-            </label>
-            <textarea
-              rows={10}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your story content here..."
-              className="w-full rounded-xl border border-slate-200/80 px-4 py-3 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10"
-            />
-          </div>
         </div>
       </main>
 
-      {/* Image Cropper Modal */}
+      {/* Modern Image Cropper Modal */}
       {rawImageSrc && (
         <ImageCropperModal
           isOpen={isCropperOpen}

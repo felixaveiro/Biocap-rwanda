@@ -2,21 +2,42 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import ReviewStoryModal from "@/components/ReviewStoryModal";
 import { useSession } from "@/hooks/useSession";
 import { editorApi, BlogStatsResponse } from "@/lib/api/blogs";
 import { BlogPost, Role } from "@/types";
 import {
-  FileText,
   Clock,
-  CheckCircle2,
-  XCircle,
   ArrowRight,
   AlertCircle,
   RefreshCw,
   Eye,
+  CheckCircle,
 } from "lucide-react";
+
+// ── Type system (matches the rest of the editorial suite) ──────
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
+
+// ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · sky #4A6E8A · line #D9D4C6
 
 export default function EditorOverviewPage() {
   const {
@@ -82,18 +103,21 @@ export default function EditorOverviewPage() {
     };
   }, [blogStats]);
 
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
   if (sessionLoading || !isPermissionAllowed || !currentEditorUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16`} style={bodyFont}>
         <Header title="Communication Editor Desk" subtitle="Authenticating credentials…" />
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-6">
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-            </div>
+          <div className="grid animate-pulse grid-cols-2 divide-x divide-[#D9D4C6] border border-[#E2DDCF] bg-white sm:grid-cols-4">
+            <div className="h-24 bg-[#E7E3D6]" />
+            <div className="h-24 bg-[#E7E3D6]" />
+            <div className="h-24 bg-[#E7E3D6]" />
+            <div className="h-24 bg-[#E7E3D6]" />
           </div>
         </div>
       </div>
@@ -101,147 +125,127 @@ export default function EditorOverviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]`} style={bodyFont}>
       <Header
         title="Editorial Review Desk"
         subtitle={`Welcome back, ${currentEditorUser.firstName || "Editor"}. Review submitted stories, propose edits, and approve articles for publication.`}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        {/* Masthead / nameplate */}
+        <div className="pb-3">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
+            Editorial desk
+          </span>
+          <h1 className="mt-1.5 text-[26px] italic leading-none text-[#1E2620] sm:text-3xl" style={displayFont}>
+            Good to see you, {currentEditorUser.firstName || "Editor"}
+          </h1>
+        </div>
+        <div className="mb-8 space-y-[3px]">
+          <div className="h-[2px] w-full bg-[#1E2620]" />
+          <div className="h-px w-full bg-[#1E2620]" />
+        </div>
+
         {/* Error Banner */}
         {fetchErrorMessage && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+              <AlertCircle size={16} className="shrink-0 text-[#B65C4B]" />
+              <p className="text-xs font-medium text-[#7A362A]">{fetchErrorMessage}</p>
             </div>
             <button
               onClick={fetchEditorDashboardData}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors hover:bg-[#B65C4B] hover:text-white"
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               Retry Sync
             </button>
           </div>
         )}
 
-        {/* Metric Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Clock size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Awaiting Review
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : editorMetrics.pendingReviewCount}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-              <CheckCircle2 size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Approved
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : editorMetrics.approvedCount}
+        {/* Ledger stat row */}
+        <div className="mb-8 grid grid-cols-2 divide-x divide-[#D9D4C6] border border-[#E2DDCF] bg-white sm:grid-cols-4">
+          {[
+            { label: "Awaiting review", value: editorMetrics.pendingReviewCount, accent: "#A9812F" },
+            { label: "Approved", value: editorMetrics.approvedCount, accent: "#3F6B4F" },
+            { label: "Live published", value: editorMetrics.publishedCount, accent: "#4A6E8A" },
+            { label: "Total articles", value: editorMetrics.totalCount },
+          ].map((s) => (
+            <div key={s.label} className="px-5 py-4">
+              <p className="text-[10px] uppercase tracking-[0.14em] text-[#8B9188]">{s.label}</p>
+              <p
+                className="mt-1 text-2xl tabular-nums"
+                style={{ ...monoFont, color: s.accent ?? "#1E2620" }}
+              >
+                {isDataLoading ? "···" : String(s.value).padStart(2, "0")}
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <FileText size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Live Published
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : editorMetrics.publishedCount}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-              <FileText size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Total Articles
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : editorMetrics.totalCount}
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Pending Review Queue (FIFO) */}
-        <div className="space-y-6">
-          <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Clock size={18} className="text-indigo-600" /> Priority Review Queue (FIFO)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Submissions pending editorial review, ordered by submission date.
-                </p>
-              </div>
+        <div className="border border-[#E2DDCF] bg-white p-6">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4 border-b border-[#EDEAE0] pb-4">
+            <div>
+              <h3 className="flex items-center gap-2 text-base font-semibold text-[#1E2620]">
+                <Clock size={16} className="text-[#A9812F]" /> Priority review queue
+              </h3>
+              <p className="mt-0.5 text-xs text-[#6B7268]">
+                Submissions pending editorial review, ordered by submission date (FIFO).
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
               <Link
                 href="/editor/review"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#3F6B4F] transition-colors hover:text-[#1E2620]"
               >
-                Full Queue Catalog <ArrowRight size={13} />
+                Full queue catalog <ArrowRight size={13} />
               </Link>
               <Link
                 href="/editor/manage"
-                className="ml-3 inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                className="inline-flex items-center gap-1.5 border-l border-[#D9D4C6] pl-4 text-xs font-semibold text-[#3F6B4F] transition-colors hover:text-[#1E2620]"
               >
-                Full Editor Catalog <ArrowRight size={13} />
+                Full editor catalog <ArrowRight size={13} />
               </Link>
             </div>
-
-            {reviewQueueList.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-xs text-slate-400">
-                The review queue is currently empty. All submitted stories have been processed!
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {reviewQueueList.slice(0, 5).map((story) => (
-                  <div
-                    key={story._id}
-                    className="flex items-center justify-between py-3.5 transition hover:bg-slate-50/50 px-2 rounded-xl"
-                  >
-                    <div className="space-y-1">
-                      <span className="inline-block rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200/60">
-                        Pending Review
-                      </span>
-                      <h4 className="text-sm font-bold text-slate-900">{story.title}</h4>
-                      <p className="text-xs text-slate-500 line-clamp-1">
-                        {story.excerpt || "No excerpt provided."}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setSelectedStoryForModal(story)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-700"
-                    >
-                      <Eye size={13} /> Review Submission
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
+
+          {reviewQueueList.length === 0 ? (
+            <div className="flex flex-col items-center justify-center border border-dashed border-[#D9D4C6] px-8 py-12 text-center">
+              <CheckCircle size={22} strokeWidth={1.5} className="text-[#3F6B4F]" />
+              <p className="mt-3 text-xs text-[#6B7268]">
+                The review queue is currently empty. All submitted stories have been processed.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#EDEAE0]">
+              {reviewQueueList.slice(0, 5).map((story) => (
+                <div
+                  key={story._id}
+                  className="flex items-center justify-between gap-4 py-4 transition-colors hover:bg-[#FAF9F5]"
+                >
+                  <div className="min-w-0 space-y-1.5">
+                    <span
+                      className="inline-block border border-[#E7CE94] bg-[#FBF6E9] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8A6A24]"
+                    >
+                      Pending review
+                    </span>
+                    <h4 className="truncate text-sm font-semibold text-[#1E2620]">{story.title}</h4>
+                    <p className="line-clamp-1 text-xs text-[#8B9188]">
+                      {story.excerpt || "No excerpt provided."}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedStoryForModal(story)}
+                    className="inline-flex shrink-0 items-center gap-1.5 border border-[#1E2620] bg-[#1E2620] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F]"
+                  >
+                    <Eye size={13} /> Review
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

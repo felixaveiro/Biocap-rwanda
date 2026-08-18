@@ -1,3 +1,5 @@
+// src/lib/api/client.ts
+
 import { authCookies } from "@/lib/auth/cookies";
 
 const BASE_URL =
@@ -24,9 +26,12 @@ interface RequestOptions {
   auth?: boolean;
 }
 
-// Single active promise to handle concurrent 401 retries gracefully
+// Single active promise to prevent duplicate simultaneous refresh requests
 let refreshPromise: Promise<string | null> | null = null;
 
+/**
+ * Clean, single-target token refresh mechanism.
+ */
 async function tryRefreshToken(): Promise<string | null> {
   const refreshToken = authCookies.getRefreshToken();
 
@@ -35,86 +40,45 @@ async function tryRefreshToken(): Promise<string | null> {
     return null;
   }
 
-  // If a refresh request is already running, reuse it
+  // Reuse in-flight request if multiple 401s occur at the same time
   if (refreshPromise) {
     return refreshPromise;
   }
 
   refreshPromise = (async () => {
-    const endpoints = [
-      `${BASE_URL}/api/auth/refresh-token`,
-      `${BASE_URL}/api/auth/refresh`,
-    ];
-
     try {
-      for (const url of endpoints) {
-        try {
-          // Try common body shapes that backends might expect
-          const candidates = [
-            JSON.stringify({ refreshToken }),
-            JSON.stringify({ token: refreshToken }),
-            JSON.stringify({ refresh_token: refreshToken }),
-            null, // allow sending no body (some servers rely on cookies)
-          ];
+      const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ refreshToken }),
+      });
 
-          let res: Response | null = null;
-
-          for (const body of candidates) {
-            try {
-              res = await fetch(url, {
-                method: "POST",
-                headers: body ? { "Content-Type": "application/json" } : {},
-                // If the backend uses cookie-based refresh we still attempt a credentials-included request
-                credentials: "include",
-                body: body ?? undefined,
-              });
-            } catch (innerErr) {
-              console.warn("Refresh attempt failed, trying next candidate:", innerErr);
-              res = null;
-            }
-
-            if (!res) continue;
-
-            // If explicit auth failure, clear session and stop trying
-            if (res.status === 401 || res.status === 403) {
-              authCookies.clearAll();
-              return null;
-            }
-
-            // If endpoint not found, try next fallback endpoint
-            if (res.status === 404) {
-              res = null;
-              continue;
-            }
-
-            // For bad request (400) or other client errors, try other candidates/endpoints instead of clearing session
-            if (res.status >= 400 && res.status < 500) {
-              // allow trying other payload shapes or endpoints
-              res = null;
-              continue;
-            }
-
-            // For server errors, give up and return null (transient)
-            if (res.status >= 500) return null;
-
-            // Successful-ish response
-            break;
-          }
-
-          if (!res) continue;
-
-          const data = await res.json().catch(() => null);
-          if (data && data.accessToken) {
-            authCookies.setToken(data.accessToken);
-            if (data.refreshToken) authCookies.setRefreshToken(data.refreshToken);
-            return data.accessToken;
-          }
-        } catch (innerErr) {
-          // Try next endpoint; don't clear session on transient network errors
-          console.warn("Refresh endpoint attempt failed, trying fallback:", innerErr);
-          continue;
-        }
+      // Handle unauthenticated state (invalid or expired refresh token)
+      if (res.status === 401 || res.status === 403) {
+        authCookies.clearAll();
+        return null;
       }
+
+      if (!res.ok) {
+        return null;
+      }
+
+      const data = await res.json().catch(() => null);
+
+      if (data && typeof data === "object" && "accessToken" in data) {
+        const accessToken = String(data.accessToken);
+        authCookies.setToken(accessToken);
+        if ("refreshToken" in data && data.refreshToken) {
+          authCookies.setRefreshToken(String(data.refreshToken));
+        }
+        return accessToken;
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("Token refresh network failure:", msg);
     } finally {
       refreshPromise = null;
     }
@@ -126,7 +90,7 @@ async function tryRefreshToken(): Promise<string | null> {
 }
 
 /**
- * Generic typed request function with automatic token refresh on 401 errors.
+ * Generic JSON request helper with automatic token refresh on 401 responses.
  */
 export async function apiRequest<T>(
   path: string,
@@ -152,7 +116,7 @@ export async function apiRequest<T>(
     response = await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
     throw new ApiError(
@@ -161,12 +125,12 @@ export async function apiRequest<T>(
     );
   }
 
-  // Exclude refresh endpoints to prevent infinite loops
+  // Attempt token refresh on 401 (excluding login/refresh routes to prevent loops)
   if (
     response.status === 401 &&
     auth &&
-    !path.includes("/refresh-token") &&
-    !path.includes("/refresh")
+    !path.includes("/refresh") &&
+    !path.includes("/login")
   ) {
     const newToken = await tryRefreshToken();
     if (newToken) {
@@ -175,7 +139,7 @@ export async function apiRequest<T>(
         response = await fetch(`${BASE_URL}${path}`, {
           method,
           headers,
-          body: body ? JSON.stringify(body) : undefined,
+          body: body !== undefined ? JSON.stringify(body) : undefined,
         });
       } catch {
         throw new ApiError(
@@ -192,9 +156,9 @@ export async function apiRequest<T>(
 
   if (!response.ok) {
     const message =
-      (data && (data.message || data.error)) ||
+      (data && typeof data === "object" && (data.message || data.error)) ||
       `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status);
+    throw new ApiError(String(message), response.status);
   }
 
   return data as T;
@@ -207,7 +171,7 @@ interface FormRequestOptions {
 }
 
 /**
- * Multipart request handler for image & file uploads (Blog Creation/Updates).
+ * Multipart request helper for media & file uploads (Blog dynamic sections).
  */
 export async function apiFormRequest<T>(
   path: string,
@@ -240,12 +204,11 @@ export async function apiFormRequest<T>(
     );
   }
 
-  // Exclude refresh endpoints
   if (
     response.status === 401 &&
     auth &&
-    !path.includes("/refresh-token") &&
-    !path.includes("/refresh")
+    !path.includes("/refresh") &&
+    !path.includes("/login")
   ) {
     const newToken = await tryRefreshToken();
     if (newToken) {
@@ -271,9 +234,9 @@ export async function apiFormRequest<T>(
 
   if (!response.ok) {
     const message =
-      (data && (data.message || data.error)) ||
+      (data && typeof data === "object" && (data.message || data.error)) ||
       `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status);
+    throw new ApiError(String(message), response.status);
   }
 
   return data as T;

@@ -6,7 +6,7 @@ import BlogTable from "@/components/BlogTable";
 import { blogsApi, officerApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Globe, CheckCircle2, FileText } from "lucide-react";
 
 export default function OfficerPublishingDeskPage() {
   const {
@@ -31,8 +31,8 @@ export default function OfficerPublishingDeskPage() {
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(apiResponse)) {
         extractedBlogs = apiResponse;
-      } else if (apiResponse && Array.isArray(apiResponse.data)) {
-        extractedBlogs = apiResponse.data;
+      } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
+        extractedBlogs = (apiResponse as any).data;
       }
 
       setPublishingQueueList(extractedBlogs);
@@ -80,43 +80,106 @@ export default function OfficerPublishingDeskPage() {
     }
   };
 
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+
   if (sessionLoading || !isPermissionAllowed || !currentOfficerUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className="min-h-screen bg-[#FAF9F5] pb-16 font-sans">
         <Header title="Publishing Desk" subtitle="Verifying credentials…" />
-        <div className="p-8 text-sm text-slate-400">Loading queue…</div>
+        <div className="mx-auto max-w-7xl px-8 py-10">
+          <div className="animate-pulse space-y-6">
+            <div className="grid gap-5 sm:grid-cols-3">
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+            </div>
+            <div className="h-96 w-full bg-[#EFECE6]" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className="min-h-screen bg-[#FAF9F5] pb-20 font-sans text-[#1E2620]">
       <Header
         title="Live Publishing Desk"
-        subtitle="Manage live articles and release approved creator stories to the public website"
+        subtitle="Manage active public articles and release approved creator manuscripts to the live website"
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-8 py-8">
+        {/* Metric Overview Strip */}
+        <div className="mb-10 grid gap-5 sm:grid-cols-3">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Live Catalog
+              </span>
+              <Globe size={16} className="text-[#1E2620]" />
+            </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataLoading ? "…" : publishingQueueList.length}
+            </p>
+          </div>
+
+          <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Desk Status
+              </span>
+              <CheckCircle2 size={16} className="text-[#3F6B4F]" />
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#5A6259]">
+              Officer active. Ready to approve or withdraw live articles.
+            </p>
+          </div>
+
+          <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Publication Protocol
+              </span>
+              <FileText size={16} className="text-[#A9812F]" />
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-[#5A6259]">
+              All items in this desk match live public records.
+            </p>
+          </div>
+        </div>
+
+        {/* Connection Error Banner */}
         {fetchErrorMessage && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between border-l-2 border-[#8B4136] bg-[#8B4136]/5 p-4 text-[#8B4136]">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+              <AlertCircle size={16} />
+              <p className="text-xs font-medium">{fetchErrorMessage}</p>
             </div>
             <button
               onClick={fetchPublishingQueue}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#8B4136]/30 bg-[#FAF9F5] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]"
+              style={monoFont}
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               Retry Sync
             </button>
           </div>
         )}
 
+        {/* Table Container */}
         {isDataLoading ? (
-          <div className="h-64 w-full animate-pulse rounded-2xl border border-slate-200/80 bg-white shadow-xs" />
+          <div className="h-64 w-full animate-pulse border border-[#E2DDCF] bg-[#EFECE6]" />
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <div className="border border-[#E2DDCF] bg-[#FAF9F5]">
             <BlogTable
               blogs={publishingQueueList}
               user={currentOfficerUser}

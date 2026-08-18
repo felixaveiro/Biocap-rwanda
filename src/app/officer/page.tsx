@@ -29,7 +29,7 @@ export default function CommunicationOfficerOverviewPage() {
 
   const [publishedStories, setPublishedStories] = useState<BlogPost[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [isDataFetching, setIsDataFetching] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
@@ -39,7 +39,7 @@ export default function CommunicationOfficerOverviewPage() {
   // Fetch Dashboard Data (Published Stories + Notification Feed)
   const fetchDashboardData = useCallback(async () => {
     if (!currentOfficerUser) return;
-    setIsDataLoading(true);
+    setIsDataFetching(true);
     setFetchErrorMessage(null);
 
     try {
@@ -60,7 +60,7 @@ export default function CommunicationOfficerOverviewPage() {
         error instanceof Error ? error.message : "Failed to load officer metrics.";
       setFetchErrorMessage(errorMessage);
     } finally {
-      setIsDataLoading(false);
+      setIsDataFetching(false);
     }
   }, [currentOfficerUser]);
 
@@ -72,32 +72,33 @@ export default function CommunicationOfficerOverviewPage() {
 
   const router = useRouter();
 
-  const handleNotificationViewArticle = (articleId?: string) => {
-    if (!articleId) return;
+  const handleNotificationViewArticle = (articleRef?: string | { _id: string }) => {
+    if (!articleRef) return;
+    const articleId = typeof articleRef === "string" ? articleRef : articleRef._id;
     router.push(`/creator/my-stories?open=${articleId}`);
   };
 
-  // Handler to Accept Editor Modifications (Fixed Payload Argument)
-  const handleAcceptEditorChanges = async (articleId: string) => {
+  const handleAcceptEditorChanges = async (articleRef: string | { _id: string }) => {
+    const articleId = typeof articleRef === "string" ? articleRef : articleRef._id;
     setProcessingId(articleId);
     try {
       await officerApi.acceptEditorChanges(articleId, {
         approvalNote: "Accepted by Communication Officer from Dashboard",
       });
       await fetchDashboardData();
-    } catch (err: any) {
-      alert(err.message || "Failed to accept editor changes");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to accept editor changes";
+      alert(msg);
     } finally {
       setProcessingId(null);
     }
   };
 
-  // Handler to Mark Notification as Read
   const handleMarkNotificationRead = async (notificationId: string) => {
     try {
       await officerApi.markNotificationRead(notificationId);
       setNotifications((prev) =>
-        prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
+        prev.map((n) => (n._id === notificationId ? { ...n, isRead: true, read: true } : n))
       );
     } catch (err) {
       console.error("Failed to mark notification read", err);
@@ -111,9 +112,9 @@ export default function CommunicationOfficerOverviewPage() {
       (acc, story) => acc + (story.comments?.length || 0),
       0
     );
-    const pendingNotificationsCount = notifications.filter((n) => !n.isRead).length;
+    const pendingNotificationsCount = notifications.filter((n) => !n.isRead && !n.read).length;
     const pendingEditorPromptsCount = notifications.filter(
-      (n) => n.type === "EDITOR_EDIT_PROMPT" && !n.isRead
+      (n) => n.type === "EDITOR_EDIT_PROMPT" && (!n.isRead && !n.read)
     ).length;
 
     return {
@@ -124,17 +125,24 @@ export default function CommunicationOfficerOverviewPage() {
     };
   }, [publishedStories, notifications]);
 
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+
   if (sessionLoading || !isPermissionAllowed || !currentOfficerUser) {
     return (
-      <div className="min-h-screen bg-slate-50/50 pb-16">
+      <div className="min-h-screen bg-[#FAF9F5] pb-16 font-sans">
         <Header title="Communication Officer Desk" subtitle="Verifying credentials…" />
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-8 py-10">
           <div className="animate-pulse space-y-6">
-            <div className="grid gap-4 sm:grid-cols-4">
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
-              <div className="h-28 rounded-2xl bg-slate-200/80" />
+            <div className="grid gap-5 sm:grid-cols-4">
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+              <div className="h-24 bg-[#EFECE6]" />
+            </div>
+            <div className="grid gap-8 lg:grid-cols-3">
+              <div className="h-80 bg-[#EFECE6]" />
+              <div className="lg:col-span-2 h-80 bg-[#EFECE6]" />
             </div>
           </div>
         </div>
@@ -143,155 +151,179 @@ export default function CommunicationOfficerOverviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-16">
+    <div className="min-h-screen bg-[#FAF9F5] pb-20 font-sans text-[#1E2620]">
       <Header
         title="Communication Officer Desk"
         subtitle={`Welcome back, ${currentOfficerUser.firstName || "Officer"}. Monitor published articles, respond to team comments, and review editor modifications.`}
       />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Error State Banner */}
+      <main className="mx-auto max-w-7xl px-8 py-8">
+        {/* Connection Error Banner */}
         {fetchErrorMessage && (
-          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/80 p-4 text-rose-800">
+          <div className="mb-6 flex items-center justify-between border-l-2 border-[#8B4136] bg-[#8B4136]/5 p-4 text-[#8B4136]">
             <div className="flex items-center gap-3">
-              <AlertCircle size={18} className="text-rose-600" />
-              <p className="text-sm font-medium">{fetchErrorMessage}</p>
+              <AlertCircle size={16} />
+              <p className="text-xs font-medium">{fetchErrorMessage}</p>
             </div>
             <button
               onClick={fetchDashboardData}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 shadow-xs transition hover:bg-rose-100"
+              className="inline-flex items-center gap-1.5 border border-[#8B4136]/30 bg-[#FAF9F5] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]"
+              style={monoFont}
             >
-              <RefreshCw size={13} />
+              <RefreshCw size={12} />
               Retry Sync
             </button>
           </div>
         )}
 
         {/* Dashboard Metrics Cards */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
-              <Globe size={22} />
+        <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Live Feed
+              </span>
+              <Globe size={16} className="text-[#1E2620]" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Live Published
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : metrics.livePublishedCount}
-              </p>
-            </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : metrics.livePublishedCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-              <MessageSquare size={22} />
+          <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Public Notes
+              </span>
+              <MessageSquare size={16} className="text-[#3F6B4F]" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Published Comments
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : metrics.totalCommentsCount}
-              </p>
-            </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : metrics.totalCommentsCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Bell size={22} />
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
                 Unread Alerts
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : metrics.pendingNotificationsCount}
-              </p>
+              </span>
+              <Bell size={16} className="text-[#A9812F]" />
             </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : metrics.pendingNotificationsCount}
+            </p>
           </div>
 
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={22} />
+          <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
+            <div className="flex items-center justify-between">
+              <span
+                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                style={monoFont}
+              >
+                Editor Prompts
+              </span>
+              <CheckCircle2 size={16} className="text-[#3F6B4F]" />
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Editor Edits Prompts
-              </p>
-              <p className="text-2xl font-bold text-slate-900">
-                {isDataLoading ? "…" : metrics.pendingEditorPromptsCount}
-              </p>
-            </div>
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataFetching ? "…" : metrics.pendingEditorPromptsCount}
+            </p>
           </div>
         </div>
 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Notifications & Action Alerts Panel */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <Bell size={18} className="text-indigo-600" />
-                  Recent Alerts
-                </h3>
-                <span className="text-xs font-semibold text-slate-400">
-                  {notifications.filter((n) => !n.isRead).length} Unread
+            <div className="border border-[#E2DDCF] bg-[#FAF9F5] p-6">
+              <div className="flex items-center justify-between border-b border-[#E2DDCF] pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <Bell size={16} className="text-[#A9812F]" />
+                  <h3 className="font-serif italic text-lg text-[#1E2620]" style={displayFont}>
+                    Recent Alerts
+                  </h3>
+                </div>
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wider text-[#A9812F]"
+                  style={monoFont}
+                >
+                  {notifications.filter((n) => !n.isRead && !n.read).length} Unread
                 </span>
               </div>
 
               {notifications.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center">No alerts right now.</p>
+                <p className="text-xs text-[#7A8079] py-6 text-center italic" style={displayFont}>
+                  No active alerts.
+                </p>
               ) : (
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {notifications.map((notif) => (
-                    <div
-                      key={notif._id}
-                      className={`rounded-xl border p-3.5 transition ${
-                        notif.isRead
-                          ? "border-slate-100 bg-slate-50/50 text-slate-600"
-                          : "border-indigo-100 bg-indigo-50/30 text-slate-900 font-medium"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <span className="text-xs font-semibold text-indigo-700">
-                          {notif.type === "EDITOR_EDIT_PROMPT"
-                            ? "Editor Update Prompt"
-                            : notif.type === "ARTICLE_COMMENT"
-                            ? "New Comment"
-                            : "System Alert"}
-                        </span>
-                        {!notif.isRead && (
-                          <button
-                            onClick={() => handleMarkNotificationRead(notif._id)}
-                            className="text-[10px] font-bold text-slate-400 hover:text-indigo-600"
-                            title="Mark as read"
+                <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
+                  {notifications.map((notif) => {
+                    const isRead = notif.isRead || notif.read;
+                    const targetArticleId = typeof notif.article === "string" ? notif.article : notif.article?._id;
+
+                    return (
+                      <div
+                        key={notif._id}
+                        className={`p-4 border text-xs transition-colors ${
+                          isRead
+                            ? "border-[#E2DDCF] bg-[#FAF9F5] text-[#5A6259]"
+                            : "border-l-2 border-l-[#A9812F] border-t border-b border-r border-[#E2DDCF] bg-[#EFECE6]/40 text-[#1E2620]"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <span
+                            className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
+                            style={monoFont}
                           >
-                            Mark Read
+                            {notif.type === "EDITOR_EDIT_PROMPT"
+                              ? "Editor Update"
+                              : notif.type === "ARTICLE_COMMENT"
+                              ? "New Remark"
+                              : "System Notice"}
+                          </span>
+                          {!isRead && (
+                            <button
+                              onClick={() => handleMarkNotificationRead(notif._id)}
+                              className="text-[9px] font-semibold uppercase tracking-wider text-[#7A8079] hover:text-[#1E2620] underline"
+                              style={monoFont}
+                            >
+                              Mark Read
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-xs leading-relaxed text-[#1E2620] mb-3">{notif.message}</p>
+
+                        {(notif.type === "CHANGE_REQUEST" || notif.type === "CHANGE_REQUEST_IMPLEMENTED") && notif.article && (
+                          <button
+                            onClick={() => handleNotificationViewArticle(notif.article)}
+                            className="w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1E2620] hover:border-[#1E2620] transition-colors"
+                            style={monoFont}
+                          >
+                            Inspect Article
+                          </button>
+                        )}
+
+                        {notif.type === "EDITOR_EDIT_PROMPT" && notif.article && (
+                          <button
+                            disabled={processingId === targetArticleId}
+                            onClick={() => handleAcceptEditorChanges(notif.article!)}
+                            className="w-full flex items-center justify-center gap-1.5 bg-[#1E2620] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#FAF9F5] hover:bg-[#3F6B4F] disabled:opacity-50 transition-colors"
+                            style={monoFont}
+                          >
+                            <Check size={12} />
+                            {processingId === targetArticleId ? "Processing…" : "Accept Editor Modifications"}
                           </button>
                         )}
                       </div>
-                      <p className="text-xs text-slate-700 mb-2">{notif.message}</p>
-                      {(notif.type === "CHANGE_REQUEST" || notif.type === "CHANGE_REQUEST_IMPLEMENTED") && notif.article && (
-                        <button
-                          onClick={() => handleNotificationViewArticle(notif.article._id)}
-                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-600 shadow-xs transition hover:bg-indigo-50"
-                        >
-                          View Article
-                        </button>
-                      )}
-                      {notif.type === "EDITOR_EDIT_PROMPT" && notif.article && (
-                        <button
-                          disabled={processingId === notif.article._id}
-                          onClick={() => handleAcceptEditorChanges(notif.article._id)}
-                          className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-700 disabled:opacity-50"
-                        >
-                          <Check size={13} />
-                          {processingId === notif.article._id ? "Accepting…" : "Accept Editor Changes"}
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -299,52 +331,59 @@ export default function CommunicationOfficerOverviewPage() {
 
           {/* Published Articles Feed & Comment Hub */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xs">
-              <div className="flex items-center justify-between mb-4">
+            <div className="border border-[#E2DDCF] bg-[#FAF9F5] p-6">
+              <div className="flex items-center justify-between border-b border-[#E2DDCF] pb-4 mb-5">
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Published Articles Feed</h3>
-                  <p className="text-xs text-slate-500">
-                    Browse live stories, engage in discussion, and monitor officer comments.
+                  <h3 className="font-serif italic text-lg text-[#1E2620]" style={displayFont}>
+                    Published Catalog Feed
+                  </h3>
+                  <p className="text-xs text-[#7A8079] mt-0.5">
+                    Browse active public stories, join discussions, and inspect officer notes.
                   </p>
                 </div>
                 <Link
                   href="/officer/stories"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3F6B4F] hover:text-[#1E2620] transition-colors"
+                  style={monoFont}
                 >
-                  View All <ArrowRight size={13} />
+                  Full Index <ArrowRight size={12} />
                 </Link>
               </div>
 
               {publishedStories.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-400">
-                  <FileText size={32} className="mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No published articles available yet.</p>
+                <div className="border border-dashed border-[#D9D4C6] p-10 text-center text-[#7A8079]">
+                  <FileText size={28} className="mx-auto mb-2 opacity-40 text-[#A9812F]" />
+                  <p className="text-xs italic" style={displayFont}>No live published articles recorded.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {publishedStories.slice(0, 5).map((story) => (
                     <div
                       key={story._id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/50 p-4 transition hover:bg-slate-100/50"
+                      className="border border-[#E2DDCF] bg-[#FAF9F5] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors hover:bg-[#EFECE6]/40"
                     >
-                      <div className="space-y-1">
-                        <span className="inline-block rounded-md bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      <div className="space-y-1 max-w-lg">
+                        <span
+                          className="inline-block border border-[#A9812F]/40 bg-[#A9812F]/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#A9812F]"
+                          style={monoFont}
+                        >
                           {story.tag || "General"}
                         </span>
-                        <h4 className="text-sm font-semibold text-slate-900">{story.title}</h4>
-                        <p className="text-xs text-slate-500 line-clamp-1">{story.excerpt}</p>
+                        <h4 className="text-xs font-semibold text-[#1E2620] leading-snug">{story.title}</h4>
+                        <p className="text-[11px] text-[#7A8079] line-clamp-1">{story.excerpt}</p>
                       </div>
 
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                          <MessageSquare size={14} />
+                      <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#E2DDCF]">
+                        <div className="flex items-center gap-1.5 text-[11px] text-[#7A8079]" style={monoFont}>
+                          <MessageSquare size={13} className="text-[#3F6B4F]" />
                           <span>{story.comments?.length || 0}</span>
                         </div>
                         <button
                           onClick={() => setSelectedStoryForModal(story)}
-                          className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50"
+                          className="border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#1E2620] hover:border-[#1E2620] hover:text-[#3F6B4F] transition-colors"
+                          style={monoFont}
                         >
-                          Join Discussion
+                          Open Desk
                         </button>
                       </div>
                     </div>

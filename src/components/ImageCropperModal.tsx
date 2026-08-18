@@ -2,21 +2,16 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Cropper, { Point, Area } from 'react-easy-crop';
+import { RotateCcw, ZoomIn, Check, X } from 'lucide-react';
 
-/**
- * Dynamically extracts MIME type from Data URL (defaults to image/jpeg)
- */
 function getMimeTypeFromSrc(imageSrc: string): string {
   const match = imageSrc.match(/^data:(image\/[a-zA-Z+]+);base64,/);
   return match ? match[1] : 'image/jpeg';
 }
 
-/**
- * Calculates cropped image region on a hidden canvas
- */
 async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
   const image = new Image();
-  image.crossOrigin = 'anonymous'; // Enable CORS for remote assets (Cloudinary)
+  image.crossOrigin = 'anonymous';
   image.src = imageSrc;
 
   await new Promise((resolve, reject) => {
@@ -66,11 +61,15 @@ export default function ImageCropperModal({
 }: CropperModalProps) {
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [currentAspect, setCurrentAspect] = useState<number | undefined>(aspectRatio);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [safeImageSrc, setSafeImageSrc] = useState<string>('');
 
-  // Convert remote HTTP Cloudinary URLs to local Blob URLs to prevent canvas CORS security errors
+  useEffect(() => {
+    setCurrentAspect(aspectRatio);
+  }, [aspectRatio]);
+
   useEffect(() => {
     let active = true;
     let objectUrl = '';
@@ -101,21 +100,23 @@ export default function ImageCropperModal({
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
+  const handleReset = () => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCurrentAspect(aspectRatio);
+  };
+
   const handleSave = async () => {
     if (!croppedAreaPixels || !safeImageSrc) return;
 
     try {
       setIsProcessing(true);
       const result = await getCroppedImg(safeImageSrc, croppedAreaPixels);
-
-      // 1. Send cropped base64 result to parent
       onSave(result);
-
-      // 2. Force close the cropper modal
       onClose();
     } catch (err) {
       console.error('Cropping error:', err);
-      alert('Could not crop image. Check network connection.');
+      alert('Could not crop image.');
     } finally {
       setIsProcessing(false);
     }
@@ -124,18 +125,29 @@ export default function ImageCropperModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 flex flex-col items-center shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        <h3 className="text-lg font-bold text-slate-900 mb-4">Adjust & Align Cover Image</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl transition-all border border-slate-100">
+        <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Crop & Align Image</h3>
+            <p className="text-xs text-slate-500 font-medium">Position, zoom, or adjust aspect ratio</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-        {/* Interactive Cropper Viewport */}
-        <div className="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden shadow-inner">
+        <div className="relative w-full h-72 bg-slate-900 rounded-2xl overflow-hidden shadow-inner">
           {safeImageSrc && (
             <Cropper
               image={safeImageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={aspectRatio}
+              aspect={currentAspect}
               cropShape={circular ? 'round' : 'rect'}
               showGrid={true}
               onCropChange={setCrop}
@@ -145,27 +157,70 @@ export default function ImageCropperModal({
           )}
         </div>
 
-        {/* Zoom Control */}
-        <div className="w-full flex items-center gap-3 mt-5">
-          <span className="text-xs font-semibold text-slate-500 shrink-0">Zoom</span>
+        {!circular && (
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-slate-500">Preset Ratio:</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setCurrentAspect(16 / 9)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                  currentAspect === 16 / 9 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                16:9 Banner
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentAspect(4 / 3)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                  currentAspect === 4 / 3 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                4:3 Card
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentAspect(1)}
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${
+                  currentAspect === 1 ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                1:1 Square
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <div className="flex items-center gap-2 text-slate-500 shrink-0">
+            <ZoomIn size={16} />
+            <span className="text-xs font-semibold">Zoom</span>
+          </div>
           <input
             type="range"
             min={1}
             max={3}
-            step={0.1}
+            step={0.05}
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
             className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
           />
+          <button
+            type="button"
+            onClick={handleReset}
+            className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg transition shrink-0"
+          >
+            <RotateCcw size={16} />
+          </button>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex gap-3 w-full mt-6">
           <button
             type="button"
             onClick={onClose}
             disabled={isProcessing}
-            className="flex-1 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition disabled:opacity-50"
+            className="flex-1 py-2.5 border border-slate-200 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 text-sm"
           >
             Cancel
           </button>
@@ -173,9 +228,9 @@ export default function ImageCropperModal({
             type="button"
             onClick={handleSave}
             disabled={isProcessing}
-            className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 text-sm"
           >
-            {isProcessing ? 'Applying...' : 'Apply Crop'}
+            {isProcessing ? 'Applying...' : <><Check size={16} /> Apply Crop</>}
           </button>
         </div>
       </div>
