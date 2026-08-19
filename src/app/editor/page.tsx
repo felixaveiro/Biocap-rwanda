@@ -135,7 +135,7 @@ export default function EditorOverviewPage() {
         {/* Masthead / nameplate */}
         <div className="pb-3">
           <span className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
-            Editorial desk
+            Editorial Story
           </span>
           <h1 className="mt-1.5 text-[26px] italic leading-none text-[#1E2620] sm:text-3xl" style={displayFont}>
             Good to see you, {currentEditorUser.firstName || "Editor"}

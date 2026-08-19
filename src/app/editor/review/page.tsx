@@ -99,7 +99,7 @@ export default function EditorReviewQueuePage() {
         {/* Masthead / nameplate */}
         <div className="pb-3">
           <span className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
-            Editorial desk
+            Editorial Story
           </span>
           <div className="mt-1.5 flex flex-wrap items-baseline gap-3">
             <h1 className="text-[26px] italic leading-none text-[#1E2620] sm:text-3xl" style={displayFont}>
