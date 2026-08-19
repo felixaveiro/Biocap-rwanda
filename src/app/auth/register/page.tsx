@@ -51,16 +51,14 @@ export default function RegisterPage() {
     return getRolesForOrganization(form.organization);
   }, [form.organization]);
 
-  // Handle Organization Change & sync default valid role and reset jobTitle if AfS-Rwanda
+  // Handle Organization Change & sync default valid role
   const handleOrganizationChange = (newOrg: string) => {
     const validRoles = getRolesForOrganization(newOrg);
-    const selectedIsAfS = newOrg === "Alliance for Science Rwanda (AfS-Rwanda)";
 
     setForm((prev) => ({
       ...prev,
       organization: newOrg,
-      role: validRoles[0], // Auto-select first available valid role
-      jobTitle: selectedIsAfS ? "" : prev.jobTitle, // Clear jobTitle if AfS
+      role: validRoles[0],
     }));
   };
 
@@ -101,6 +99,8 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
+      const activeJobTitle = form.jobTitle.trim() || (isAfSRwanda ? "AfS Representative" : "Contributor");
+
       const response = await registerUser({
         username: form.username.trim(),
         email: form.email.trim(),
@@ -109,9 +109,13 @@ export default function RegisterPage() {
         lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth || undefined,
         organization: form.organization,
-        jobTitle: isAfSRwanda ? undefined : form.jobTitle.trim(),
+        jobTitle: activeJobTitle,
+        job_title: activeJobTitle,
+        title: activeJobTitle,
         organizationLink: form.organizationLink.trim() || undefined,
+        organization_link: form.organizationLink.trim() || undefined,
         socialHandle: form.socialHandle.trim() || undefined,
+        social_handle: form.socialHandle.trim() || undefined,
         role: form.role,
       });
 
@@ -264,9 +268,8 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Partner Institution & Account Role Layout */}
+          {/* Partner Institution & Job Title */}
           {isAfSRwanda ? (
-            /* ── AFS-RWANDA ROW LAYOUT: Institution + Role side-by-side (No Job Title) ── */
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-[#133248] mb-1 ml-3">
@@ -305,7 +308,6 @@ export default function RegisterPage() {
               </div>
             </div>
           ) : (
-            /* ── OTHER INSTITUTIONS LAYOUT: Institution + Mandatory Job Title, followed by Role ── */
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -332,7 +334,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Senior Research Fellow *"
+                    placeholder="e.g. Senior Project Manager *"
                     value={form.jobTitle}
                     onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
                     disabled={isSubmitting}

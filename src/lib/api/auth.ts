@@ -14,8 +14,12 @@ export interface RegisterPayload {
   dateOfBirth?: string; // "YYYY-MM-DD"
   organization?: string;
   jobTitle?: string;
+  job_title?: string;
+  title?: string;
   organizationLink?: string;
+  organization_link?: string;
   socialHandle?: string;
+  social_handle?: string;
 }
 
 export interface LoginPayload {
@@ -48,8 +52,12 @@ export interface UpdateMePayload {
   lastName?: string;
   organization?: string;
   jobTitle?: string;
+  job_title?: string;
+  title?: string;
   organizationLink?: string;
+  organization_link?: string;
   socialHandle?: string;
+  social_handle?: string;
   dateOfBirth?: string;
 }
 
