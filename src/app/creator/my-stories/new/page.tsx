@@ -187,7 +187,7 @@ export default function CreateNewStoryPage() {
   };
 
   return (
-    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-24 text-[#1E2620]`} style={bodyFont}>
+    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]`} style={bodyFont}>
       <Header
         title="Create New Story"
         subtitle="Craft an insightful article and publish or submit for review"
@@ -195,36 +195,15 @@ export default function CreateNewStoryPage() {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
 
-        {/* Navigation & Action Header */}
-        <div className="sticky top-4 z-30 flex items-center justify-between border border-[#D9D4C6] bg-[#F3F2ED]/90 p-3.5 backdrop-blur-xl">
+        {/* Top Navigation Link */}
+        <div className="flex items-center justify-between">
           <Link
             href="/creator/my-stories"
-            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-[#5A6259] transition-colors hover:text-[#1E2620]"
+            className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-3.5 py-2 text-xs font-semibold text-[#5A6259] transition-colors hover:border-[#1E2620] hover:text-[#1E2620]"
           >
             <ArrowLeft size={16} />
             Back to Stories
           </Link>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(false)}
-              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50"
-            >
-              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Save Draft
-            </button>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(true)}
-              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50"
-            >
-              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {isSubmitting ? "Submitting..." : "Submit for Review"}
-            </button>
-          </div>
         </div>
 
         {/* Error Notification */}
@@ -371,6 +350,28 @@ export default function CreateNewStoryPage() {
               setExcerpt={setExcerpt}
               onChange={handleStoryEditorChange}
             />
+          </div>
+
+          {/* Action Buttons Directly Inside Form Footer */}
+          <div className="flex items-center justify-end gap-3 border-t border-[#EDEAE0] pt-6">
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit(false)}
+              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              Save Draft
+            </button>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => handleSubmit(true)}
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
+            >
+              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              {isSubmitting ? "Submitting..." : "Submit for Review"}
+            </button>
           </div>
 
         </div>

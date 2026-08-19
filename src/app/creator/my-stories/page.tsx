@@ -143,7 +143,7 @@ export default function CreatorMyStoriesPage() {
                 className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]"
                 style={monoFont}
               >
-                Editorial desk
+                Editorial Article
               </p>
               <h1
                 className="mt-1 text-2xl italic text-[#1E2620]"
