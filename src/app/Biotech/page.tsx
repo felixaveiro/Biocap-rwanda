@@ -17,13 +17,6 @@ import {
   Microscope,
 } from 'lucide-react';
 
-// ─── BioCap Brand Colors (shared with About / Environment pages) ──
-// Navy   : #1B3A5C
-// Pink   : #E8185A
-// Purple : #7B3FA0
-// Teal   : #2A7F8C
-// ──────────────────────────────────────────────────────────────────
-
 type CropKey = 'cassava' | 'potato' | 'banana';
 
 interface CropDocument {
@@ -82,10 +75,10 @@ const CROPS: CropData[] = [
     ],
     documents: [
       {
-        title: 'Biotech-Cassava_Flyer/BioCap',
-        filename: 'Biotech-Cassava_Flyer_BioCap.pdf',
+        title: 'Biotech Cassava Flyer',
+        filename: 'Biotech-Cassava_Flyer-BioCap.pdf',
         fileSize: '2.4 MB',
-        downloadUrl: '/documents/Biotech-Cassava_Flyer.pdf',
+        downloadUrl: '/documents/Biotech-Cassava_Flyer-BioCap.pdf',
       },
     ],
   },
@@ -123,10 +116,10 @@ const CROPS: CropData[] = [
     ],
     documents: [
       {
-        title: 'Biotech-Potato_Flyer/BioCap',
-        filename: 'Biotech-Potato_Flyer_BioCap.pdf',
+        title: 'Biotech Potato Flyer',
+        filename: 'Biotech-Potato_Flyer-BioCap.pdf',
         fileSize: '3.1 MB',
-        downloadUrl: '/documents/Biotech-Potato_Flyer.pdf',
+        downloadUrl: '/documents/Biotech-Potato_Flyer-BioCap.pdf',
       },
     ],
   },
@@ -164,16 +157,14 @@ const CROPS: CropData[] = [
     ],
     documents: [
       {
-        title: 'Biotech-Banana_Flyer/BioCap',
-        filename: 'Biotech-Banana_Flyer_BioCap.pdf',
+        title: 'Biotech Banana Flyer',
+        filename: 'Biotech-Banana_Flyer-BioCap.pdf',
         fileSize: '2.9 MB',
-        downloadUrl: '/documents/Biotech-Banana_Flyer.pdf',
+        downloadUrl: '/documents/Biotech-Banana_Flyer-BioCap.pdf',
       },
     ],
   },
 ];
-
-// ─── Crop icon/image helper ────────────────────────────────────────
 
 function CropMark({
   crop,
@@ -195,8 +186,6 @@ function CropMark({
   }
   return <crop.Icon size={size} color={iconColor} aria-hidden="true" />;
 }
-
-// ─── Sub-components ────────────────────────────────────────────────
 
 function CropTab({
   crop,
@@ -263,7 +252,6 @@ function InfoCard({
 function CropPanel({ crop }: { crop: CropData }) {
   return (
     <div className="max-w-6xl mx-auto px-4 lg:px-6">
-      {/* Header banner */}
       <div
         className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg"
         style={{ background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
@@ -292,7 +280,6 @@ function CropPanel({ crop }: { crop: CropData }) {
         )}
       </div>
 
-      {/* Secondary banner */}
       <div className="flex justify-end">
         <div
           className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
@@ -319,7 +306,6 @@ function CropPanel({ crop }: { crop: CropData }) {
         </div>
       </div>
 
-      {/* Info grid */}
       <div className="grid gap-4 my-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
         {crop.sections.map((s) => (
           <InfoCard
@@ -333,7 +319,6 @@ function CropPanel({ crop }: { crop: CropData }) {
         ))}
       </div>
 
-      {/* Documents */}
       <div className="bc-card bg-white rounded-2xl border border-slate-100 p-5 mb-10">
         <p className="m-0 mb-3 text-[0.85rem] font-bold text-[#1B3A5C] flex items-center gap-2">
           <FileText size={15} aria-hidden="true" /> {crop.label} Documents
@@ -366,15 +351,12 @@ function CropPanel({ crop }: { crop: CropData }) {
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────
-
 export default function BiotechCropsPage() {
   const [active, setActive] = useState<CropKey>('cassava');
   const activeCrop = CROPS.find((c) => c.key === active)!;
 
   return (
     <div className="bg-white min-h-screen font-sans">
-      {/* Shared type system + hero pattern with About / Environment pages */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -395,7 +377,6 @@ export default function BiotechCropsPage() {
       `}</style>
 
       <div className="bc-page">
-        {/* ── HERO ── */}
         <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
           <div className="absolute inset-0 z-0">
             <div
@@ -437,7 +418,6 @@ export default function BiotechCropsPage() {
           </div>
         </section>
 
-        {/* ── TABS + PANEL ── */}
         <section className="bg-[#f7f6f4] pt-10 pb-14">
           <div className="flex justify-center gap-3 px-4 flex-wrap mb-8">
             {CROPS.map((crop) => (
