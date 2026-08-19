@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { authCookies } from "@/lib/auth/cookies";
 import { useSession } from "@/hooks/useSession";
 import { Fraunces, IBM_Plex_Mono } from "next/font/google";
@@ -16,7 +17,6 @@ import {
   LogOut,
   Menu,
   X,
-  Dna,
   Trash2,
   ChevronRight,
   PanelLeftClose,
@@ -37,6 +37,11 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// Height of the public <Navbar /> (.bc-nav-inner { height: 70px }) that now
+// renders above this sidebar. Kept as one constant so the mobile toggle,
+// backdrop, and the aside itself all line up with it in one place.
+const NAVBAR_HEIGHT = 70;
+
 interface NavItem {
   label: string;
   href: string;
@@ -46,7 +51,6 @@ interface NavItem {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { user } = useSession("blog:view");
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -93,8 +97,10 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     authCookies.clearAll();
-    router.push("/auth/login");
-    router.refresh();
+    // Hard navigation — fully unmounts this sidebar before the login page
+    // renders, instead of router.push()'s soft client-side swap, which can
+    // let the old (authenticated) layout stay painted for a frame.
+    window.location.href = "/auth/login";
   };
 
   const fontVars = `${fraunces.variable} ${plexMono.variable}`;
@@ -103,27 +109,30 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Toggle Button */}
+      {/* Mobile Menu Toggle Button — sits just under the public navbar, not on top of it */}
       <button
         type="button"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
-        className="fixed top-4 left-4 z-50 flex h-10 w-10 items-center justify-center border border-[#1E2620] bg-[#FAF9F5] text-[#1E2620] shadow-md lg:hidden hover:bg-[#EFECE6] transition-colors"
+        style={{ top: NAVBAR_HEIGHT + 16 }}
+        className="fixed left-4 z-40 flex h-10 w-10 items-center justify-center border border-[#1E2620] bg-[#FAF9F5] text-[#1E2620] shadow-md lg:hidden hover:bg-[#EFECE6] transition-colors"
         aria-label="Toggle Navigation Menu"
       >
         {isMobileOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      {/* Backdrop Overlay for Mobile */}
+      {/* Backdrop Overlay for Mobile — stays below the navbar's own z-index (1000) so the navbar remains visible/clickable */}
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-[#1E2620]/30 backdrop-blur-xs lg:hidden transition-opacity"
+          style={{ top: NAVBAR_HEIGHT }}
+          className="fixed inset-x-0 bottom-0 z-30 bg-[#1E2620]/30 backdrop-blur-xs lg:hidden transition-opacity"
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar Container — offset below the sticky public navbar instead of owning the viewport top */}
       <aside
-        className={`${fontVars} fixed top-0 left-0 z-40 h-screen bg-[#FAF9F5] text-[#1E2620] flex flex-col justify-between border-r border-[#E2DDCF] shadow-xs transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        style={{ top: NAVBAR_HEIGHT, height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
+        className={`${fontVars} fixed left-0 z-30 bg-[#FAF9F5] text-[#1E2620] flex flex-col justify-between border-r border-[#E2DDCF] shadow-xs transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"
         } ${isCollapsed ? "lg:w-20" : "lg:w-64"}`}
       >
@@ -131,8 +140,15 @@ export default function Sidebar() {
           {/* Brand Header */}
           <div className="px-6 py-6 border-b border-[#E2DDCF] flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#1E2620] bg-[#1E2620] text-[#FAF9F5]">
-                <Dna size={18} className="text-[#A9812F]" />
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border border-[#E2DDCF] bg-white">
+                <Image
+                  src="/image/biocap-logo.png"
+                  alt="BioCap Logo"
+                  fill
+                  sizes="36px"
+                  className="object-contain p-1"
+                  priority
+                />
               </div>
 
               {(!isCollapsed || isMobileOpen) && (
@@ -141,13 +157,13 @@ export default function Sidebar() {
                     className="text-lg italic leading-none text-[#1E2620]"
                     style={displayFont}
                   >
-                    BioCap <span className="text-[#3F6B4F]">Desk</span>
+                    BioCap <span className="text-[#3F6B4F]">Project</span>
                   </span>
                   <span
                     className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#A9812F]"
                     style={monoFont}
                   >
-                    Console
+                    Dashboard
                   </span>
                 </div>
               )}

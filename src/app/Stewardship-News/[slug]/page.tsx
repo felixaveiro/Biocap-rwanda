@@ -85,6 +85,11 @@ export default function StewardshipArticlePage() {
   const organizer = (story as any)?.organizer as string | undefined;
   const keyPartners = (story as any)?.keyPartners as string[] | undefined;
 
+  // Filter out realgreengoldltd link if present
+  const isFilteredOrgLink =
+    story?.organizationLink &&
+    !story.organizationLink.includes('realgreengoldltd.com');
+
   return (
     <div className="min-h-screen bg-white flex flex-col justify-between font-sans">
       <style>{`
@@ -160,37 +165,6 @@ export default function StewardshipArticlePage() {
             {/* ── BODY + SIDEBAR ── */}
             <main className="mx-auto max-w-7xl px-6 lg:px-12 py-12 grid lg:grid-cols-[1fr_320px] gap-12 items-start">
               <article className="min-w-0 space-y-6">
-                {/* Author credentials & attachments */}
-                {(story.socialHandle || story.organizationLink || story.document || story.documentUrl) && (
-                  <div className="flex items-center gap-4 p-3.5 rounded-xl bg-[#f7f6f4] border border-slate-100 text-xs text-slate-600 flex-wrap">
-                    {story.socialHandle && (
-                      <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
-                        <AtSign size={13} className="text-[#E8185A]" /> {story.socialHandle}
-                      </span>
-                    )}
-                    {story.organizationLink && (
-                      <a
-                        href={story.organizationLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 font-semibold text-[#1B3A5C] hover:underline"
-                      >
-                        <Globe size={13} /> {story.organizationLink}
-                      </a>
-                    )}
-                    {(story.document || story.documentUrl) && (
-                      <a
-                        href={story.documentUrl || story.document}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 font-semibold text-[#2F8F5B] hover:underline"
-                      >
-                        <FileText size={13} /> {story.documentName || 'Attached Document PDF'}
-                      </a>
-                    )}
-                  </div>
-                )}
-
                 {/* Body sections */}
                 {story.blocks && story.blocks.length > 0 ? (
                   story.blocks.map((block: BlogBlock, idx: number) => {
@@ -268,8 +242,41 @@ export default function StewardshipArticlePage() {
                   </React.Fragment>
                 )}
 
+                {/* Compact bottom card for author credentials & attachments */}
+                {(story.socialHandle || isFilteredOrgLink || story.document || story.documentUrl) && (
+                  <div className="mt-8 pt-4">
+                    <div className="inline-flex flex-wrap items-center gap-3 rounded-lg bg-[#f7f6f4] border border-slate-200/80 px-4 py-2.5 text-xs text-slate-600 max-w-fit shadow-2xs">
+                      {story.socialHandle && (
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                          <AtSign size={13} className="text-[#E8185A]" /> {story.socialHandle}
+                        </span>
+                      )}
+                      {isFilteredOrgLink && (
+                        <a
+                          href={story.organizationLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 font-semibold text-[#1B3A5C] hover:underline"
+                        >
+                          <Globe size={13} /> {story.organizationLink}
+                        </a>
+                      )}
+                      {(story.document || story.documentUrl) && (
+                        <a
+                          href={story.documentUrl || story.document}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 font-semibold text-[#2F8F5B] hover:underline"
+                        >
+                          <FileText size={13} /> {story.documentName || 'Attached Document PDF'}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Bottom navigation + share */}
-                <div className="pt-8 mt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">
+                <div className="pt-6 mt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">
                   <Link
                     href="/Stewardship-News"
                     className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/25 px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#1B3A5C] hover:bg-[#1B3A5C] hover:text-white transition"
