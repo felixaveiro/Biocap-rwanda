@@ -364,7 +364,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                     <>
                       <div className="flex items-center justify-between">
                         <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[#3A4239] transition-colors hover:text-[#3F6B4F]">
-                          <ImagePlus size={13} /> {sec.imagePreview ? "Replace plate" : "Add a plate (optional)"}
+                          <ImagePlus size={13} /> {sec.imagePreview ? "Replace image" : "Add an image (optional)"}
                           <input
                             type="file"
                             accept="image/*"
@@ -392,7 +392,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                   setRawCropSrc(sec.imagePreview!);
                                   setCroppingSectionId(sec.id);
                                 }}
-                                aria-label="Recrop plate"
+                                aria-label="Recrop image"
                                 className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620]"
                               >
                                 <Crop size={12} className="text-[#8FBF9F]" /> Recrop
@@ -400,7 +400,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                               <button
                                 type="button"
                                 onClick={() => removeImage(sec.id)}
-                                aria-label="Remove plate"
+                                aria-label="Remove image"
                                 className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B]"
                               >
                                 <ImageOff size={13} />
@@ -422,7 +422,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                 s.map((x) => (x.id === sec.id ? { ...x, caption: e.target.value } : x))
                               )
                             }
-                            placeholder="Caption for this plate (optional)"
+                            placeholder="Caption for this image (optional)"
                             className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] placeholder:not-italic focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
                           />
 
@@ -459,7 +459,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                       ) : (
                         <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 border border-dashed border-[#D9D4C6] bg-[#FAF9F5] py-6 text-center transition-colors hover:border-[#3F6B4F] hover:bg-[#F3F2ED]">
                           <ImagePlus size={17} className="text-[#B4B0A2]" />
-                          <span className="text-[11px] font-medium text-[#8B9188]">No plate attached</span>
+                          <span className="text-[11px] font-medium text-[#8B9188]">No image attached</span>
                           <input
                             type="file"
                             accept="image/*"

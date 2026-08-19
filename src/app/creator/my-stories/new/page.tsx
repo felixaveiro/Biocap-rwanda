@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
@@ -22,6 +22,7 @@ import {
   Globe,
   AtSign,
   Tag,
+  CheckCircle2,
 } from "lucide-react";
 
 const fraunces = Fraunces({
@@ -53,8 +54,11 @@ export default function CreateNewStoryPage() {
   const [content, setContent] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
   const [inlineImages, setInlineImages] = useState<File[]>([]);
+  
+  // Initialize with user profile values if available
   const [socialHandle, setSocialHandle] = useState("");
   const [organizationLink, setOrganizationLink] = useState("");
+  const [isProfileSynced, setIsProfileSynced] = useState(false);
 
   // ─── Cropping & File Upload States ──────────────────────────────────────────
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
@@ -64,6 +68,19 @@ export default function CreateNewStoryPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Sync state with user profile once user session loads
+  useEffect(() => {
+    if (user && !isProfileSynced) {
+      if (user.socialHandle) {
+        setSocialHandle(user.socialHandle);
+      }
+      if (user.organizationLink) {
+        setOrganizationLink(user.organizationLink);
+      }
+      setIsProfileSynced(true);
+    }
+  }, [user, isProfileSynced]);
 
   // Memoized handler prevents re-creation on every render cycle
   const handleStoryEditorChange = useCallback((b: any[], files: File[]) => {
@@ -120,8 +137,8 @@ export default function CreateNewStoryPage() {
       return;
     }
 
-    const finalSocialHandle = socialHandle.trim() || user.socialHandle || "@creator";
-    const finalOrgLink = organizationLink.trim() || user.organizationLink || "https://example.com";
+    const finalSocialHandle = socialHandle.trim() || user.socialHandle || "";
+    const finalOrgLink = organizationLink.trim() || user.organizationLink || "";
 
     if (isSocialCreator && !finalSocialHandle) {
       setErrorMsg("A social media handle is required for your account type.");
@@ -281,46 +298,54 @@ export default function CreateNewStoryPage() {
             />
           </div>
 
-          {/* Role Specific Fields */}
-          {(isSocialCreator || isMediaCorrespondent) && (
-            <div className="grid grid-cols-1 gap-4 border-t border-[#EDEAE0] pt-6 md:grid-cols-2">
-              {isSocialCreator && (
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
-                    Social Media Handle (Author)<span className="text-[#B65C4B]">*</span>
-                  </label>
-                  <div className="relative">
-                    <AtSign size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
-                    <input
-                      type="text"
-                      value={socialHandle}
-                      onChange={(e) => setSocialHandle(e.target.value)}
-                      placeholder="yourusername"
-                      className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {isMediaCorrespondent && (
-                <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
-                    Organization Link <span className="text-[#B65C4B]">*</span>
-                  </label>
-                  <div className="relative">
-                    <Globe size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
-                    <input
-                      type="url"
-                      value={organizationLink}
-                      onChange={(e) => setOrganizationLink(e.target.value)}
-                      placeholder="https://organization.org"
-                      className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-                    />
-                  </div>
-                </div>
-              )}
+          {/* Role / Author Identity Fields */}
+          <div className="grid grid-cols-1 gap-4 border-t border-[#EDEAE0] pt-6 md:grid-cols-2">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+                  Social Media Handle {isSocialCreator && <span className="text-[#B65C4B]">*</span>}
+                </label>
+                {user.socialHandle && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
+                    <CheckCircle2 size={11} /> From profile
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <AtSign size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
+                <input
+                  type="text"
+                  value={socialHandle}
+                  onChange={(e) => setSocialHandle(e.target.value)}
+                  placeholder="e.g. @username"
+                  className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+                />
+              </div>
             </div>
-          )}
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+                  Organization Link {isMediaCorrespondent && <span className="text-[#B65C4B]">*</span>}
+                </label>
+                {user.organizationLink && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
+                    <CheckCircle2 size={11} /> From profile
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <Globe size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
+                <input
+                  type="url"
+                  value={organizationLink}
+                  onChange={(e) => setOrganizationLink(e.target.value)}
+                  placeholder="https://organization.org"
+                  className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+                />
+              </div>
+            </div>
+          </div>
 
           {/* Category / Tag */}
           <div>
