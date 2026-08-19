@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { User, Loader2, AlertCircle, Eye, EyeOff, Dna } from "lucide-react";
+import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { loginUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { Role } from "@/types";
@@ -124,13 +124,17 @@ export default function LoginPage() {
       {/* ── MAIN BIOCAP GLASS CARD ── */}
       <div className="relative z-10 w-full max-w-md bg-white/25 backdrop-blur-md border border-white/40 rounded-[38px] p-8 sm:p-10 shadow-2xl shadow-[#133248]/50">
         
-        {/* Avatar Header */}
-        <div className="flex justify-center mb-3">
-          <div className="relative w-16 h-16 rounded-full bg-[#133248] text-white flex items-center justify-center shadow-lg border border-[#E52B67]/40">
-            <User className="w-9 h-9 stroke-[2.2]" />
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#E52B67] text-white flex items-center justify-center shadow-sm">
-              <Dna className="w-3.5 h-3.5" />
-            </div>
+        {/* BioCap Logo Header */}
+        <div className="flex justify-center mb-4">
+          <div className="relative w-20 h-20 rounded-full bg-white border-2 border-[#E52B67] shadow-xl flex items-center justify-center overflow-hidden p-2">
+            <img 
+              src="/image/biocap-logo.png" 
+              alt="BioCap Logo" 
+              className="w-full h-full object-contain rounded-full"
+              onError={(e) => {
+                e.currentTarget.src = "/image/rab-logo.png";
+              }}
+            />
           </div>
         </div>
 
