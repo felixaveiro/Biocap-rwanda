@@ -19,7 +19,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-// ── Type system (matches the rest of the editorial suite) ──────
+// ── Type system ───────────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -39,8 +39,6 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
-// ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
-
 interface BlogTableProps {
   blogs: BlogPost[];
   user: User;
@@ -53,8 +51,9 @@ interface BlogTableProps {
   onRestore?: (id: string) => void;
   onPermanentDelete?: (id: string) => void;
   onRefreshNeeded?: () => void;
-  /** Optional: externally request opening an edit modal for a specific story id */
   openStoryId?: string | null;
+  onViewStory?: (story: BlogPost) => void;
+  onEditStory?: (story: BlogPost) => void;
 }
 
 export default function BlogTable({
@@ -63,13 +62,13 @@ export default function BlogTable({
   showTrash = false,
   onPublish,
   onUnpublish,
-  onApprove,
-  onReject,
   onDelete,
   onRestore,
   onPermanentDelete,
   onRefreshNeeded,
   openStoryId = null,
+  onViewStory,
+  onEditStory,
 }: BlogTableProps) {
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
   const [reviewingStory, setReviewingStory] = useState<BlogPost | null>(null);
@@ -85,12 +84,17 @@ export default function BlogTable({
   const [actionError, setActionError] = useState<string | null>(null);
 
   // Normalize user.role whether it's a string or an array
+  const userRoleStr = Array.isArray(user.role) ? user.role[0] : user.role;
   const userRoles = Array.isArray(user.role) ? user.role : [user.role];
+
   const isCreator = userRoles.some(
-    (r) => r.includes("creator") || r.includes("contributor")
+    (r) =>
+      r.includes("creator") ||
+      r.includes("contributor") ||
+      r.includes("principal_investigator") ||
+      r.includes("correspondent")
   );
   const isEditor = userRoles.some((r) => r === "editor" || r === "admin");
-  // Publisher roles now include admin, communication_officer, and editor
   const canPublish = userRoles.some(
     (r) => r === "communication_officer" || r === "admin" || r === "editor"
   );
@@ -100,7 +104,7 @@ export default function BlogTable({
     setActiveActionId(storyId);
     setActionError(null);
     try {
-      await blogsApi.submitBlog(storyId, user.role as Role);
+      await blogsApi.submitBlog(storyId, userRoleStr as Role);
       if (onRefreshNeeded) onRefreshNeeded();
     } catch (err: unknown) {
       console.error("Failed to submit story:", err);
@@ -145,7 +149,7 @@ export default function BlogTable({
     setActiveActionId(storyId);
     setActionError(null);
     try {
-      await blogsApi.deleteBlog(storyId, user.role as Role);
+      await blogsApi.deleteBlog(storyId, userRoleStr as Role);
       if (onRefreshNeeded) onRefreshNeeded();
     } catch (err: unknown) {
       console.error("Failed to delete story:", err);
@@ -156,9 +160,22 @@ export default function BlogTable({
     }
   };
 
-  // Status → proof-stage styling. Each stage reads like a stamp on a galley:
-  // draft (unmarked) → submitted/pending (awaiting mark) → approved (marked ready)
-  // → published (final) / rejected (sent back).
+  const handleOpenViewModal = (story: BlogPost) => {
+    if (onViewStory) {
+      onViewStory(story);
+    } else {
+      setReviewingStory(story);
+    }
+  };
+
+  const handleOpenEditModal = (story: BlogPost) => {
+    if (onEditStory) {
+      onEditStory(story);
+    } else {
+      setEditingStory(story);
+    }
+  };
+
   const getStatusStyle = (status: string) => {
     switch (status) {
       case "published":
@@ -180,15 +197,14 @@ export default function BlogTable({
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
   const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
-  // Shared button treatments so every action reads from the same rulebook
   const btnBase =
-    "inline-flex items-center gap-1 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none";
+    "inline-flex items-center gap-1 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer";
   const btnNeutral = `${btnBase} border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620]`;
   const btnMoss = `${btnBase} border-[#3F6B4F]/40 bg-[#3F6B4F]/10 text-[#2C4B38] hover:bg-[#3F6B4F] hover:text-white hover:border-[#3F6B4F]`;
   const btnGold = `${btnBase} border-[#A9812F]/40 bg-[#A9812F]/10 text-[#7A5D22] hover:bg-[#A9812F] hover:text-white hover:border-[#A9812F]`;
   const btnClay = `${btnBase} border-[#B65C4B]/40 bg-[#B65C4B]/10 text-[#8B4136] hover:bg-[#B65C4B] hover:text-white hover:border-[#B65C4B]`;
   const iconBtn =
-    "border p-1.5 transition-colors disabled:opacity-40 disabled:pointer-events-none";
+    "border p-1.5 transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer";
 
   return (
     <div className={`${fontVars} w-full border border-[#E2DDCF] bg-white`} style={bodyFont}>
@@ -259,7 +275,7 @@ export default function BlogTable({
                         className="border border-[#D9D4C6] bg-[#F3F2ED] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5A6259]"
                         style={monoFont}
                       >
-                        {story.tag || "General"}
+                        {story.tag || (story as any).category || "General"}
                       </span>
                     </td>
 
@@ -305,6 +321,17 @@ export default function BlogTable({
                             {/* CREATOR ACTIONS */}
                             {isCreator && (
                               <>
+                                {/* EYE BUTTON: Triggers ReviewStoryModal */}
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => handleOpenViewModal(story)}
+                                  className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
+                                  title="View Full Story"
+                                >
+                                  <Eye size={15} />
+                                </button>
+
                                 {(story.status === "draft" || story.status === "rejected") && (
                                   <button
                                     disabled={isBusy}
@@ -323,7 +350,7 @@ export default function BlogTable({
 
                                 <button
                                   disabled={isBusy}
-                                  onClick={() => setEditingStory(story)}
+                                  onClick={() => handleOpenEditModal(story)}
                                   className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
                                   title="Edit Story"
                                 >
@@ -349,7 +376,7 @@ export default function BlogTable({
                             {isEditor && (
                               <>
                                 <button
-                                  onClick={() => setReviewingStory(story)}
+                                  onClick={() => handleOpenViewModal(story)}
                                   className={btnNeutral}
                                   title="Review Submission Workspace"
                                 >
@@ -382,7 +409,7 @@ export default function BlogTable({
                               </>
                             )}
 
-                            {/* PUBLISHER ACTIONS: admin, communication_officer, editor */}
+                            {/* PUBLISHER ACTIONS */}
                             {canPublish && story.status === "approved" && onPublish && (
                               <button
                                 onClick={() => onPublish(story)}
@@ -407,7 +434,7 @@ export default function BlogTable({
       {editingStory && (
         <EditStoryModal
           story={editingStory}
-          currentUserRole={user.role}
+          currentUserRole={userRoleStr as Role}
           onClose={() => setEditingStory(null)}
           onStoryUpdated={() => {
             setEditingStory(null);
@@ -420,7 +447,7 @@ export default function BlogTable({
       {reviewingStory && (
         <ReviewStoryModal
           story={reviewingStory}
-          currentUserRole={user.role}
+          currentUserRole={userRoleStr as Role}
           onClose={() => setReviewingStory(null)}
           onReviewCompleted={() => {
             setReviewingStory(null);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
 import {
@@ -14,7 +15,29 @@ import {
   CheckCircle2,
   Clock,
   User,
+  ImagePlus,
 } from "lucide-react";
+
+// ── Same editorial system as StoryEditor / BlogTable ──────
+// canvas #FAF9F5 · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #E2DDCF
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-body",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-mono",
+});
 
 export interface EditStoryModalProps {
   story: BlogPost;
@@ -113,43 +136,81 @@ export default function EditStoryModal({
     }
   };
 
+  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
+  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
+  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+
+  const inputCls =
+    "w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-2.5 text-xs text-[#1E2620] placeholder:text-[#B4B0A2] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15";
+  const labelCls = "mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]";
+
+  const btnBase =
+    "inline-flex items-center gap-1.5 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none";
+  const btnNeutral = `${btnBase} border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620]`;
+  const btnMoss = `${btnBase} border-[#3F6B4F]/40 bg-[#3F6B4F]/10 text-[#2C4B38] hover:bg-[#3F6B4F] hover:text-white hover:border-[#3F6B4F]`;
+  const btnGold = `${btnBase} border-[#A9812F]/40 bg-[#A9812F]/10 text-[#7A5D22] hover:bg-[#A9812F] hover:text-white hover:border-[#A9812F]`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4">
-      <div className="w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <FileText className="text-indigo-600" size={18} />
-            <h3 className="text-base font-bold text-slate-900">Edit Story Draft</h3>
+    <div
+      className={`${fontVars} fixed inset-0 z-50 flex items-center justify-center bg-[#1E2620]/45 backdrop-blur-xs p-4`}
+      style={bodyFont}
+    >
+      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden border border-[#E2DDCF] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-b border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
+          <div>
+            <p
+              className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3F6B4F]"
+              style={monoFont}
+            >
+              <FileText size={12} /> Revision
+            </p>
+            <h3 className="mt-0.5 text-xl italic text-[#1E2620]" style={displayFont}>
+              Edit Story Draft
+            </h3>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
+            aria-label="Close"
+            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620]"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        {/* ── Body ────────────────────────────────────────────────────── */}
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
           {editorFeedbackNote && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900">
-              <div className="flex items-center gap-2 font-bold text-amber-800 text-xs mb-1">
-                <MessageSquare size={14} /> Editor Feedback & Revision Request:
+            <div className="border border-[#A9812F]/40 bg-[#A9812F]/10 p-4">
+              <div
+                className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#7A5D22]"
+                style={monoFont}
+              >
+                <MessageSquare size={13} /> Editor Feedback &amp; Revision Request
               </div>
-              <p className="text-xs font-medium text-amber-800/90">{editorFeedbackNote}</p>
+              <p className="text-xs leading-relaxed text-[#7A5D22]/90">{editorFeedbackNote}</p>
             </div>
           )}
 
           {story.changeRequests && story.changeRequests.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-800">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 font-bold text-slate-800 text-xs">
-                  <FileText size={14} /> Change Requests
-                </div>
+            <div className="border border-[#E2DDCF] bg-white">
+              <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-3">
+                <p
+                  className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]"
+                  style={monoFont}
+                >
+                  <FileText size={12} /> Change Requests
+                </p>
+                <span
+                  className="border border-[#D9D4C6] bg-[#F3F2ED] px-2 py-0.5 text-[10px] font-bold text-[#5A6259]"
+                  style={monoFont}
+                >
+                  {story.changeRequests.filter((c) => !c.implemented).length} open
+                </span>
               </div>
 
-              <div className="space-y-3">
+              <div className="divide-y divide-[#EDEAE0]">
                 {story.changeRequests.map((cr) => {
                   const commenterName = typeof cr.commenter === "string"
                     ? cr.commenter
@@ -158,38 +219,57 @@ export default function EditStoryModal({
                     : cr.commenter?.username || "Reviewer";
 
                   return (
-                    <div key={cr._id} className="rounded-lg border border-slate-100 p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <User size={16} className="text-slate-500" />
+                    <div
+                      key={cr._id}
+                      className="p-4"
+                      style={{ boxShadow: `inset 3px 0 0 ${cr.implemented ? "#3F6B4F" : "#B65C4B"}` }}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center border border-[#E2DDCF] bg-[#F3F2ED] text-[#5A6259]">
+                            <User size={13} />
+                          </div>
                           <div>
-                            <div className="text-xs font-semibold text-slate-900">{commenterName} <span className="text-[11px] text-slate-400">{cr.role ? ` — ${cr.role}` : ''}</span></div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-2"><Clock size={12} /> <span>{new Date(cr.requestedAt).toLocaleString()}</span></div>
+                            <div className="text-xs font-semibold text-[#1E2620]">
+                              {commenterName}
+                              {cr.role && (
+                                <span className="ml-1 font-normal text-[#8B9188]"> — {cr.role}</span>
+                              )}
+                            </div>
+                            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#B4B0A2]" style={monoFont}>
+                              <Clock size={11} /> {new Date(cr.requestedAt).toLocaleString()}
+                            </div>
                           </div>
                         </div>
 
-                        <div>
-                          {cr.implemented ? (
-                            <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
-                              <CheckCircle2 size={14} /> Implemented
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => openImplementModal(cr)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
-                            >
-                              Mark implemented
-                            </button>
-                          )}
-                        </div>
+                        {cr.implemented ? (
+                          <span
+                            className="inline-flex shrink-0 items-center gap-1 border border-[#3F6B4F]/40 bg-[#3F6B4F]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#2C4B38]"
+                            style={monoFont}
+                          >
+                            <CheckCircle2 size={12} /> Implemented
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => openImplementModal(cr)}
+                            className={`${btnGold} shrink-0 px-2.5 py-1`}
+                          >
+                            Mark implemented
+                          </button>
+                        )}
                       </div>
 
-                      <div className="mt-2 text-sm text-slate-700">{cr.comment}</div>
+                      <p className="mt-2.5 text-[13px] leading-relaxed text-[#3A4239]">{cr.comment}</p>
 
                       {cr.implemented && cr.implementationNote && (
-                        <div className="mt-2 rounded-md bg-emerald-50 p-2 text-[12px] text-emerald-800 border border-emerald-100">
-                          <div className="font-semibold text-emerald-900">Implementation Note</div>
-                          <div className="text-[13px]">{cr.implementationNote}</div>
+                        <div className="mt-2.5 border border-[#3F6B4F]/25 bg-[#3F6B4F]/5 p-2.5">
+                          <p
+                            className="text-[10px] font-semibold uppercase tracking-wider text-[#2C4B38]"
+                            style={monoFont}
+                          >
+                            Implementation Note
+                          </p>
+                          <p className="mt-0.5 text-xs text-[#2C4B38]/90">{cr.implementationNote}</p>
                         </div>
                       )}
                     </div>
@@ -199,26 +279,33 @@ export default function EditStoryModal({
 
               {/* Implement modal inline */}
               {implementingChange && (
-                <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-bold">Mark Change Implemented</div>
-                    <button onClick={() => setImplementingChange(null)} className="text-xs text-slate-500">Cancel</button>
+                <div className="border-t border-[#EDEAE0] bg-[#FAF9F5] p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[#1E2620]">Mark Change Implemented</p>
+                    <button
+                      onClick={() => setImplementingChange(null)}
+                      className="text-[11px] font-medium text-[#8B9188] hover:text-[#1E2620]"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                  <div className="text-xs text-slate-600 mb-2">Optional note describing the implementation</div>
+                  <p className={labelCls}>Implementation note (optional)</p>
                   <textarea
                     rows={3}
                     value={implementationNote}
                     onChange={(e) => setImplementationNote(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 p-2 text-sm text-slate-800"
+                    className={inputCls}
                   />
                   <div className="mt-3 flex items-center justify-end gap-2">
-                    <button onClick={() => setImplementingChange(null)} className="rounded-xl border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">Cancel</button>
-                    <button
-                      onClick={handleConfirmImplement}
-                      disabled={isImplementing}
-                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-semibold text-white"
-                    >
-                      {isImplementing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                    <button onClick={() => setImplementingChange(null)} className={btnNeutral}>
+                      Cancel
+                    </button>
+                    <button onClick={handleConfirmImplement} disabled={isImplementing} className={btnMoss}>
+                      {isImplementing ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <CheckCircle2 size={13} />
+                      )}
                       Confirm Implemented
                     </button>
                   </div>
@@ -228,35 +315,32 @@ export default function EditStoryModal({
           )}
 
           {errorMessage && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
-              <AlertCircle size={15} />
-              <span>{errorMessage}</span>
+            <div className="flex items-center gap-2.5 border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-3.5 text-[#8B4136]">
+              <AlertCircle size={15} className="shrink-0" />
+              <span className="text-xs font-medium">{errorMessage}</span>
             </div>
           )}
 
-          <div className="space-y-4">
+          {/* ── Fields ──────────────────────────────────────────────── */}
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                Article Title
-              </label>
+              <label className={labelCls}>Article Title</label>
               <input
                 type="text"
                 required
                 value={articleTitle}
                 onChange={(e) => setArticleTitle(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-semibold text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className={`${inputCls} font-semibold text-[#1E2620]`}
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Category Tag
-                </label>
+                <label className={labelCls}>Category Tag</label>
                 <select
                   value={articleTag}
                   onChange={(e) => setArticleTag(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 p-2.5 text-sm font-medium text-slate-700 focus:border-indigo-500 focus:outline-none"
+                  className={inputCls}
                 >
                   <option value="General">General</option>
                   <option value="Agribusiness">Agribusiness</option>
@@ -266,71 +350,86 @@ export default function EditStoryModal({
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                  Replace Cover Image (Optional)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setNewCoverImageFile(e.target.files?.[0] || null)}
-                  className="w-full rounded-xl border border-slate-200 p-2 text-xs text-slate-600 focus:outline-none"
-                />
+                <label className={labelCls}>Cover Image</label>
+                {newCoverImageFile ? (
+                  <div className="flex items-center justify-between border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-2.5">
+                    <span className="truncate text-xs text-[#1E2620]">{newCoverImageFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => setNewCoverImageFile(null)}
+                      className="ml-2 shrink-0 text-[#B65C4B] hover:opacity-70"
+                      aria-label="Remove selected cover image"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex cursor-pointer items-center justify-center gap-1.5 border border-dashed border-[#D9D4C6] bg-[#FAF9F5] px-3 py-2.5 text-[11px] font-medium text-[#8B9188] transition-colors hover:border-[#3F6B4F] hover:bg-[#F3F2ED] hover:text-[#3F6B4F]">
+                    <ImagePlus size={14} /> Replace cover image
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setNewCoverImageFile(e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                Excerpt
-              </label>
+              <div className="mb-1.5 flex items-baseline justify-between">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
+                  Excerpt / brief summary
+                </label>
+                <span className="text-[10px] tabular-nums text-[#B4B0A2]" style={monoFont}>
+                  {articleExcerpt.length} chars
+                </span>
+              </div>
               <textarea
                 rows={2}
                 value={articleExcerpt}
                 onChange={(e) => setArticleExcerpt(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
+                placeholder="Short description for preview cards..."
+                className={inputCls}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-                Main Story Content
-              </label>
+              <label className={labelCls}>Main Story Content</label>
               <textarea
                 rows={8}
                 required
                 value={articleContent}
                 onChange={(e) => setArticleContent(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 p-3 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none"
+                className={`${inputCls} leading-relaxed`}
               />
             </div>
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex flex-wrap items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-          >
+        {/* ── Footer ──────────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
+          <button type="button" onClick={onClose} className={btnNeutral}>
             Cancel
           </button>
           <button
             type="button"
             disabled={isSubmitting}
             onClick={(e) => handleUpdateStory(e, false)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition"
+            className={btnNeutral}
           >
-            {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
             Save Draft
           </button>
           <button
             type="button"
             disabled={isSubmitting}
             onClick={(e) => handleUpdateStory(e, true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
+            className={btnGold}
           >
-            {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            Save & Submit
+            {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+            Save &amp; Submit
           </button>
         </div>
       </div>

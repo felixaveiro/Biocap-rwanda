@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { blogsApi } from '@/lib/api/blogs';
-import { BlogPost, BlogBlock } from '@/types';
+import { BlogPost, BlogBlock, Comment, Role } from '@/types';
 import Footer from '@/components/Footer';
+import { useSession } from '@/hooks/useSession';
 import {
   Tag,
   Calendar,
@@ -16,6 +17,15 @@ import {
   Share2,
   Link2,
   Newspaper,
+  MessageSquare,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
+  Reply,
+  Send,
+  EyeOff,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -32,43 +42,82 @@ const accentForTag = (key: string) => {
 export default function StewardshipArticlePage() {
   const pathname = usePathname();
   const slug = pathname?.split('/').pop() || '';
+  const { user } = useSession();
   const [story, setStory] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [moreStories, setMoreStories] = useState<BlogPost[]>([]);
+  const [commentForm, setCommentForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    content: '',
+  });
+  const [replyCommentId, setReplyCommentId] = useState<string | null>(null);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
+  const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
+  const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
+  const [consentNote, setConsentNote] = useState('');
+
+  const fetchStory = useCallback(async () => {
+    if (!slug) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await blogsApi.getPublicBlogBySlug(slug);
+      setStory(res);
+    } catch (err: unknown) {
+      console.error('Failed to load story:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load story');
+    } finally {
+      setLoading(false);
+    }
+  }, [slug]);
 
   useEffect(() => {
-    if (!slug) return;
-    const fetchStory = async () => {
+    let active = true;
+
+    const load = async () => {
+      if (!slug) return;
       setLoading(true);
       setError(null);
       try {
         const res = await blogsApi.getPublicBlogBySlug(slug);
-        setStory(res);
+        if (active) setStory(res);
       } catch (err: unknown) {
-        console.error('Failed to load story:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load story');
+        if (active) {
+          console.error('Failed to load story:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load story');
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
-    fetchStory();
+
+    void load();
+    return () => {
+      active = false;
+    };
   }, [slug]);
 
   useEffect(() => {
     const fetchMore = async () => {
       try {
-        const res: any = await blogsApi.getPublicBlogs({ page: 1, limit: 9 });
-        let items: BlogPost[] = [];
-        if (Array.isArray(res)) items = res;
-        else if (Array.isArray(res?.data)) items = res.data;
-        else if (Array.isArray(res?.docs)) items = res.docs;
-        setMoreStories(items.filter((s) => s.slug !== slug).slice(0, 6));
+        const res = await blogsApi.getPublicBlogs({ page: 1, limit: 9 });
+        const collection = Array.isArray(res)
+          ? res
+          : Array.isArray((res as { data?: BlogPost[] })?.data)
+            ? (res as { data: BlogPost[] }).data
+            : Array.isArray((res as { docs?: BlogPost[] })?.docs)
+              ? (res as { docs: BlogPost[] }).docs
+              : [];
+        setMoreStories(collection.filter((s) => s.slug !== slug).slice(0, 6));
       } catch (err) {
         console.error('Failed to load related stories:', err);
       }
     };
-    fetchMore();
+    void fetchMore();
   }, [slug]);
 
   const authorName = story?.originalAuthor?.firstName
@@ -81,9 +130,167 @@ export default function StewardshipArticlePage() {
     ? new Date(story.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const eventLabel = (story as any)?.eventLabel as string | undefined;
-  const organizer = (story as any)?.organizer as string | undefined;
-  const keyPartners = (story as any)?.keyPartners as string[] | undefined;
+  const storyMeta = story as (BlogPost & {
+    eventLabel?: string;
+    organizer?: string;
+    keyPartners?: string[];
+  }) | null;
+  const eventLabel = storyMeta?.eventLabel;
+  const organizer = storyMeta?.organizer;
+  const keyPartners = storyMeta?.keyPartners;
+  const moderatorRoles: Role[] = ['admin', 'editor', 'communication_officer'];
+  const isModerator = !!user && moderatorRoles.includes(user.role);
+  const isWriter = !!user && (story?.originalAuthor?._id === user._id || story?.author?._id === user._id);
+  const canPublish = !story || story.publishConsentStatus === 'approved' || story.publishConsentStatus === 'not_required' || !story.publishConsentStatus;
+  const writerConsentPending = story?.publishConsentStatus === 'pending' && isWriter;
+
+  const getCommentAuthorName = (comment: Comment) => {
+    if (comment.user && comment.user.firstName) {
+      return `${comment.user.firstName} ${comment.user.lastName || ''}`.trim();
+    }
+    return comment.name || 'Guest';
+  };
+
+  const visibleComments = (story?.comments || []).filter((comment) => !comment.isDeleted && comment.isVisible !== false);
+  const replyTargetComment = visibleComments.find((comment) => comment._id === replyCommentId) || null;
+
+  const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!story) return;
+
+    if (!commentForm.name.trim() || !commentForm.email.trim() || !commentForm.content.trim()) {
+      setCommentError('Name, email, and comment are required.');
+      return;
+    }
+
+    try {
+      setCommentSubmitting(true);
+      setCommentError(null);
+      setCommentSuccess(null);
+
+      await blogsApi.addPublicBlogComment(slug, {
+        name: commentForm.name.trim(),
+        email: commentForm.email.trim(),
+        phone: commentForm.phone.trim() || undefined,
+        content: commentForm.content.trim(),
+        parentComment: replyCommentId || null,
+      });
+
+      setCommentForm({ name: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '', email: user?.email || '', phone: '', content: '' });
+      setReplyCommentId(null);
+      setCommentSuccess('Your comment has been posted successfully.');
+      await fetchStory();
+    } catch (err: unknown) {
+      setCommentError(err instanceof Error ? err.message : 'Unable to post your comment right now.');
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const handleModerationAction = async (commentId: string, action: 'hide' | 'delete') => {
+    if (!story) return;
+
+    if (action === 'delete') {
+      const confirmed = window.confirm('Delete this comment permanently?');
+      if (!confirmed) return;
+    }
+
+    try {
+      if (action === 'hide') {
+        await blogsApi.hideBlogComment(story._id, commentId);
+      } else {
+        await blogsApi.deleteBlogComment(story._id, commentId);
+      }
+      await fetchStory();
+    } catch (err: unknown) {
+      console.error(`Failed to ${action} comment:`, err);
+      window.alert(err instanceof Error ? err.message : `Unable to ${action} the comment.`);
+    }
+  };
+
+  const handleConsentDecision = async (approved: boolean) => {
+    if (!story) return;
+
+    try {
+      setConsentSubmitting(approved ? 'approve' : 'reject');
+      await blogsApi.respondToWriterConsent(story._id, {
+        approved,
+        note: approved ? 'Approved by writer.' : (consentNote || 'The article needs revision before publication.'),
+      });
+      setConsentNote('');
+      await fetchStory();
+    } catch (err: unknown) {
+      console.error('Failed to update consent:', err);
+      window.alert(err instanceof Error ? err.message : 'Unable to update the writer consent decision.');
+    } finally {
+      setConsentSubmitting(null);
+    }
+  };
+
+  const renderCommentTree = (comment: Comment, depth = 0) => {
+    if (comment.isDeleted || comment.isVisible === false) return null;
+
+    const authorName = getCommentAuthorName(comment);
+    const replyCount = (comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).length;
+
+    return (
+      <div key={comment._id} className="rounded-2xl border border-slate-200 bg-white p-4" style={{ marginLeft: depth > 0 ? 24 : 0 }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-sm font-semibold text-[#1B3A5C]">{authorName}</p>
+              {comment.role && comment.role !== 'guest' && (
+                <span className="rounded-full bg-[#E8185A]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#E8185A]">
+                  {String(comment.role).replace('_', ' ')}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
+              {new Date(comment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+            </p>
+          </div>
+
+          {isModerator && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleModerationAction(comment._id, 'hide')}
+                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 hover:bg-amber-100"
+              >
+                <EyeOff size={12} /> Hide
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModerationAction(comment._id, 'delete')}
+                className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                <Trash2 size={12} /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-3 text-sm leading-7 text-slate-700">{comment.content}</p>
+
+        <div className="mt-4 flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setReplyCommentId(comment._id)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#E8185A]"
+          >
+            <Reply size={12} /> Reply
+          </button>
+          {replyCount > 0 && <span className="text-[10px] uppercase tracking-wide text-slate-400">{replyCount} reply{replyCount > 1 ? 'ies' : 'y'}</span>}
+        </div>
+
+        {(comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).length > 0 && (
+          <div className="mt-4 space-y-3 border-l border-slate-200 pl-4">
+            {(comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).map((reply) => renderCommentTree(reply, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Filter out realgreengoldltd link if present
   const isFilteredOrgLink =
@@ -274,6 +481,133 @@ export default function StewardshipArticlePage() {
                     </div>
                   </div>
                 )}
+
+                {/* Writer consent banner */}
+                {writerConsentPending && (
+                  <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-slate-700">
+                    <div className="flex items-start gap-3">
+                      <ShieldAlert className="mt-0.5 text-amber-700" size={18} />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-[#1B3A5C]">Writer review required</p>
+                        <p className="mt-2 text-sm leading-7">
+                          The editor made changes to this article. Please review and approve or reject the modifications before publishing.
+                        </p>
+                        <div className="mt-4 flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            disabled={!!consentSubmitting}
+                            onClick={() => handleConsentDecision(true)}
+                            className="inline-flex items-center gap-2 rounded-full bg-[#1B3A5C] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-60"
+                          >
+                            {consentSubmitting === 'approve' ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                            Approve changes
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!!consentSubmitting}
+                            onClick={() => handleConsentDecision(false)}
+                            className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/20 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#1B3A5C] disabled:opacity-60"
+                          >
+                            {consentSubmitting === 'reject' ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
+                            Reject changes
+                          </button>
+                        </div>
+                        <textarea
+                          value={consentNote}
+                          onChange={(event) => setConsentNote(event.target.value)}
+                          placeholder="Optional note for rejection or approval"
+                          className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-[#1B3A5C]"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!canPublish && story?.publishConsentStatus && story.publishConsentStatus !== 'approved' && story.publishConsentStatus !== 'not_required' && (
+                  <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                    Publishing is currently blocked until the writer resolves the pending consent decision.
+                  </div>
+                )}
+
+                <div className="mt-8 rounded-2xl border border-slate-200 bg-[#f8fafc] p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-[#1B3A5C]">
+                      <MessageSquare size={16} />
+                      <h3 className="text-lg font-semibold">Comments</h3>
+                    </div>
+                    <span className="rounded-full bg-[#1B3A5C] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                      {visibleComments.length}
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleCommentSubmit} className="space-y-4">
+                    {replyTargetComment && (
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8185A]/20 bg-[#E8185A]/5 px-3 py-2 text-xs text-[#8B4136]">
+                        <span>Replying to {getCommentAuthorName(replyTargetComment)}</span>
+                        <button type="button" onClick={() => setReplyCommentId(null)} className="font-bold uppercase tracking-wide">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={commentForm.name}
+                        onChange={(event) => setCommentForm((prev) => ({ ...prev, name: event.target.value }))}
+                        placeholder="Your name"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
+                        required
+                      />
+                      <input
+                        type="email"
+                        value={commentForm.email}
+                        onChange={(event) => setCommentForm((prev) => ({ ...prev, email: event.target.value }))}
+                        placeholder="Your email"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
+                        required
+                      />
+                    </div>
+
+                    <input
+                      type="tel"
+                      value={commentForm.phone}
+                      onChange={(event) => setCommentForm((prev) => ({ ...prev, phone: event.target.value }))}
+                      placeholder="Phone (optional)"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
+                    />
+
+                    <textarea
+                      value={commentForm.content}
+                      onChange={(event) => setCommentForm((prev) => ({ ...prev, content: event.target.value }))}
+                      placeholder={replyTargetComment ? `Write a reply to ${getCommentAuthorName(replyTargetComment)}` : 'Share your thoughts about this article'}
+                      rows={5}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
+                      required
+                    />
+
+                    {commentError && <p className="text-sm text-rose-600">{commentError}</p>}
+                    {commentSuccess && <p className="text-sm text-emerald-600">{commentSuccess}</p>}
+
+                    <button
+                      type="submit"
+                      disabled={commentSubmitting}
+                      className="inline-flex items-center gap-2 rounded-full bg-[#E8185A] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70"
+                    >
+                      {commentSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      {commentSubmitting ? 'Posting...' : replyTargetComment ? 'Post reply' : 'Post comment'}
+                    </button>
+                  </form>
+
+                  <div className="mt-6 space-y-4">
+                    {visibleComments.length > 0 ? (
+                      visibleComments.filter((comment) => !comment.parentComment).map((comment) => renderCommentTree(comment))
+                    ) : (
+                      <p className="text-sm text-slate-500">No public comments yet. Be the first to share your thoughts.</p>
+                    )}
+                  </div>
+                </div>
 
                 {/* Bottom navigation + share */}
                 <div className="pt-6 mt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">

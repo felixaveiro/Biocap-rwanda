@@ -158,7 +158,7 @@ export interface BlogModalMetadata {
   organizer?: string;
   partners?: string;
   keyTakeaways?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ReviewLog {
@@ -181,13 +181,21 @@ export interface Comment {
   _id: string;
   user?: {
     _id: string;
-    firstName: string;
-    lastName: string;
-    username: string;
+    firstName?: string;
+    lastName?: string;
+    username?: string;
     role?: Role;
-  };
+  } | null;
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: Role | 'guest';
   content: string;
+  parentComment?: string | null;
+  isVisible?: boolean;
+  isDeleted?: boolean;
   createdAt: string;
+  replies?: Comment[];
 }
 
 // ─── Proposed Editor Modifications ───────────────────────────────────────────
@@ -213,6 +221,8 @@ export type NotificationType =
   | 'BLOG_APPROVED'
   | 'CHANGE_REQUEST'
   | 'CHANGE_REQUEST_IMPLEMENTED';
+
+export type PublishConsentStatus = 'not_required' | 'pending' | 'approved' | 'rejected';
 
 export interface Notification {
   _id: string;
@@ -294,6 +304,9 @@ export interface BlogPost {
 
   // ─── Published Article Comments ────────────────────────────────────────────
   comments?: Comment[];
+  publishConsentStatus?: PublishConsentStatus;
+  publishConsentRequestedAt?: string;
+  publishConsentNote?: string;
 
   publishedAt?: string;
   publishedBy?: {

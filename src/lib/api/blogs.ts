@@ -51,6 +51,19 @@ export interface AcceptEditorChangesPayload {
   approvalNote?: string;
 }
 
+export interface PublicCommentPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  content: string;
+  parentComment?: string | null;
+}
+
+export interface BlogConsentPayload {
+  approved: boolean;
+  note?: string;
+}
+
 export interface BlogFilterOptions {
   status?: string;
   tag?: string;
@@ -115,52 +128,46 @@ function getBlogBasePath(role?: Role): string {
   }
 }
 
-function getTrashBasePath(role?: Role): string {
+function getTrashBasePath(_role?: Role): string {
   return "/api/blogs/trash";
 }
 
-function extractBlogFromResponse(payload: any): { message: string; blog: BlogPost } {
-  if (!payload) {
+function extractBlogFromResponse(payload: unknown): { message: string; blog: BlogPost } {
+  if (!payload || typeof payload !== "object") {
     return { message: "", blog: (null as unknown) as BlogPost };
   }
 
-  if (payload.blog && typeof payload.blog === "object") {
-    return { message: payload.message || "", blog: payload.blog };
+  const data = payload as Record<string, unknown>;
+
+  if (data.blog && typeof data.blog === "object") {
+    return { message: String(data.message || ""), blog: data.blog as BlogPost };
   }
 
-  if (payload.data && payload.data.blog && typeof payload.data.blog === "object") {
-    return { message: payload.message || "", blog: payload.data.blog };
-  }
-
-  if (payload.data && typeof payload.data === "object") {
-    if (payload.data._id && payload.data.title) {
-      return { message: payload.message || "", blog: payload.data };
+  if (data.data && typeof data.data === "object") {
+    const nested = data.data as Record<string, unknown>;
+    if (nested.blog && typeof nested.blog === "object") {
+      return { message: String(data.message || ""), blog: nested.blog as BlogPost };
     }
-    if (Array.isArray(payload.data.docs) && payload.data.docs[0]) {
-      return { message: payload.message || "", blog: payload.data.docs[0] };
+    if (nested._id && nested.title) {
+      return { message: String(data.message || ""), blog: nested as unknown as BlogPost };
     }
-  }
-
-  if (payload._id && payload.title) {
-    return { message: payload.message || "", blog: payload };
-  }
-
-  for (const key of Object.keys(payload)) {
-    const candidate = payload[key];
-    if (candidate && typeof candidate === "object" && candidate._id && candidate.title) {
-      return { message: payload.message || "", blog: candidate };
+    if (Array.isArray(nested.docs) && nested.docs[0] && typeof nested.docs[0] === "object") {
+      return { message: String(data.message || ""), blog: nested.docs[0] as BlogPost };
     }
   }
 
-  return { message: payload.message || "", blog: (null as unknown) as BlogPost };
-}
+  if (data._id && data.title) {
+    return { message: String(data.message || ""), blog: data as unknown as BlogPost };
+  }
 
-function isContributorRole(role?: Role): boolean {
-  return (
-    role === "media_correspondent" ||
-    role === "social_media_content_creator" ||
-    role === "principal_investigator"
-  );
+  for (const key of Object.keys(data)) {
+    const candidate = data[key];
+    if (candidate && typeof candidate === "object" && "_id" in candidate && "title" in candidate) {
+      return { message: String(data.message || ""), blog: candidate as BlogPost };
+    }
+  }
+
+  return { message: String(data.message || ""), blog: (null as unknown) as BlogPost };
 }
 
 // ─── Public Endpoints (No Auth Required) ──────────────────────────────────────
@@ -178,6 +185,37 @@ export async function getPublicBlogs(params: BlogFilterOptions = {}): Promise<Pa
 
 export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
   return apiRequest<BlogPost>(`/api/blogs/public/${slug}`);
+}
+
+export async function addPublicBlogComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
+  return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/public/${slug}/comments`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function hideBlogComment(blogId: string, commentId: string): Promise<{ message: string; comment: Comment }> {
+  return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/${blogId}/comments/${commentId}/hide`, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+export async function deleteBlogComment(blogId: string, commentId: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>(`/api/blogs/${blogId}/comments/${commentId}`, {
+    method: "DELETE",
+    auth: true,
+  });
+}
+
+export async function respondToWriterConsent(blogId: string, payload: BlogConsentPayload): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${blogId}/consent`, {
+    method: "PATCH",
+    auth: true,
+    body: payload,
+  });
+
+  return extractBlogFromResponse(res);
 }
 
 // ─── Protected CRUD Operations ────────────────────────────────────────────────
@@ -229,7 +267,7 @@ export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
   }
 }
 
-export async function createBlog(payload: CreateBlogPayload, role?: Role): Promise<BlogPost> {
+export async function createBlog(payload: CreateBlogPayload, _role?: Role): Promise<BlogPost> {
   const endpoint = "/api/blogs";
 
   const formData = new FormData();
@@ -259,12 +297,12 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
       try {
         formData.append("images", file, file.name);
       } catch {
-        formData.append("images", file as any);
+        formData.append("images", file as unknown as Blob);
       }
     }
   }
 
-  const res = await apiFormRequest<any>(endpoint, {
+  const res = await apiFormRequest<unknown>(endpoint, {
     method: "POST",
     formData,
     auth: true,
@@ -274,7 +312,7 @@ export async function createBlog(payload: CreateBlogPayload, role?: Role): Promi
   return normalized.blog;
 }
 
-export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: Role): Promise<BlogPost> {
+export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?: Role): Promise<BlogPost> {
   const endpoint = `/api/blogs/${id}`;
 
   const formData = new FormData();
@@ -293,12 +331,12 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
       try {
         formData.append("images", file, file.name);
       } catch {
-        formData.append("images", file as any);
+        formData.append("images", file as unknown as Blob);
       }
     }
   }
 
-  const res = await apiFormRequest<any>(endpoint, {
+  const res = await apiFormRequest<unknown>(endpoint, {
     method: "PUT",
     formData,
     auth: true,
@@ -308,7 +346,7 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, role?: 
   return normalized.blog;
 }
 
-export async function deleteBlog(id: string, role?: Role): Promise<{ message: string }> {
+export async function deleteBlog(id: string, _role?: Role): Promise<{ message: string }> {
   return apiRequest<{ message: string }>(`/api/blogs/${id}`, {
     method: "DELETE",
     auth: true,
@@ -321,8 +359,8 @@ export async function getDeletedBlogs(role?: Role): Promise<BlogPost[] | Paginat
   return apiRequest<BlogPost[] | PaginatedResponse<BlogPost>>(getTrashBasePath(role), { auth: true });
 }
 
-export async function restoreBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/restore`, {
+export async function restoreBlog(id: string, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/restore`, {
     method: "PATCH",
     auth: true,
   });
@@ -330,7 +368,7 @@ export async function restoreBlog(id: string, role?: Role): Promise<{ message: s
   return extractBlogFromResponse(res);
 }
 
-export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ message: string }> {
+export async function permanentDeleteBlog(id: string, _role?: Role): Promise<{ message: string }> {
   return apiRequest<{ message: string }>(`/api/blogs/${id}/hard-delete`, {
     method: "DELETE",
     auth: true,
@@ -339,8 +377,8 @@ export async function permanentDeleteBlog(id: string, role?: Role): Promise<{ me
 
 // ─── Editorial Workflow Operations ───────────────────────────────────────────
 
-export async function submitBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/submit`, {
+export async function submitBlog(id: string, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/submit`, {
     method: "PATCH",
     auth: true,
   });
@@ -348,8 +386,8 @@ export async function submitBlog(id: string, role?: Role): Promise<{ message: st
   return extractBlogFromResponse(res);
 }
 
-export async function reviewBlog(id: string, payload: ReviewBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/review`, {
+export async function reviewBlog(id: string, payload: ReviewBlogPayload, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/review`, {
     method: "PATCH",
     auth: true,
     body: payload,
@@ -366,8 +404,8 @@ export async function rejectBlog(id: string, note?: string, role?: Role): Promis
   return reviewBlog(id, { decision: "rejected", note }, role);
 }
 
-export async function publishBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/publish`, {
+export async function publishBlog(id: string, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/publish`, {
     method: "PATCH",
     auth: true,
   });
@@ -375,8 +413,8 @@ export async function publishBlog(id: string, role?: Role): Promise<{ message: s
   return extractBlogFromResponse(res);
 }
 
-export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/unpublish`, {
+export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/unpublish`, {
     method: "PATCH",
     auth: true,
     body: payload || {},
@@ -419,7 +457,7 @@ export async function getEditorChanges(id: string): Promise<BlogPost> {
 }
 
 export async function acceptEditorChanges(id: string, payload?: AcceptEditorChangesPayload): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/officer/blogs/${id}/accept-editor-changes`, {
+  const res = await apiRequest<unknown>(`/api/officer/blogs/${id}/accept-editor-changes`, {
     method: "PATCH",
     body: payload || {},
     auth: true,
@@ -500,8 +538,8 @@ export interface MarkChangeImplementedPayload {
   implementationNote?: string;
 }
 
-export async function markChangeImplemented(id: string, payload?: MarkChangeImplementedPayload, role?: Role): Promise<{ message: string; blog: BlogPost }> {
-  const res = await apiRequest<any>(`/api/blogs/${id}/change-implemented`, {
+export async function markChangeImplemented(id: string, payload?: MarkChangeImplementedPayload, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/blogs/${id}/change-implemented`, {
     method: "PATCH",
     auth: true,
     body: payload || {},
@@ -617,6 +655,10 @@ export const officerApi = {
 export const blogsApi = {
   getPublicBlogs,
   getPublicBlogBySlug,
+  addPublicBlogComment,
+  hideBlogComment,
+  deleteBlogComment,
+  respondToWriterConsent,
   getBlogs,
   getBlogById,
   getBlogStats,
