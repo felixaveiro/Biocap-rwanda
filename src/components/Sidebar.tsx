@@ -22,6 +22,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Bell,
+  MessageSquare,
 } from "lucide-react";
 
 const fraunces = Fraunces({
@@ -37,9 +38,7 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
-// Height of the public <Navbar /> (.bc-nav-inner { height: 70px }) that now
-// renders above this sidebar. Kept as one constant so the mobile toggle,
-// backdrop, and the aside itself all line up with it in one place.
+// Height of the public <Navbar /> (.bc-nav-inner { height: 70px }) that renders above this sidebar.
 const NAVBAR_HEIGHT = 70;
 
 interface NavItem {
@@ -69,6 +68,7 @@ export default function Sidebar() {
     navItems = [
       { label: "Overview", href: "/admin", icon: LayoutDashboard },
       { label: "All Stories", href: "/admin/stories", icon: FileText },
+      { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },
@@ -78,15 +78,22 @@ export default function Sidebar() {
       { label: "Overview", href: "/editor", icon: LayoutDashboard },
       { label: "Review Queue", href: "/editor/review", icon: CheckSquare, badge: "Review" },
       { label: "All Stories", href: "/editor/manage", icon: FileText },
+      { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
     ];
   } else if (role === "communication_officer") {
     navItems = [
       { label: "Overview", href: "/officer", icon: LayoutDashboard },
       { label: "All Stories", href: "/officer/stories", icon: Globe, badge: "Live" },
+      { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "Alerts & Activity", href: "/officer/activity", icon: Bell },
     ];
-  } else if (role === "broadcast_content_creator" || role === "social_media_content_creator" || role === "media_correspondent" || role === "principal_investigator") {
+  } else if (
+    role === "broadcast_content_creator" ||
+    role === "social_media_content_creator" ||
+    role === "media_correspondent" ||
+    role === "principal_investigator"
+  ) {
     navItems = [
       { label: "Overview Studio", href: "/creator", icon: LayoutDashboard },
       { label: "My Stories", href: "/creator/my-stories", icon: FileText },
@@ -97,9 +104,6 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     authCookies.clearAll();
-    // Hard navigation — fully unmounts this sidebar before the login page
-    // renders, instead of router.push()'s soft client-side swap, which can
-    // let the old (authenticated) layout stay painted for a frame.
     window.location.href = "/auth/login";
   };
 
@@ -109,18 +113,18 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Menu Toggle Button — sits just under the public navbar, not on top of it */}
+      {/* Mobile Menu Toggle Button */}
       <button
         type="button"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         style={{ top: NAVBAR_HEIGHT + 16 }}
-        className="fixed left-4 z-40 flex h-10 w-10 items-center justify-center border border-[#1E2620] bg-[#FAF9F5] text-[#1E2620] shadow-md lg:hidden hover:bg-[#EFECE6] transition-colors"
+        className="fixed left-4 z-40 flex h-10 w-10 items-center justify-center border border-[#1E2620] bg-[#FAF9F5] text-[#1E2620] shadow-md lg:hidden hover:bg-[#EFECE6] transition-colors cursor-pointer"
         aria-label="Toggle Navigation Menu"
       >
         {isMobileOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
 
-      {/* Backdrop Overlay for Mobile — stays below the navbar's own z-index (1000) so the navbar remains visible/clickable */}
+      {/* Backdrop Overlay for Mobile */}
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
@@ -129,7 +133,7 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar Container — offset below the sticky public navbar instead of owning the viewport top */}
+      {/* Sidebar Container */}
       <aside
         style={{ top: NAVBAR_HEIGHT, height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
         className={`${fontVars} fixed left-0 z-30 bg-[#FAF9F5] text-[#1E2620] flex flex-col justify-between border-r border-[#E2DDCF] shadow-xs transition-all duration-300 ease-in-out lg:translate-x-0 ${
@@ -172,7 +176,7 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="hidden lg:flex items-center justify-center h-7 w-7 border border-[#D9D4C6] bg-[#FAF9F5] text-[#7A8079] hover:border-[#1E2620] hover:text-[#1E2620] transition-colors"
+              className="hidden lg:flex items-center justify-center h-7 w-7 border border-[#D9D4C6] bg-[#FAF9F5] text-[#7A8079] hover:border-[#1E2620] hover:text-[#1E2620] transition-colors cursor-pointer"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -267,7 +271,7 @@ export default function Sidebar() {
                     style={monoFont}
                   >
                     <span className="h-1.5 w-1.5 bg-[#3F6B4F] inline-block shrink-0" />
-                    {role?.replace(/_/g, " ")}
+                    {typeof role === "string" ? role.replace(/_/g, " ") : "User"}
                   </p>
                 </div>
               )}
@@ -278,7 +282,7 @@ export default function Sidebar() {
             type="button"
             onClick={handleLogout}
             title={isCollapsed ? "Sign Out" : undefined}
-            className={`w-full flex items-center justify-center gap-2 px-3 py-2 border border-[#8B4136]/30 bg-[#8B4136]/5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] transition-colors ${
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2 border border-[#8B4136]/30 bg-[#8B4136]/5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] transition-colors cursor-pointer ${
               isCollapsed && !isMobileOpen ? "px-0" : ""
             }`}
             style={monoFont}

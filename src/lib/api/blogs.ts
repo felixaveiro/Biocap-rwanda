@@ -194,8 +194,17 @@ export async function addPublicBlogComment(slug: string, payload: PublicCommentP
   });
 }
 
+// ─── Comment Moderation API Operations ────────────────────────────────────────
+
 export async function hideBlogComment(blogId: string, commentId: string): Promise<{ message: string; comment: Comment }> {
   return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/${blogId}/comments/${commentId}/hide`, {
+    method: "PATCH",
+    auth: true,
+  });
+}
+
+export async function unhideBlogComment(blogId: string, commentId: string): Promise<{ message: string; comment: Comment }> {
+  return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/${blogId}/comments/${commentId}/unhide`, {
     method: "PATCH",
     auth: true,
   });
@@ -551,7 +560,6 @@ export async function markChangeImplemented(id: string, payload?: MarkChangeImpl
 // ─── Editor Dedicated Operations (Aligned with backend routes) ─────────────
 
 export const editorApi = {
-  // GET /api/blogs/stats
   getBlogStats: async (): Promise<BlogStatsResponse> => {
     try {
       return await apiRequest<BlogStatsResponse>("/api/blogs/stats", { auth: true });
@@ -563,7 +571,6 @@ export const editorApi = {
     }
   },
 
-  // GET /api/blogs?status=pending_review
   getReviewQueue: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
     const query = new URLSearchParams();
     query.append("status", "pending_review");
@@ -580,7 +587,6 @@ export const editorApi = {
     }
   },
 
-  // GET /api/blogs
   getBlogs: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
     const query = new URLSearchParams();
     if (params.status) query.append("status", params.status);
@@ -600,7 +606,6 @@ export const editorApi = {
     }
   },
 
-  // GET /api/blogs/:id
   getBlogById: async (id: string): Promise<BlogPost> => {
     try {
       return await apiRequest<BlogPost>(`/api/blogs/${id}`, { auth: true });
@@ -644,6 +649,9 @@ export const officerApi = {
   getPublishedBlogById: getOfficerPublishedBlogById,
   getArticleComments,
   addArticleComment,
+  hideBlogComment,
+  unhideBlogComment,
+  deleteBlogComment,
   getEditorChanges,
   acceptEditorChanges,
   getNotifications: getOfficerNotifications,
@@ -657,6 +665,7 @@ export const blogsApi = {
   getPublicBlogBySlug,
   addPublicBlogComment,
   hideBlogComment,
+  unhideBlogComment,
   deleteBlogComment,
   respondToWriterConsent,
   getBlogs,

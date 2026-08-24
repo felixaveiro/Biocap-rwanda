@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
+import CommentManager from "@/components/CommentManager";
 import {
   X,
   Save,
@@ -18,8 +19,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 
-// ── Same editorial system as StoryEditor / BlogTable ──────
-// canvas #FAF9F5 · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #E2DDCF
+// ── Editorial Type & Styling System ──────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -55,7 +55,12 @@ export default function EditStoryModal({
   const [articleTitle, setArticleTitle] = useState(story.title || "");
   const [articleTag, setArticleTag] = useState(story.tag || "General");
   const [articleExcerpt, setArticleExcerpt] = useState(story.excerpt || "");
-  const [articleContent, setArticleContent] = useState(story.blocks?.[0]?.text || "");
+  const [articleContent, setArticleContent] = useState(() => {
+    if (Array.isArray(story.blocks) && story.blocks.length > 0) {
+      return story.blocks.map((b) => b.text || "").filter(Boolean).join("\n\n");
+    }
+    return (story as any).content || "";
+  });
   const [newCoverImageFile, setNewCoverImageFile] = useState<File | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +68,7 @@ export default function EditStoryModal({
 
   const editorFeedbackNote = story.lastRejectionNote || null;
 
-  // Change Requests UI state
+  // Change Requests State
   const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
   const [implementationNote, setImplementationNote] = useState("");
   const [isImplementing, setIsImplementing] = useState(false);
@@ -74,12 +79,14 @@ export default function EditStoryModal({
     setErrorMessage(null);
 
     try {
-      const updatedBlocks: BlogBlock[] = [
-        {
+      // Structure paragraph blocks with explicit string typing
+      const updatedBlocks: BlogBlock[] = articleContent
+        .split("\n\n")
+        .filter((paragraph: string) => paragraph.trim().length > 0)
+        .map((text: string): BlogBlock => ({
           type: "p",
-          text: articleContent,
-        },
-      ];
+          text: text.trim(),
+        }));
 
       // 1. Update story details via blogsApi.updateBlog
       await blogsApi.updateBlog(
@@ -88,7 +95,7 @@ export default function EditStoryModal({
           title: articleTitle,
           tag: articleTag,
           excerpt: articleExcerpt,
-          blocks: updatedBlocks,
+          blocks: updatedBlocks.length > 0 ? updatedBlocks : [{ type: "p", text: articleContent }],
           ...(newCoverImageFile && { img: newCoverImageFile }),
         },
         currentUserRole
@@ -116,13 +123,17 @@ export default function EditStoryModal({
   };
 
   const handleConfirmImplement = async () => {
-    if (!implementingChange) return;
+    if (!implementingChange || !implementingChange._id) return;
     setIsImplementing(true);
     try {
-      await blogsApi.markChangeImplemented(story._id, {
-        changeId: implementingChange._id,
-        implementationNote: implementationNote || undefined,
-      }, currentUserRole);
+      await blogsApi.markChangeImplemented(
+        story._id,
+        {
+          changeId: implementingChange._id,
+          implementationNote: implementationNote || undefined,
+        },
+        currentUserRole
+      );
 
       // Refresh parent list/detail
       onStoryUpdated();
@@ -146,7 +157,7 @@ export default function EditStoryModal({
   const labelCls = "mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]";
 
   const btnBase =
-    "inline-flex items-center gap-1.5 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none";
+    "inline-flex items-center gap-1.5 border px-4 py-2 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer";
   const btnNeutral = `${btnBase} border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620]`;
   const btnMoss = `${btnBase} border-[#3F6B4F]/40 bg-[#3F6B4F]/10 text-[#2C4B38] hover:bg-[#3F6B4F] hover:text-white hover:border-[#3F6B4F]`;
   const btnGold = `${btnBase} border-[#A9812F]/40 bg-[#A9812F]/10 text-[#7A5D22] hover:bg-[#A9812F] hover:text-white hover:border-[#A9812F]`;
@@ -156,31 +167,35 @@ export default function EditStoryModal({
       className={`${fontVars} fixed inset-0 z-50 flex items-center justify-center bg-[#1E2620]/45 backdrop-blur-xs p-4`}
       style={bodyFont}
     >
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden border border-[#E2DDCF] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-        {/* ── Header ──────────────────────────────────────────────────── */}
+      <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden border border-[#E2DDCF] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        
+        {/* ── Header ────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between border-b border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
           <div>
             <p
               className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3F6B4F]"
               style={monoFont}
             >
-              <FileText size={12} /> Revision
+              <FileText size={12} /> Manuscript Workspace
             </p>
             <h3 className="mt-0.5 text-xl italic text-[#1E2620]" style={displayFont}>
               Edit Story Draft
             </h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close"
-            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620]"
+            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620] cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* ── Body ────────────────────────────────────────────────────── */}
+        {/* ── Body ──────────────────────────────────────────────────── */}
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
+          
+          {/* Editor Feedback Banner */}
           {editorFeedbackNote && (
             <div className="border border-[#A9812F]/40 bg-[#A9812F]/10 p-4">
               <div
@@ -193,6 +208,7 @@ export default function EditStoryModal({
             </div>
           )}
 
+          {/* Change Requests Section */}
           {story.changeRequests && story.changeRequests.length > 0 && (
             <div className="border border-[#E2DDCF] bg-white">
               <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-3">
@@ -211,16 +227,18 @@ export default function EditStoryModal({
               </div>
 
               <div className="divide-y divide-[#EDEAE0]">
-                {story.changeRequests.map((cr) => {
-                  const commenterName = typeof cr.commenter === "string"
-                    ? cr.commenter
-                    : cr.commenter?.firstName
-                    ? `${cr.commenter.firstName} ${cr.commenter.lastName || ""}`.trim()
-                    : cr.commenter?.username || "Reviewer";
+                {story.changeRequests.map((cr, idx) => {
+                  const commenterObj = cr.commenter as any;
+                  const commenterName =
+                    typeof cr.commenter === "string"
+                      ? cr.commenter
+                      : commenterObj?.firstName
+                      ? `${commenterObj.firstName} ${commenterObj.lastName || ""}`.trim()
+                      : commenterObj?.username || "Reviewer";
 
                   return (
                     <div
-                      key={cr._id}
+                      key={cr._id || idx}
                       className="p-4"
                       style={{ boxShadow: `inset 3px 0 0 ${cr.implemented ? "#3F6B4F" : "#B65C4B"}` }}
                     >
@@ -237,7 +255,7 @@ export default function EditStoryModal({
                               )}
                             </div>
                             <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-[#B4B0A2]" style={monoFont}>
-                              <Clock size={11} /> {new Date(cr.requestedAt).toLocaleString()}
+                              <Clock size={11} /> {cr.requestedAt ? new Date(cr.requestedAt).toLocaleString() : "Recently"}
                             </div>
                           </div>
                         </div>
@@ -251,6 +269,7 @@ export default function EditStoryModal({
                           </span>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => openImplementModal(cr)}
                             className={`${btnGold} shrink-0 px-2.5 py-1`}
                           >
@@ -277,14 +296,15 @@ export default function EditStoryModal({
                 })}
               </div>
 
-              {/* Implement modal inline */}
+              {/* Implement Modal Form */}
               {implementingChange && (
                 <div className="border-t border-[#EDEAE0] bg-[#FAF9F5] p-4">
                   <div className="mb-2 flex items-center justify-between">
                     <p className="text-xs font-semibold text-[#1E2620]">Mark Change Implemented</p>
                     <button
+                      type="button"
                       onClick={() => setImplementingChange(null)}
-                      className="text-[11px] font-medium text-[#8B9188] hover:text-[#1E2620]"
+                      className="text-[11px] font-medium text-[#8B9188] hover:text-[#1E2620] cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -297,10 +317,10 @@ export default function EditStoryModal({
                     className={inputCls}
                   />
                   <div className="mt-3 flex items-center justify-end gap-2">
-                    <button onClick={() => setImplementingChange(null)} className={btnNeutral}>
+                    <button type="button" onClick={() => setImplementingChange(null)} className={btnNeutral}>
                       Cancel
                     </button>
-                    <button onClick={handleConfirmImplement} disabled={isImplementing} className={btnMoss}>
+                    <button type="button" onClick={handleConfirmImplement} disabled={isImplementing} className={btnMoss}>
                       {isImplementing ? (
                         <Loader2 size={13} className="animate-spin" />
                       ) : (
@@ -314,6 +334,7 @@ export default function EditStoryModal({
             </div>
           )}
 
+          {/* Error Message */}
           {errorMessage && (
             <div className="flex items-center gap-2.5 border border-[#B65C4B]/40 bg-[#B65C4B]/10 p-3.5 text-[#8B4136]">
               <AlertCircle size={15} className="shrink-0" />
@@ -321,7 +342,7 @@ export default function EditStoryModal({
             </div>
           )}
 
-          {/* ── Fields ──────────────────────────────────────────────── */}
+          {/* Edit Form Fields */}
           <div className="space-y-5">
             <div>
               <label className={labelCls}>Article Title</label>
@@ -346,6 +367,7 @@ export default function EditStoryModal({
                   <option value="Agribusiness">Agribusiness</option>
                   <option value="Technology">Technology</option>
                   <option value="Sustainability">Sustainability</option>
+                  <option value="BioCap">BioCap</option>
                 </select>
               </div>
 
@@ -357,7 +379,7 @@ export default function EditStoryModal({
                     <button
                       type="button"
                       onClick={() => setNewCoverImageFile(null)}
-                      className="ml-2 shrink-0 text-[#B65C4B] hover:opacity-70"
+                      className="ml-2 shrink-0 text-[#B65C4B] hover:opacity-70 cursor-pointer"
                       aria-label="Remove selected cover image"
                     >
                       <X size={14} />
@@ -403,12 +425,22 @@ export default function EditStoryModal({
                 value={articleContent}
                 onChange={(e) => setArticleContent(e.target.value)}
                 className={`${inputCls} leading-relaxed`}
+                placeholder="Write your article body paragraphs here..."
               />
             </div>
           </div>
+
+          {/* Embedded Moderated Comments Section */}
+          <div className="pt-4 border-t border-[#EDEAE0]">
+            <CommentManager
+              articleId={story._id}
+              currentUserRole={currentUserRole}
+            />
+          </div>
+
         </div>
 
-        {/* ── Footer ──────────────────────────────────────────────────── */}
+        {/* ── Footer Actions ───────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
           <button type="button" onClick={onClose} className={btnNeutral}>
             Cancel
@@ -432,6 +464,7 @@ export default function EditStoryModal({
             Save &amp; Submit
           </button>
         </div>
+
       </div>
     </div>
   );

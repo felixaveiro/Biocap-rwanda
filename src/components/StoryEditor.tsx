@@ -56,6 +56,7 @@ interface Props {
   setExcerpt: (v: string) => void;
   initialSections?: Section[];
   onChange?: (blocks: any[], files: File[]) => void;
+  controlsPosition?: "top" | "bottom";
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -106,7 +107,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
       // Paragraph splitting: split multi-line textarea text on Enter (\n)
       if (text) {
         const paragraphs = text
-          .split(/\n+/) // Splits by single or double Enter
+          .split(/\n+/)
           .map((p) => p.trim())
           .filter(Boolean);
 
@@ -189,6 +190,21 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     );
   };
 
+  const addSection = () => {
+    setSections((s) => [
+      ...s,
+      {
+        id: crypto.randomUUID(),
+        kind: "paragraph",
+        text: "",
+        imageFile: null,
+        imagePreview: null,
+        imageFileKey: null,
+        fitMode: "cover",
+      },
+    ]);
+  };
+
   const autoGrow = (el: HTMLTextAreaElement) => {
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
@@ -201,6 +217,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
   return (
     <div className={`${fontVars} space-y-6`} style={bodyFont}>
+      {/* Summary / Excerpt Card */}
       <div className="border border-[#E2DDCF] bg-white p-5">
         <div className="mb-2 flex items-baseline justify-between">
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
@@ -219,7 +236,9 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         />
       </div>
 
+      {/* Manuscript Section */}
       <div className="border border-[#E2DDCF] bg-white">
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
@@ -229,28 +248,9 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
               Story body
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              setSections((s) => [
-                ...s,
-                {
-                  id: crypto.randomUUID(),
-                  kind: "paragraph",
-                  text: "",
-                  imageFile: null,
-                  imagePreview: null,
-                  imageFileKey: null,
-                  fitMode: "cover",
-                },
-              ])
-            }
-            className="group inline-flex items-center gap-1.5 border border-[#1E2620] bg-[#1E2620] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3F6B4F]/40"
-          >
-            <Plus size={13} className="transition-transform group-hover:rotate-90" /> Add section
-          </button>
         </div>
 
+        {/* Section List */}
         <div className="divide-y divide-[#EDEAE0]">
           {sections.map((sec, idx) => {
             const meta = KIND_META[sec.kind];
@@ -319,7 +319,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                       <button
                         type="button"
                         onClick={() => setSections((s) => s.filter((x) => x.id !== sec.id))}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-[#B65C4B] transition-opacity hover:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B65C4B]/40 rounded-sm"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[#B65C4B] transition-opacity hover:opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B65C4B]/40 rounded-sm cursor-pointer"
                       >
                         <Trash2 size={12} /> Remove
                       </button>
@@ -393,7 +393,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                   setCroppingSectionId(sec.id);
                                 }}
                                 aria-label="Recrop image"
-                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620]"
+                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer"
                               >
                                 <Crop size={12} className="text-[#8FBF9F]" /> Recrop
                               </button>
@@ -401,7 +401,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                 type="button"
                                 onClick={() => removeImage(sec.id)}
                                 aria-label="Remove image"
-                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B]"
+                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer"
                               >
                                 <ImageOff size={13} />
                               </button>
@@ -434,7 +434,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                               <button
                                 type="button"
                                 onClick={() => setSections((s) => s.map((x) => (x.id === sec.id ? { ...x, fitMode: "cover" } : x)))}
-                                className={`px-2.5 py-1 text-[10px] font-semibold uppercase transition-colors ${
+                                className={`px-2.5 py-1 text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
                                   sec.fitMode === "cover"
                                     ? "bg-[#1E2620] text-white"
                                     : "bg-white text-[#5A6259] hover:bg-[#FAF9F5]"
@@ -445,7 +445,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                               <button
                                 type="button"
                                 onClick={() => setSections((s) => s.map((x) => (x.id === sec.id ? { ...x, fitMode: "contain" } : x)))}
-                                className={`border-l border-[#D9D4C6] px-2.5 py-1 text-[10px] font-semibold uppercase transition-colors ${
+                                className={`border-l border-[#D9D4C6] px-2.5 py-1 text-[10px] font-semibold uppercase transition-colors cursor-pointer ${
                                   sec.fitMode === "contain"
                                     ? "bg-[#1E2620] text-white"
                                     : "bg-white text-[#5A6259] hover:bg-[#FAF9F5]"
@@ -474,6 +474,17 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
               </div>
             );
           })}
+        </div>
+
+        {/* ── Add Section Footer Button (Right-aligned at the bottom) ── */}
+        <div className="flex justify-end border-t border-[#EDEAE0] bg-[#FAF9F5] p-4">
+          <button
+            type="button"
+            onClick={addSection}
+            className="group inline-flex items-center gap-1.5 border border-[#1E2620] bg-[#1E2620] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#3F6B4F]/40 cursor-pointer"
+          >
+            <Plus size={14} className="transition-transform group-hover:rotate-90" /> Add section
+          </button>
         </div>
       </div>
 

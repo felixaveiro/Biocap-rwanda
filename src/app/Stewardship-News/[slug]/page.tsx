@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { blogsApi } from '@/lib/api/blogs';
-import { BlogPost, BlogBlock, Comment, Role } from '@/types';
+import { BlogPost, BlogBlock, Comment } from '@/types';
 import Footer from '@/components/Footer';
 import { useSession } from '@/hooks/useSession';
 import {
@@ -23,8 +23,6 @@ import {
   ShieldAlert,
   Reply,
   Send,
-  EyeOff,
-  Trash2,
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -138,8 +136,6 @@ export default function StewardshipArticlePage() {
   const eventLabel = storyMeta?.eventLabel;
   const organizer = storyMeta?.organizer;
   const keyPartners = storyMeta?.keyPartners;
-  const moderatorRoles: Role[] = ['admin', 'editor', 'communication_officer'];
-  const isModerator = !!user && moderatorRoles.includes(user.role);
   const isWriter = !!user && (story?.originalAuthor?._id === user._id || story?.author?._id === user._id);
   const canPublish = !story || story.publishConsentStatus === 'approved' || story.publishConsentStatus === 'not_required' || !story.publishConsentStatus;
   const writerConsentPending = story?.publishConsentStatus === 'pending' && isWriter;
@@ -151,7 +147,10 @@ export default function StewardshipArticlePage() {
     return comment.name || 'Guest';
   };
 
-  const visibleComments = (story?.comments || []).filter((comment) => !comment.isDeleted && comment.isVisible !== false);
+  // Public view only displays visible, non-deleted comments
+  const visibleComments = (story?.comments || []).filter(
+    (comment) => !comment.isDeleted && comment.isVisible !== false
+  );
   const replyTargetComment = visibleComments.find((comment) => comment._id === replyCommentId) || null;
 
   const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -187,27 +186,6 @@ export default function StewardshipArticlePage() {
     }
   };
 
-  const handleModerationAction = async (commentId: string, action: 'hide' | 'delete') => {
-    if (!story) return;
-
-    if (action === 'delete') {
-      const confirmed = window.confirm('Delete this comment permanently?');
-      if (!confirmed) return;
-    }
-
-    try {
-      if (action === 'hide') {
-        await blogsApi.hideBlogComment(story._id, commentId);
-      } else {
-        await blogsApi.deleteBlogComment(story._id, commentId);
-      }
-      await fetchStory();
-    } catch (err: unknown) {
-      console.error(`Failed to ${action} comment:`, err);
-      window.alert(err instanceof Error ? err.message : `Unable to ${action} the comment.`);
-    }
-  };
-
   const handleConsentDecision = async (approved: boolean) => {
     if (!story) return;
 
@@ -231,10 +209,16 @@ export default function StewardshipArticlePage() {
     if (comment.isDeleted || comment.isVisible === false) return null;
 
     const authorName = getCommentAuthorName(comment);
-    const replyCount = (comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).length;
+    const replyCount = (comment.replies || []).filter(
+      (reply) => !reply.isDeleted && reply.isVisible !== false
+    ).length;
 
     return (
-      <div key={comment._id} className="rounded-2xl border border-slate-200 bg-white p-4" style={{ marginLeft: depth > 0 ? 24 : 0 }}>
+      <div 
+        key={comment._id} 
+        className="rounded-2xl border border-slate-200 bg-white p-4" 
+        style={{ marginLeft: depth > 0 ? 24 : 0 }}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -249,43 +233,32 @@ export default function StewardshipArticlePage() {
               {new Date(comment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
             </p>
           </div>
-
-          {isModerator && (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleModerationAction(comment._id, 'hide')}
-                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 hover:bg-amber-100"
-              >
-                <EyeOff size={12} /> Hide
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModerationAction(comment._id, 'delete')}
-                className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-semibold text-rose-700 hover:bg-rose-100"
-              >
-                <Trash2 size={12} /> Delete
-              </button>
-            </div>
-          )}
         </div>
 
-        <p className="mt-3 text-sm leading-7 text-slate-700">{comment.content}</p>
+        <p className="mt-3 text-sm leading-7 text-slate-700">
+          {comment.content}
+        </p>
 
         <div className="mt-4 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setReplyCommentId(comment._id)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#E8185A]"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#E8185A] cursor-pointer"
           >
             <Reply size={12} /> Reply
           </button>
-          {replyCount > 0 && <span className="text-[10px] uppercase tracking-wide text-slate-400">{replyCount} reply{replyCount > 1 ? 'ies' : 'y'}</span>}
+          {replyCount > 0 && (
+            <span className="text-[10px] uppercase tracking-wide text-slate-400">
+              {replyCount} reply{replyCount > 1 ? 'ies' : 'y'}
+            </span>
+          )}
         </div>
 
         {(comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).length > 0 && (
           <div className="mt-4 space-y-3 border-l border-slate-200 pl-4">
-            {(comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).map((reply) => renderCommentTree(reply, depth + 1))}
+            {(comment.replies || [])
+              .filter((reply) => !reply.isDeleted && reply.isVisible !== false)
+              .map((reply) => renderCommentTree(reply, depth + 1))}
           </div>
         )}
       </div>
@@ -421,7 +394,6 @@ export default function StewardshipArticlePage() {
                       );
                     }
 
-                    // Splits text on Enter (\n) into individual paragraph tags
                     return (
                       <React.Fragment key={idx}>
                         {(block.text || '')
@@ -497,7 +469,7 @@ export default function StewardshipArticlePage() {
                             type="button"
                             disabled={!!consentSubmitting}
                             onClick={() => handleConsentDecision(true)}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#1B3A5C] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-full bg-[#1B3A5C] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-60 cursor-pointer"
                           >
                             {consentSubmitting === 'approve' ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
                             Approve changes
@@ -506,7 +478,7 @@ export default function StewardshipArticlePage() {
                             type="button"
                             disabled={!!consentSubmitting}
                             onClick={() => handleConsentDecision(false)}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/20 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#1B3A5C] disabled:opacity-60"
+                            className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/20 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#1B3A5C] disabled:opacity-60 cursor-pointer"
                           >
                             {consentSubmitting === 'reject' ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
                             Reject changes
@@ -530,6 +502,7 @@ export default function StewardshipArticlePage() {
                   </div>
                 )}
 
+                {/* Discussion Comments Section */}
                 <div className="mt-8 rounded-2xl border border-slate-200 bg-[#f8fafc] p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-[#1B3A5C]">
@@ -545,7 +518,7 @@ export default function StewardshipArticlePage() {
                     {replyTargetComment && (
                       <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8185A]/20 bg-[#E8185A]/5 px-3 py-2 text-xs text-[#8B4136]">
                         <span>Replying to {getCommentAuthorName(replyTargetComment)}</span>
-                        <button type="button" onClick={() => setReplyCommentId(null)} className="font-bold uppercase tracking-wide">
+                        <button type="button" onClick={() => setReplyCommentId(null)} className="font-bold uppercase tracking-wide cursor-pointer">
                           Cancel
                         </button>
                       </div>
@@ -593,7 +566,7 @@ export default function StewardshipArticlePage() {
                     <button
                       type="submit"
                       disabled={commentSubmitting}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#E8185A] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#E8185A] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70 cursor-pointer"
                     >
                       {commentSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       {commentSubmitting ? 'Posting...' : replyTargetComment ? 'Post reply' : 'Post comment'}
@@ -622,7 +595,7 @@ export default function StewardshipArticlePage() {
                       type="button"
                       onClick={() => navigator.share?.({ title: story.title, url: window.location.href })}
                       aria-label="Share this article"
-                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition"
+                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition cursor-pointer"
                     >
                       <Share2 size={13} />
                     </button>
@@ -630,7 +603,7 @@ export default function StewardshipArticlePage() {
                       type="button"
                       onClick={() => navigator.clipboard?.writeText(window.location.href)}
                       aria-label="Copy link"
-                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition"
+                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition cursor-pointer"
                     >
                       <Link2 size={13} />
                     </button>
@@ -682,7 +655,7 @@ export default function StewardshipArticlePage() {
                   <button
                     type="button"
                     onClick={() => navigator.share?.({ title: story.title, url: window.location.href })}
-                    className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#1B3A5C]/20 py-2 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:bg-[#1B3A5C] hover:text-white transition"
+                    className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#1B3A5C]/20 py-2 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:bg-[#1B3A5C] hover:text-white transition cursor-pointer"
                   >
                     <Share2 size={13} /> Share Article
                   </button>

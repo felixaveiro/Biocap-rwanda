@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import ImageCropperModal from "@/components/ImageCropperModal";
+import ReviewStoryModal from "@/components/ReviewStoryModal";
 import StoryEditor from "@/components/StoryEditor";
 import { base64ToFile } from "@/lib/utils/file";
 import { useSession } from "@/hooks/useSession";
 import { blogsApi } from "@/lib/api/blogs";
-import { Role } from "@/types";
+import { Role, BlogPost } from "@/types";
 import {
   ArrowLeft,
   Save,
@@ -23,6 +24,10 @@ import {
   AtSign,
   Tag,
   CheckCircle2,
+  Share2,
+  MessageCircle,
+  Video,
+  Eye,
 } from "lucide-react";
 
 const fraunces = Fraunces({
@@ -55,34 +60,44 @@ export default function CreateNewStoryPage() {
   const [blocks, setBlocks] = useState<any[]>([]);
   const [inlineImages, setInlineImages] = useState<File[]>([]);
   
-  // Initialize with user profile values if available
+  // Profile handles & org links
   const [socialHandle, setSocialHandle] = useState("");
   const [organizationLink, setOrganizationLink] = useState("");
   const [isProfileSynced, setIsProfileSynced] = useState(false);
 
-  // ─── Cropping & File Upload States ──────────────────────────────────────────
+  // Cropping & File Upload States
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
+  // Review Modal Toggle State
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Sync state with user profile once user session loads
+  // Sync state with profile automatically
   useEffect(() => {
     if (user && !isProfileSynced) {
-      if (user.socialHandle) {
-        setSocialHandle(user.socialHandle);
-      }
-      if (user.organizationLink) {
-        setOrganizationLink(user.organizationLink);
-      }
+      if (user.socialHandle) setSocialHandle(user.socialHandle);
+      if (user.organizationLink) setOrganizationLink(user.organizationLink);
       setIsProfileSynced(true);
     }
   }, [user, isProfileSynced]);
 
-  // Memoized handler prevents re-creation on every render cycle
+  // Social Platform Detector
+  const detectedSocialPlatform = useMemo(() => {
+    const val = socialHandle.toLowerCase().trim();
+    if (!val) return null;
+    if (val.includes("twitter.com") || val.includes("x.com")) return { name: "X (Twitter)", icon: Share2 };
+    if (val.includes("linkedin.com")) return { name: "LinkedIn", icon: Share2 };
+    if (val.includes("facebook.com")) return { name: "Facebook", icon: MessageCircle };
+    if (val.includes("instagram.com")) return { name: "Instagram", icon: Share2 };
+    if (val.includes("youtube.com") || val.includes("youtu.be")) return { name: "YouTube", icon: Video };
+    return { name: "Handle", icon: AtSign };
+  }, [socialHandle]);
+
   const handleStoryEditorChange = useCallback((b: any[], files: File[]) => {
     setBlocks(b || []);
     setInlineImages(files || []);
@@ -126,6 +141,15 @@ export default function CreateNewStoryPage() {
     setIsCropperOpen(false);
   };
 
+  const handleOpenReviewModal = () => {
+    if (!title.trim()) {
+      setErrorMsg("Please add a title before opening review mode.");
+      return;
+    }
+    setErrorMsg(null);
+    setIsReviewModalOpen(true);
+  };
+
   const handleSubmit = async (shouldSubmitForReview: boolean = false) => {
     if (!title.trim() || !tag.trim() || !coverImageFile) {
       setErrorMsg("Please provide a title, tag, and cover image.");
@@ -155,7 +179,6 @@ export default function CreateNewStoryPage() {
 
     try {
       const creatorRole = user.role as Role;
-
       const payloadBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
 
       const newBlog = await blogsApi.createBlog(
@@ -186,6 +209,31 @@ export default function CreateNewStoryPage() {
     }
   };
 
+  // Construct temporary BlogPost object for ReviewStoryModal preview without redline errors
+  const previewStoryObject = {
+    _id: "temp-preview-id",
+    slug: "temp-preview-slug",
+    title: title || "Untitled Story",
+    tag: tag || "General",
+    excerpt: excerpt || "",
+    status: "draft",
+    img: croppedPreview || "",
+    blocks: blocks.length > 0 ? blocks : [{ type: "p", text: content }],
+    socialHandle: socialHandle || user.socialHandle || "",
+    organizationLink: organizationLink || user.organizationLink || "",
+    author: {
+      _id: user._id || "",
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      username: user.username || "",
+      role: user.role as Role,
+    },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } as unknown as BlogPost;
+
+  const SocialIcon = detectedSocialPlatform ? detectedSocialPlatform.icon : AtSign;
+
   return (
     <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]`} style={bodyFont}>
       <Header
@@ -195,7 +243,7 @@ export default function CreateNewStoryPage() {
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
 
-        {/* Top Navigation Link */}
+        {/* Back Link */}
         <div className="flex items-center justify-between">
           <Link
             href="/creator/my-stories"
@@ -214,10 +262,9 @@ export default function CreateNewStoryPage() {
           </div>
         )}
 
-        {/* Main Content Card */}
+        {/* Form Container */}
         <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8">
 
-          {/* Eyebrow */}
           <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
             <p className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
               Manuscript
@@ -239,7 +286,6 @@ export default function CreateNewStoryPage() {
             {croppedPreview ? (
               <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
                 <img src={croppedPreview} alt="Cover Preview" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-[#1E2620]/20 opacity-0 transition duration-200 group-hover:opacity-100" />
                 <button
                   type="button"
                   onClick={() => setIsCropperOpen(true)}
@@ -262,7 +308,7 @@ export default function CreateNewStoryPage() {
             )}
           </div>
 
-          {/* Headline Input */}
+          {/* Title */}
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
               Story Title <span className="text-[#B65C4B]">*</span>
@@ -277,56 +323,7 @@ export default function CreateNewStoryPage() {
             />
           </div>
 
-          {/* Role / Author Identity Fields */}
-          <div className="grid grid-cols-1 gap-4 border-t border-[#EDEAE0] pt-6 md:grid-cols-2">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
-                  Social Media Handle {isSocialCreator && <span className="text-[#B65C4B]">*</span>}
-                </label>
-                {user.socialHandle && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
-                    <CheckCircle2 size={11} /> From profile
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <AtSign size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
-                <input
-                  type="text"
-                  value={socialHandle}
-                  onChange={(e) => setSocialHandle(e.target.value)}
-                  placeholder="e.g. @username"
-                  className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
-                  Organization Link {isMediaCorrespondent && <span className="text-[#B65C4B]">*</span>}
-                </label>
-                {user.organizationLink && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
-                    <CheckCircle2 size={11} /> From profile
-                  </span>
-                )}
-              </div>
-              <div className="relative">
-                <Globe size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
-                <input
-                  type="url"
-                  value={organizationLink}
-                  onChange={(e) => setOrganizationLink(e.target.value)}
-                  placeholder="https://organization.org"
-                  className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Category / Tag */}
+          {/* Category Tag */}
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
               Category / Tag <span className="text-[#B65C4B]">*</span>
@@ -343,17 +340,78 @@ export default function CreateNewStoryPage() {
             </div>
           </div>
 
-          {/* Rich Dynamic Story Editor Component */}
+          {/* Story Editor */}
           <div className="border-t border-[#EDEAE0] pt-6">
             <StoryEditor
               excerpt={excerpt}
               setExcerpt={setExcerpt}
+              controlsPosition="bottom"
               onChange={handleStoryEditorChange}
             />
           </div>
 
-          {/* Action Buttons Directly Inside Form Footer */}
+          {/* Author Credentials & Links */}
+          <div className="border-t border-[#EDEAE0] pt-6 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-[#6B7268]" style={monoFont}>
+                Author Credentials &amp; Links
+              </p>
+              {(user.socialHandle || user.organizationLink) && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
+                  <CheckCircle2 size={11} /> Auto-filled from profile
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[240px]">
+                <label className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase text-[#5A6259]">
+                  <span>Social Handle {isSocialCreator && <span className="text-[#B65C4B]">*</span>}</span>
+                  {detectedSocialPlatform && (
+                    <span className="text-[#3F6B4F] font-semibold tracking-wider" style={monoFont}>
+                      {detectedSocialPlatform.name}
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <SocialIcon size={14} className="absolute left-3 top-2.5 text-[#8B9188]" />
+                  <input
+                    type="text"
+                    value={socialHandle}
+                    onChange={(e) => setSocialHandle(e.target.value)}
+                    placeholder="@username or social profile link"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 min-w-[240px]">
+                <label className="mb-1 block text-[10px] font-semibold uppercase text-[#5A6259]">
+                  Organization Link {isMediaCorrespondent && <span className="text-[#B65C4B]">*</span>}
+                </label>
+                <div className="relative">
+                  <Globe size={14} className="absolute left-3 top-2.5 text-[#8B9188]" />
+                  <input
+                    type="url"
+                    value={organizationLink}
+                    onChange={(e) => setOrganizationLink(e.target.value)}
+                    placeholder="https://organization.org"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Action Buttons */}
           <div className="flex items-center justify-end gap-3 border-t border-[#EDEAE0] pt-6">
+            <button
+              type="button"
+              onClick={handleOpenReviewModal}
+              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] cursor-pointer"
+            >
+              <Eye size={14} /> Review Story
+            </button>
             <button
               type="button"
               disabled={isSubmitting}
@@ -377,7 +435,7 @@ export default function CreateNewStoryPage() {
         </div>
       </main>
 
-      {/* Modern Image Cropper Modal */}
+      {/* Cropper Modal */}
       {rawImageSrc && (
         <ImageCropperModal
           isOpen={isCropperOpen}
@@ -385,6 +443,19 @@ export default function CreateNewStoryPage() {
           aspectRatio={16 / 9}
           onClose={() => setIsCropperOpen(false)}
           onSave={handleCropSave}
+        />
+      )}
+
+      {/* Full Editorial Review Modal */}
+      {isReviewModalOpen && (
+        <ReviewStoryModal
+          story={previewStoryObject}
+          currentUserRole={user.role as Role}
+          onClose={() => setIsReviewModalOpen(false)}
+          onReviewCompleted={() => {
+            setIsReviewModalOpen(false);
+            handleSubmit(true);
+          }}
         />
       )}
     </div>

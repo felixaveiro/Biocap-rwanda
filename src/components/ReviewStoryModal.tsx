@@ -26,9 +26,11 @@ import {
   Plus,
   Trash2,
   Eye,
+  EyeOff,
   Feather,
   Upload,
   Image as ImageIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 // ── Type system (matches the rest of the editorial suite) ──────
@@ -50,8 +52,6 @@ const plexMono = IBM_Plex_Mono({
   weight: ["500"],
   variable: "--font-mono",
 });
-
-// ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
 
 interface ReviewStoryModalProps {
   story: BlogPost;
@@ -93,10 +93,11 @@ export default function ReviewStoryModal({
   // File Input Refs
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
-  // ─── Discussion / Comments States ─────────────────────────────────────────
+  // ─── Discussion & Moderation States ─────────────────────────────────────────
   const [comments, setComments] = useState<Comment[]>([]);
   const [newCommentText, setNewCommentText] = useState("");
   const [isPostingComment, setIsPostingComment] = useState(false);
+  const [activeCommentActionId, setActiveCommentActionId] = useState<string | null>(null);
 
   // ─── Portal mount guard (avoids SSR document access) ──────────────────────
   const [isMounted, setIsMounted] = useState(false);
@@ -104,8 +105,10 @@ export default function ReviewStoryModal({
     setIsMounted(true);
   }, []);
 
-  const isEditor = currentUserRole === "editor";
-  const isOfficer = currentUserRole === "communication_officer" || currentUserRole === "admin";
+  const userRoleStr = Array.isArray(currentUserRole) ? currentUserRole[0] : currentUserRole;
+  const isEditor = userRoleStr === "editor";
+  const isOfficer = userRoleStr === "communication_officer" || userRoleStr === "admin";
+  const canModerateComments = ["admin", "editor", "communication_officer"].includes(userRoleStr);
   const isPublished = story.status === "published";
 
   // Author Display Name Resolution
@@ -155,6 +158,7 @@ export default function ReviewStoryModal({
     setPendingCropImageSrc(null);
   };
 
+  // ─── Comment Operations ───────────────────────────────────────────────────
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
@@ -170,8 +174,38 @@ export default function ReviewStoryModal({
       setNewCommentText("");
     } catch (err: any) {
       alert(err.message || "Failed to post comment.");
-    } finally { // 🟢 Fixed typo "fontally" to "finally"
+    } finally {
       setIsPostingComment(false);
+    }
+  };
+
+  const handleToggleHideComment = async (commentId: string, currentIsVisible?: boolean) => {
+    setActiveCommentActionId(commentId);
+    try {
+      if (currentIsVisible === false) {
+        await blogsApi.unhideBlogComment(story._id, commentId);
+      } else {
+        await blogsApi.hideBlogComment(story._id, commentId);
+      }
+      await fetchComments();
+    } catch (err: any) {
+      alert(err.message || "Moderation action failed.");
+    } finally {
+      setActiveCommentActionId(null);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this comment?")) return;
+
+    setActiveCommentActionId(commentId);
+    try {
+      await blogsApi.deleteBlogComment(story._id, commentId);
+      await fetchComments();
+    } catch (err: any) {
+      alert(err.message || "Failed to delete comment.");
+    } finally {
+      setActiveCommentActionId(null);
     }
   };
 
@@ -349,7 +383,7 @@ export default function ReviewStoryModal({
 
             <button
               onClick={onClose}
-              className="border border-transparent p-2 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620]"
+              className="border border-transparent p-2 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620] cursor-pointer"
             >
               <X size={17} />
             </button>
@@ -381,7 +415,7 @@ export default function ReviewStoryModal({
                     <button
                       type="button"
                       onClick={() => setIsEditingContent(!isEditingContent)}
-                      className="inline-flex items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#3F6B4F] transition-colors hover:bg-[#3F6B4F] hover:text-white"
+                      className="inline-flex items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#3F6B4F] transition-colors hover:bg-[#3F6B4F] hover:text-white cursor-pointer"
                     >
                       {isEditingContent ? (
                         <>
@@ -389,7 +423,7 @@ export default function ReviewStoryModal({
                         </>
                       ) : (
                         <>
-                          <Edit3 size={13} /> Edit story & images
+                          <Edit3 size={13} /> Edit story &amp; images
                         </>
                       )}
                     </button>
@@ -472,7 +506,7 @@ export default function ReviewStoryModal({
                                 setPendingCropImageSrc(currentImgUrl);
                                 setIsCropperOpen(true);
                               }}
-                              className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620]"
+                              className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] cursor-pointer"
                             >
                               <Crop size={13} className="text-[#8FBF9F]" /> Recrop
                             </button>
@@ -480,7 +514,7 @@ export default function ReviewStoryModal({
                             <button
                               type="button"
                               onClick={() => coverFileInputRef.current?.click()}
-                              className="inline-flex items-center gap-1.5 border border-[#3F6B4F] bg-[#3F6B4F]/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#3F6B4F]"
+                              className="inline-flex items-center gap-1.5 border border-[#3F6B4F] bg-[#3F6B4F]/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#3F6B4F] cursor-pointer"
                             >
                               <Upload size={13} /> Change cover
                             </button>
@@ -490,7 +524,7 @@ export default function ReviewStoryModal({
                         <button
                           type="button"
                           onClick={() => coverFileInputRef.current?.click()}
-                          className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#3F6B4F]/40 bg-white p-6 text-[#3F6B4F] transition hover:bg-[#F1F5F1]"
+                          className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#3F6B4F]/40 bg-white p-6 text-[#3F6B4F] transition hover:bg-[#F1F5F1] cursor-pointer"
                         >
                           <Upload size={22} strokeWidth={1.5} className="mb-1" />
                           <span className="text-xs font-semibold">Upload cover image</span>
@@ -507,14 +541,14 @@ export default function ReviewStoryModal({
                           <button
                             type="button"
                             onClick={addTextBlock}
-                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1]"
+                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer"
                           >
                             <Plus size={13} /> Paragraph
                           </button>
                           <button
                             type="button"
                             onClick={addImageBlock}
-                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1]"
+                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer"
                           >
                             <ImageIcon size={13} /> Inline photo
                           </button>
@@ -529,7 +563,7 @@ export default function ReviewStoryModal({
                               <button
                                 type="button"
                                 onClick={() => removeBlock(idx)}
-                                className="p-1 text-[#B65C4B] hover:text-[#8A3A2C]"
+                                className="p-1 text-[#B65C4B] hover:text-[#8A3A2C] cursor-pointer"
                               >
                                 <Trash2 size={13} />
                               </button>
@@ -578,7 +612,7 @@ export default function ReviewStoryModal({
                                   <button
                                     type="button"
                                     onClick={() => updateBlockFitMode(idx, "cover")}
-                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer ${
                                       block.fitMode === "cover"
                                         ? "border-[#1E2620] bg-[#1E2620] text-white"
                                         : "border-[#D9D4C6] bg-white text-[#5A6259]"
@@ -589,7 +623,7 @@ export default function ReviewStoryModal({
                                   <button
                                     type="button"
                                     onClick={() => updateBlockFitMode(idx, "contain")}
-                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer ${
                                       block.fitMode === "contain"
                                         ? "border-[#1E2620] bg-[#1E2620] text-white"
                                         : "border-[#D9D4C6] bg-white text-[#5A6259]"
@@ -633,7 +667,7 @@ export default function ReviewStoryModal({
                               setPendingCropImageSrc(currentImgUrl);
                               setIsCropperOpen(true);
                             }}
-                            className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620]"
+                            className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] cursor-pointer"
                           >
                             <Crop size={14} className="text-[#8FBF9F]" /> Recrop cover image
                           </button>
@@ -691,6 +725,7 @@ export default function ReviewStoryModal({
                 )}
               </div>
 
+              {/* Sidebar: Decision & Moderated Comments */}
               <div className="space-y-6">
                 {!isPublished && (
                   <div className="space-y-4 border border-[#E2DDCF] bg-[#FAF9F5] p-5">
@@ -716,7 +751,7 @@ export default function ReviewStoryModal({
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => handleDecision("approve")}
-                        className="inline-flex w-full items-center justify-center gap-2 border border-[#3F6B4F] bg-[#3F6B4F] py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#345A42] disabled:opacity-50"
+                        className="inline-flex w-full items-center justify-center gap-2 border border-[#3F6B4F] bg-[#3F6B4F] py-3 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#345A42] disabled:opacity-50 cursor-pointer"
                       >
                         {isSubmitting ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -734,7 +769,7 @@ export default function ReviewStoryModal({
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => handleDecision("reject")}
-                        className="inline-flex w-full items-center justify-center gap-2 border border-[#B65C4B]/50 bg-white py-3 text-xs font-semibold uppercase tracking-wide text-[#B65C4B] transition hover:bg-[#FBEEEC] disabled:opacity-50"
+                        className="inline-flex w-full items-center justify-center gap-2 border border-[#B65C4B]/50 bg-white py-3 text-xs font-semibold uppercase tracking-wide text-[#B65C4B] transition hover:bg-[#FBEEEC] disabled:opacity-50 cursor-pointer"
                       >
                         {isSubmitting ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -747,10 +782,18 @@ export default function ReviewStoryModal({
                   </div>
                 )}
 
+                {/* Moderated Discussion Comments Section */}
                 <div className="space-y-3 pt-2">
-                  <h4 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-                    <MessageSquare size={14} className="text-[#3F6B4F]" /> Internal notes ({comments.length})
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
+                      <MessageSquare size={14} className="text-[#3F6B4F]" /> Internal notes ({comments.length})
+                    </h4>
+                    {canModerateComments && (
+                      <span className="inline-flex items-center gap-1 border border-[#3F6B4F]/30 bg-[#3F6B4F]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#3F6B4F]" style={monoFont}>
+                        <ShieldCheck size={11} /> Moderator
+                      </span>
+                    )}
+                  </div>
 
                   <form onSubmit={handlePostComment} className="space-y-2">
                     <textarea
@@ -763,37 +806,91 @@ export default function ReviewStoryModal({
                     <button
                       type="submit"
                       disabled={isPostingComment || !newCommentText.trim()}
-                      className="inline-flex w-full items-center justify-center gap-1.5 border border-[#1E2620] bg-[#1E2620] py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50"
+                      className="inline-flex w-full items-center justify-center gap-1.5 border border-[#1E2620] bg-[#1E2620] py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
                     >
                       <Send size={12} /> {isPostingComment ? "Posting…" : "Post comment"}
                     </button>
                   </form>
 
-                  <div className="max-h-56 space-y-2.5 overflow-y-auto pr-1">
-                    {comments.map((comment) => (
-                      <div
-                        key={comment._id}
-                        className="space-y-1 border border-[#EDEAE0] bg-white p-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-semibold text-[#1E2620]">
-                            {comment.user
-                              ? `${comment.user.firstName} ${comment.user.lastName}`
-                              : "Reviewer"}
-                          </span>
-                          <span className="flex items-center gap-1 text-[9px] text-[#8B9188]" style={monoFont}>
-                            <Clock size={9} />
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[#5A6259]">{comment.content}</p>
-                      </div>
-                    ))}
+                  <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1">
+                    {comments.length === 0 ? (
+                      <p className="py-4 text-center text-xs italic text-[#8B9188]">No discussion notes posted yet.</p>
+                    ) : (
+                      comments.map((comment: any) => {
+                        const isHidden = comment.isVisible === false;
+                        const isBusy = activeCommentActionId === comment._id;
+
+                        return (
+                          <div
+                            key={comment._id}
+                            className={`space-y-1.5 border p-3 transition-colors ${
+                              isHidden ? "border-amber-300 bg-amber-50/50" : "border-[#EDEAE0] bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] font-semibold text-[#1E2620]">
+                                  {comment.name || (comment.user ? `${comment.user.firstName} ${comment.user.lastName}` : "Guest Author")}
+                                </span>
+                                {isHidden && (
+                                  <span className="border border-amber-400 bg-amber-100 px-1.5 py-0.2 text-[9px] font-bold uppercase text-amber-800" style={monoFont}>
+                                    Hidden
+                                  </span>
+                                )}
+                              </div>
+                              <span className="flex items-center gap-1 text-[9px] text-[#8B9188]" style={monoFont}>
+                                <Clock size={9} />
+                                {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : "Recently"}
+                              </span>
+                            </div>
+
+                            <p className={`text-xs leading-relaxed ${isHidden ? "text-amber-900/70 italic" : "text-[#5A6259]"}`}>
+                              {comment.content}
+                            </p>
+
+                            {/* Moderation Controls for Admins, Editors, and Officers */}
+                            {canModerateComments && (
+                              <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#EDEAE0]">
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => handleToggleHideComment(comment._id, comment.isVisible)}
+                                  className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide cursor-pointer transition-colors ${
+                                    isHidden ? "text-emerald-700 hover:text-emerald-900" : "text-amber-700 hover:text-amber-900"
+                                  }`}
+                                >
+                                  {isBusy ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : isHidden ? (
+                                    <>
+                                      <Eye size={11} /> Unhide
+                                    </>
+                                  ) : (
+                                    <>
+                                      <EyeOff size={11} /> Hide
+                                    </>
+                                  )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={isBusy}
+                                  onClick={() => handleDeleteComment(comment._id)}
+                                  className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-rose-600 hover:text-rose-800 cursor-pointer transition-colors"
+                                >
+                                  {isBusy ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
 
               </div>
-
             </div>
           </div>
 
