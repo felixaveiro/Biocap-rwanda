@@ -10,7 +10,6 @@ import {
   Tag,
   Calendar,
   User as UserIcon,
-  AtSign,
   Globe,
   FileText,
   ArrowLeft,
@@ -24,23 +23,236 @@ import {
   Reply,
   Send,
   Loader2,
+  MessageCircle,
+  X,
+  Check,
+  Copy,
 } from 'lucide-react';
 import Link from 'next/link';
 
 // ── Visual system for Stewardship News hub ──────
 
-const TAG_ACCENTS = ['#2A7F8C', '#7B3FA0', '#E8185A', '#2F8F5B', '#D97706', '#1B3A5C', '#0891B2', '#B45309'];
+const TAG_ACCENTS = ['#2A7F8C', '#7B3FA0', '#C22055', '#2F8F5B', '#D97706', '#1B3A5C', '#0891B2', '#B45309'];
 const accentForTag = (key: string) => {
   let hash = 0;
   for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   return TAG_ACCENTS[hash % TAG_ACCENTS.length];
 };
 
+/**
+ * Helper to render standalone platform vector icons
+ */
+const renderSocialPlatformIcon = (platformName: string) => {
+  const p = platformName.toLowerCase();
+  
+  if (p.includes('x') || p.includes('twitter')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-slate-900 transition-transform group-hover:scale-110 group-hover:fill-[#C22055]">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    );
+  }
+  if (p.includes('linkedin')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-[#0A66C2] transition-transform group-hover:scale-110 group-hover:fill-[#C22055]">
+        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+      </svg>
+    );
+  }
+  if (p.includes('facebook')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-[#1877F2] transition-transform group-hover:scale-110 group-hover:fill-[#C22055]">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      </svg>
+    );
+  }
+  if (p.includes('instagram')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-[#E4405F] transition-transform group-hover:scale-110 group-hover:fill-[#C22055]">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 2.156 4.919 5.406.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 5.255-4.919 5.404-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-2.199-4.919-5.404-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-5.255 4.919-5.406 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+      </svg>
+    );
+  }
+  return <MessageCircle size={28} className="text-[#C22055] transition-transform group-hover:scale-110" />;
+};
+
+/**
+ * Custom Share Modal Component (Inbox Direct Share + Preview)
+ */
+function CustomShareModal({
+  isOpen,
+  onClose,
+  title,
+  img,
+  url,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  img?: string;
+  url: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!isOpen) return null;
+
+  const encodedUrl = encodeURIComponent(url);
+  const encodedTitle = encodeURIComponent(title);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareLinks = [
+    {
+      name: 'WhatsApp',
+      href: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`,
+      bg: 'bg-[#25D366] hover:bg-[#20ba5a]',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
+        </svg>
+      ),
+    },
+    {
+      name: 'Telegram',
+      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
+      bg: 'bg-[#229ED9] hover:bg-[#1d8cb0]',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.5 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+        </svg>
+      ),
+    },
+    {
+      name: 'X (Twitter)',
+      href: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
+      bg: 'bg-slate-900 hover:bg-slate-800',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+    },
+    {
+      name: 'LinkedIn',
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+      bg: 'bg-[#0A66C2] hover:bg-[#0855a0]',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+        </svg>
+      ),
+    },
+    {
+      name: 'Facebook',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+      bg: 'bg-[#1877F2] hover:bg-[#1464cf]',
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      ),
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5">
+        
+        {/* Modal Title */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#1B3A5C]">
+            <Share2 size={18} className="text-[#C22055]" />
+            <h3 className="text-base font-bold">Share Article</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Story Preview Card */}
+        <div className="flex items-center gap-3.5 rounded-xl border border-slate-200 bg-[#F9F8F6] p-3">
+          {img ? (
+            <img
+              src={img}
+              alt={title}
+              className="h-16 w-16 rounded-lg object-cover shrink-0 border border-slate-200"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-lg bg-[#1B3A5C]/10 flex items-center justify-center shrink-0">
+              <Share2 size={20} className="text-[#1B3A5C]" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-[#1B3A5C] line-clamp-2 leading-snug">
+              {title}
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 truncate">{url}</p>
+          </div>
+        </div>
+
+        {/* Social Share Buttons Grid */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
+            Share directly to chat / inbox
+          </p>
+          <div className="grid grid-cols-5 gap-2">
+            {shareLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="flex flex-col items-center gap-1.5 p-1.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition group"
+              >
+                <div className={`flex h-9 w-9 items-center justify-center rounded-full ${link.bg} transition-transform group-hover:scale-105 shadow-xs`}>
+                  {link.icon}
+                </div>
+                <span className="text-[9px] font-semibold text-slate-600 truncate max-w-full">
+                  {link.name}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {/* Copyable Link */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3">
+            <Link2 size={15} className="text-slate-400 shrink-0" />
+            <input
+              type="text"
+              readOnly
+              value={url}
+              className="flex-1 bg-transparent text-xs text-slate-600 outline-none truncate"
+            />
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#1B3A5C] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#254a7a] cursor-pointer shrink-0"
+            >
+              {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 export default function StewardshipArticlePage() {
   const pathname = usePathname();
   const slug = pathname?.split('/').pop() || '';
   
-  // Pass NO required permission string to useSession so public guests avoid /auth/login redirects
   const { user } = useSession();
 
   const [story, setStory] = useState<BlogPost | null>(null);
@@ -59,6 +271,9 @@ export default function StewardshipArticlePage() {
   const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
   const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
   const [consentNote, setConsentNote] = useState('');
+  
+  // Custom Share Modal State
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const fetchStory = useCallback(async () => {
     if (!slug) return;
@@ -120,11 +335,14 @@ export default function StewardshipArticlePage() {
     void fetchMore();
   }, [slug]);
 
-  const authorName = story?.originalAuthor?.firstName
-    ? `${story.originalAuthor.firstName} ${story.originalAuthor.lastName || ''}`.trim()
-    : story?.author?.firstName
-    ? `${story.author.firstName} ${story.author.lastName || ''}`.trim()
+  const creator = story?.originalAuthor || story?.author;
+  const authorFullName = creator?.firstName
+    ? `${creator.firstName} ${creator.lastName || ''}`.trim()
     : 'BioCap Contributor';
+  const authorJobTitle = creator?.jobTitle?.trim() || '';
+  const authorDisplayByline = authorJobTitle
+    ? `${authorFullName} (${authorJobTitle})`
+    : authorFullName;
 
   const publishedLabel = story?.publishedAt
     ? new Date(story.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
@@ -149,7 +367,6 @@ export default function StewardshipArticlePage() {
     return comment.name || 'Guest';
   };
 
-  // Public view only displays visible, non-deleted comments
   const visibleComments = (story?.comments || []).filter(
     (comment) => !comment.isDeleted && comment.isVisible !== false
   );
@@ -231,7 +448,7 @@ export default function StewardshipArticlePage() {
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-sm font-semibold text-[#1B3A5C]">{authorName}</p>
               {comment.role && comment.role !== 'guest' && (
-                <span className="rounded-full bg-[#E8185A]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#E8185A]">
+                <span className="rounded-full bg-[#C22055]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#C22055]">
                   {String(comment.role).replace('_', ' ')}
                 </span>
               )}
@@ -250,7 +467,7 @@ export default function StewardshipArticlePage() {
           <button
             type="button"
             onClick={() => setReplyCommentId(comment._id)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#E8185A] cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#C22055] cursor-pointer"
           >
             <Reply size={12} /> Reply
           </button>
@@ -293,7 +510,7 @@ export default function StewardshipArticlePage() {
           </div>
         ) : error ? (
           <div className="mx-auto max-w-4xl px-6 py-16">
-            <div className="rounded-2xl border border-[#E8185A]/20 bg-[#E8185A]/5 p-6 text-xs font-medium text-[#8B4136]">
+            <div className="rounded-2xl border border-[#C22055]/20 bg-[#C22055]/5 p-6 text-xs font-medium text-[#8B4136]">
               {error}
             </div>
           </div>
@@ -318,13 +535,13 @@ export default function StewardshipArticlePage() {
               <div className="relative z-10 max-w-4xl py-8">
                 <Link
                   href="/Stewardship-News"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#E8185A] hover:text-white transition mb-4"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#C22055] hover:text-white transition mb-4"
                 >
                   <ArrowLeft size={13} /> Back to Stewardship News
                 </Link>
 
                 <div className="mb-4">
-                  <span className="inline-block bg-[#E8185A] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded">
+                  <span className="inline-block bg-[#C22055] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded">
                     {story.tag || 'General'}
                   </span>
                 </div>
@@ -337,7 +554,7 @@ export default function StewardshipArticlePage() {
 
                 <div className="flex items-center gap-5 flex-wrap text-xs text-white/80 font-medium">
                   <span className="inline-flex items-center gap-1.5">
-                    <UserIcon size={13} /> By {authorName}
+                    <UserIcon size={13} /> By {authorDisplayByline}
                   </span>
                   {publishedLabel && (
                     <span className="inline-flex items-center gap-1.5">
@@ -366,11 +583,11 @@ export default function StewardshipArticlePage() {
                         <blockquote
                           key={idx}
                           className="border-l-[3px] pl-5 py-1 my-6 italic text-slate-700 text-base sm:text-lg leading-relaxed text-justify"
-                          style={{ borderColor: '#E8185A' }}
+                          style={{ borderColor: '#C22055' }}
                         >
                           {block.text}
                           {block.caption && (
-                            <footer className="mt-2 not-italic text-[11px] font-bold uppercase tracking-widest text-[#E8185A]">
+                            <footer className="mt-2 not-italic text-[11px] font-bold uppercase tracking-widest text-[#C22055]">
                               — {block.caption}
                             </footer>
                           )}
@@ -426,12 +643,11 @@ export default function StewardshipArticlePage() {
                   </React.Fragment>
                 )}
 
-                {/* Author Credentials & Platform-Specific Social Handles */}
+                {/* ── STANDALONE SOCIAL ICONS ── */}
                 {(() => {
                   const blogHandle = story.socialHandle?.trim();
                   const authorHandle = story.originalAuthor?.socialHandle?.trim() || story.author?.socialHandle?.trim();
 
-                  // Ignore legacy defaults like "@BioCap" and prioritize author profile platforms
                   const isDefaultHandle = !blogHandle || blogHandle.toLowerCase() === "@biocap" || blogHandle.toLowerCase() === "biocap";
                   const rawSocialHandle = isDefaultHandle && authorHandle ? authorHandle : (blogHandle || authorHandle || "");
 
@@ -441,63 +657,78 @@ export default function StewardshipArticlePage() {
 
                   return (
                     <div className="mt-8 pt-4">
-                      <div className="inline-flex flex-wrap items-center gap-3 rounded-lg bg-[#f7f6f4] border border-slate-200/80 px-4 py-2.5 text-xs text-slate-600 max-w-fit shadow-2xs">
+                      
+                      {/* Title Header */}
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#C22055]" />
+                        <h4 className="text-sm font-bold uppercase tracking-wider text-[#1B3A5C]">
+                          Reach out to author's handle
+                        </h4>
+                      </div>
+
+                      {/* Icon Row */}
+                      <div className="flex flex-wrap items-center gap-5">
                         
-                        {/* Dynamic Social Handles parsed from Author Profile or Story */}
-                        {rawSocialHandle.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
-                              const parts = handleEntry.split(': ');
-                              const platform = parts.length > 1 ? parts[0] : null;
-                              const handleValue = parts.length > 1 ? parts.slice(1).join(': ') : handleEntry;
-                              const isUrl = handleValue.startsWith('http://') || handleValue.startsWith('https://');
+                        {rawSocialHandle.length > 0 &&
+                          rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
+                            const parts = handleEntry.split(': ');
+                            const platform = parts.length > 1 ? parts[0] : 'Social';
+                            const handleValue = parts.length > 1 ? parts.slice(1).join(': ') : handleEntry;
 
-                              return (
-                                <span key={idx} className="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-white border border-slate-200/80 px-2.5 py-1 rounded-md shadow-2xs">
-                                  <AtSign size={13} className="text-[#E8185A]" />
-                                  {platform && <span className="font-bold text-[#1B3A5C]">{platform}:</span>}
-                                  {isUrl ? (
-                                    <a
-                                      href={handleValue}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-[#E8185A] hover:underline max-w-[200px] sm:max-w-[300px] truncate"
-                                      title={handleValue}
-                                    >
-                                      {handleValue.replace(/^https?:\/\/(www\.)?/, '')}
-                                    </a>
-                                  ) : (
-                                    <span>{handleValue}</span>
-                                  )}
-                                </span>
-                              );
-                            })}
-                          </div>
-                        )}
+                            let targetUrl = handleValue;
+                            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                              if (platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x')) {
+                                targetUrl = `https://x.com/${handleValue.replace('@', '')}`;
+                              } else if (platform.toLowerCase().includes('linkedin')) {
+                                targetUrl = `https://linkedin.com/in/${handleValue}`;
+                              } else if (platform.toLowerCase().includes('facebook')) {
+                                targetUrl = `https://facebook.com/${handleValue}`;
+                              } else if (platform.toLowerCase().includes('instagram')) {
+                                targetUrl = `https://instagram.com/${handleValue.replace('@', '')}`;
+                              } else {
+                                targetUrl = `https://${handleValue}`;
+                              }
+                            }
 
-                        {/* Organization Link */}
+                            return (
+                              <a
+                                key={idx}
+                                href={targetUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={`${platform}: ${handleValue}`}
+                                className="group relative inline-flex items-center justify-center cursor-pointer"
+                              >
+                                {renderSocialPlatformIcon(platform)}
+                              </a>
+                            );
+                          })}
+
+                        {/* Organization Link & Document Attachments */}
                         {isFilteredOrgLink && (
                           <a
                             href={story.organizationLink}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 font-semibold text-[#1B3A5C] hover:underline"
+                            title={`Organization: ${story.organizationLink}`}
+                            className="inline-flex items-center justify-center text-[#1B3A5C] hover:text-[#C22055] transition-transform hover:scale-110"
                           >
-                            <Globe size={13} /> {story.organizationLink}
+                            <Globe size={28} />
                           </a>
                         )}
 
-                        {/* Attached Document */}
                         {(story.document || story.documentUrl) && (
                           <a
                             href={story.documentUrl || story.document}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 font-semibold text-[#2F8F5B] hover:underline"
+                            title={story.documentName || 'Download Document PDF'}
+                            className="inline-flex items-center justify-center text-[#2F8F5B] hover:text-[#C22055] transition-transform hover:scale-110"
                           >
-                            <FileText size={13} /> {story.documentName || 'Attached Document PDF'}
+                            <FileText size={28} />
                           </a>
                         )}
+
                       </div>
                     </div>
                   );
@@ -564,7 +795,7 @@ export default function StewardshipArticlePage() {
 
                   <form onSubmit={handleCommentSubmit} className="space-y-4">
                     {replyTargetComment && (
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E8185A]/20 bg-[#E8185A]/5 px-3 py-2 text-xs text-[#8B4136]">
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#C22055]/20 bg-[#C22055]/5 px-3 py-2 text-xs text-[#8B4136]">
                         <span>Replying to {getCommentAuthorName(replyTargetComment)}</span>
                         <button type="button" onClick={() => setReplyCommentId(null)} className="font-bold uppercase tracking-wide cursor-pointer">
                           Cancel
@@ -614,7 +845,7 @@ export default function StewardshipArticlePage() {
                     <button
                       type="submit"
                       disabled={commentSubmitting}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#E8185A] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70 cursor-pointer"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#C22055] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70 cursor-pointer"
                     >
                       {commentSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                       {commentSubmitting ? 'Posting...' : replyTargetComment ? 'Post reply' : 'Post comment'}
@@ -640,17 +871,22 @@ export default function StewardshipArticlePage() {
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => navigator.share?.({ title: story.title, url: window.location.href })}
+                      onClick={() => setIsShareModalOpen(true)}
                       aria-label="Share this article"
-                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition cursor-pointer"
+                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#C22055] hover:text-[#C22055] transition cursor-pointer"
                     >
                       <Share2 size={13} />
                     </button>
                     <button
                       type="button"
-                      onClick={() => navigator.clipboard?.writeText(window.location.href)}
+                      onClick={() => {
+                        if (typeof window !== 'undefined') {
+                          navigator.clipboard?.writeText(window.location.href);
+                          window.alert('Link copied to clipboard!');
+                        }
+                      }}
                       aria-label="Copy link"
-                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#E8185A] hover:text-[#E8185A] transition cursor-pointer"
+                      className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 hover:border-[#C22055] hover:text-[#C22055] transition cursor-pointer"
                     >
                       <Link2 size={13} />
                     </button>
@@ -662,28 +898,28 @@ export default function StewardshipArticlePage() {
               <aside className="space-y-5 lg:sticky lg:top-6">
                 <div className="rounded-2xl border border-[#e2e8f3] bg-white p-5 shadow-sm">
                   <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#1B3A5C] mb-4">
-                    <Newspaper size={13} className="text-[#E8185A]" /> {eventLabel ? 'Event Details' : 'Story Details'}
+                    <Newspaper size={13} className="text-[#C22055]" /> {eventLabel ? 'Event Details' : 'Story Details'}
                   </p>
                   <div className="space-y-3 text-xs text-slate-600">
                     {eventLabel ? (
                       <div className="flex items-center gap-2">
-                        <Calendar size={13} className="text-[#E8185A] shrink-0" />
+                        <Calendar size={13} className="text-[#C22055] shrink-0" />
                         <span className="font-semibold text-[#1B3A5C]">{eventLabel}</span>
                       </div>
                     ) : (
                       publishedLabel && (
                         <div className="flex items-center gap-2">
-                          <Calendar size={13} className="text-[#E8185A] shrink-0" />
+                          <Calendar size={13} className="text-[#C22055] shrink-0" />
                           <span>{publishedLabel}</span>
                         </div>
                       )
                     )}
                     <div className="flex items-center gap-2">
-                      <UserIcon size={13} className="text-[#E8185A] shrink-0" />
-                      <span>{organizer || authorName}</span>
+                      <UserIcon size={13} className="text-[#C22055] shrink-0" />
+                      <span>{organizer || authorDisplayByline}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Tag size={13} className="text-[#E8185A] shrink-0" />
+                      <Tag size={13} className="text-[#C22055] shrink-0" />
                       <span>{story.tag || 'General'}</span>
                     </div>
                   </div>
@@ -701,7 +937,7 @@ export default function StewardshipArticlePage() {
 
                   <button
                     type="button"
-                    onClick={() => navigator.share?.({ title: story.title, url: window.location.href })}
+                    onClick={() => setIsShareModalOpen(true)}
                     className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#1B3A5C]/20 py-2 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:bg-[#1B3A5C] hover:text-white transition cursor-pointer"
                   >
                     <Share2 size={13} /> Share Article
@@ -736,7 +972,7 @@ export default function StewardshipArticlePage() {
                               >
                                 {s.tag || 'General'}
                               </p>
-                              <p className="text-[13px] font-semibold text-[#1B3A5C] leading-snug line-clamp-2 group-hover:text-[#E8185A] transition-colors">
+                              <p className="text-[13px] font-semibold text-[#1B3A5C] leading-snug line-clamp-2 group-hover:text-[#C22055] transition-colors">
                                 {s.title}
                               </p>
                             </div>
@@ -755,6 +991,17 @@ export default function StewardshipArticlePage() {
           </div>
         )}
       </div>
+
+      {/* Share Article Modal */}
+      {story && (
+        <CustomShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          title={story.title}
+          img={story.img}
+          url={typeof window !== 'undefined' ? window.location.href : ''}
+        />
+      )}
 
       <Footer />
     </div>

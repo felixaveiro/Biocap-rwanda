@@ -142,9 +142,24 @@ export default function ProfilePage() {
     try {
       const activeJobTitle = jobTitle.trim() || (isAfSRwanda ? "AfS Representative" : "Contributor");
 
-      // Serialize social entries into standard string format
+      // Serialize and sanitize social entries (strips @ and full URLs)
       const formattedSocialHandle = validSocialEntries
-        .map((e) => `${e.platform}: ${e.value.trim()}`)
+        .map((e) => {
+          let cleanValue = e.value.trim();
+
+          // Strip leading @ symbol if user included it
+          if (cleanValue.startsWith('@')) {
+            cleanValue = cleanValue.substring(1);
+          }
+
+          // Strip full URLs if user pasted a link instead of just the handle
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?facebook\.com\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+
+          return `${e.platform}: ${cleanValue}`;
+        })
         .join(" | ");
 
       await updateProfile({
@@ -153,6 +168,7 @@ export default function ProfilePage() {
         jobTitle: activeJobTitle,
         organizationLink: organizationLink.trim(),
         socialHandle: formattedSocialHandle,
+        dateOfBirth: dateOfBirth || undefined,
       });
 
       setSuccessMessage("Profile updated successfully!");
@@ -392,10 +408,10 @@ export default function ProfilePage() {
                     type="text"
                     placeholder={
                       entry.platform === "X (Twitter)"
-                        ? "@username or profile link *"
+                        ? "username (e.g. careconnecxs) *"
                         : entry.platform === "LinkedIn"
-                        ? "linkedin.com/in/username *"
-                        : `${entry.platform} handle/link *`
+                        ? "username (e.g. john-doe) *"
+                        : `${entry.platform} username *`
                     }
                     value={entry.value}
                     onChange={(e) => handleSocialEntryChange(idx, "value", e.target.value)}

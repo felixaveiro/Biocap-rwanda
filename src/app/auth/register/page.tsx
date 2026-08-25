@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -10,7 +10,9 @@ import {
   Eye,
   EyeOff,
   Plus,
-  Trash2
+  Trash2,
+  ChevronDown,
+  MessageCircle
 } from "lucide-react";
 import { registerUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -35,6 +37,43 @@ const SOCIAL_PLATFORMS: SocialPlatform[] = [
   "Instagram",
 ];
 
+/**
+ * Helper to render platform-specific SVG icons matching published articles
+ */
+const renderSocialPlatformIcon = (platformName: string) => {
+  const p = platformName.toLowerCase();
+  
+  if (p.includes('x') || p.includes('twitter')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-slate-900 shrink-0">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    );
+  }
+  if (p.includes('linkedin')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-[#0A66C2] shrink-0">
+        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+      </svg>
+    );
+  }
+  if (p.includes('facebook')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-[#1877F2] shrink-0">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      </svg>
+    );
+  }
+  if (p.includes('instagram')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 fill-[#E4405F] shrink-0">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 2.156 4.919 5.406.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 5.255-4.919 5.404-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-2.199-4.919-5.404-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-5.255 4.919-5.406 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+      </svg>
+    );
+  }
+  return <MessageCircle size={16} className="text-[#E52B67] shrink-0" />;
+};
+
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -51,10 +90,13 @@ export default function RegisterPage() {
     role: "principal_investigator" as Role,
   });
 
-  // Explicit social media handle state (At least one required)
   const [socialEntries, setSocialEntries] = useState<SocialHandleEntry[]>([
     { platform: "X (Twitter)", value: "" },
   ]);
+
+  // Track active dropdown menu index for platform selection
+  const [openDropdownIdx, setOpenDropdownIdx] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -62,15 +104,24 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAfSRwanda = form.organization === "Alliance for Science Rwanda (AfS-Rwanda)";
-  const isSocialCreator = form.role === "social_media_content_creator";
 
   const availableRoles = useMemo(() => {
     return getRolesForOrganization(form.organization);
   }, [form.organization]);
 
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdownIdx(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleOrganizationChange = (newOrg: string) => {
     const validRoles = getRolesForOrganization(newOrg);
-
     setForm((prev) => ({
       ...prev,
       organization: newOrg,
@@ -82,6 +133,9 @@ export default function RegisterPage() {
     setSocialEntries((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: val } : item))
     );
+    if (field === "platform") {
+      setOpenDropdownIdx(null);
+    }
   };
 
   const addSocialEntry = () => {
@@ -89,7 +143,7 @@ export default function RegisterPage() {
   };
 
   const removeSocialEntry = (index: number) => {
-    if (socialEntries.length === 1) return; // Keep at least one entry row
+    if (socialEntries.length === 1) return;
     setSocialEntries((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -116,7 +170,6 @@ export default function RegisterPage() {
       return;
     }
 
-    // Validate that at least ONE social handle is filled
     const validSocialEntries = socialEntries.filter((item) => item.value.trim().length > 0);
     if (validSocialEntries.length === 0) {
       setError("At least one social media handle is required.");
@@ -138,9 +191,21 @@ export default function RegisterPage() {
     try {
       const activeJobTitle = form.jobTitle.trim() || (isAfSRwanda ? "AfS Representative" : "Contributor");
 
-      // Format social entries into a clean serialized string for the single socialHandle field
       const formattedSocialHandle = validSocialEntries
-        .map((e) => `${e.platform}: ${e.value.trim()}`)
+        .map((e) => {
+          let cleanValue = e.value.trim();
+
+          if (cleanValue.startsWith('@')) {
+            cleanValue = cleanValue.substring(1);
+          }
+
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?facebook\.com\//i, '');
+          cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '');
+
+          return `${e.platform}: ${cleanValue}`;
+        })
         .join(" | ");
 
       const response = await registerUser({
@@ -190,10 +255,10 @@ export default function RegisterPage() {
 
       <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ── MAIN GLASS CARD ── */}
+      {/* Main Card */}
       <div className="relative z-10 w-full max-w-xl bg-white/25 backdrop-blur-md border border-white/40 rounded-[28px] p-5 sm:p-7 shadow-2xl shadow-[#133248]/50 my-auto">
         
-        {/* Logo Header */}
+        {/* Header */}
         <div className="flex justify-center mb-2">
           <div className="relative w-14 h-14 rounded-full bg-white border-2 border-[#E52B67] shadow-md flex items-center justify-center overflow-hidden p-1.5">
             <img 
@@ -207,7 +272,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {/* Title */}
         <h1 className="text-xl font-bold text-center mb-0.5 tracking-tight">
           <span className="text-[#E52B67]">Bio</span>
           <span className="text-[#133248]">Cap</span>{" "}
@@ -232,10 +296,10 @@ export default function RegisterPage() {
           </div>
         )}
 
-        {/* Registration Form */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-2.5">
           
-          {/* First & Last Name */}
+          {/* Names */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <input
               type="text"
@@ -255,7 +319,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Username & Email */}
+          {/* Credentials */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <input
               type="text"
@@ -275,7 +339,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Password & DOB */}
+          {/* Security & Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div className="relative">
               <input
@@ -304,7 +368,7 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* Partner Institution & Job Title */}
+          {/* Organization & Role */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-[#133248] mb-0.5 ml-2">
@@ -379,7 +443,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Organization Link */}
+          {/* Org Link */}
           <div>
             <input
               type="url"
@@ -391,45 +455,62 @@ export default function RegisterPage() {
             />
           </div>
 
-          {/* ── DYNAMIC SOCIAL MEDIA HANDLES (Mandatory Section) ── */}
-          <div className="space-y-2 pt-1 border-t border-white/20">
-            <div className="flex items-center justify-between ml-2">
+          {/* ── DYNAMIC SOCIAL MEDIA HANDLES (Interactive Styled Dropdown) ── */}
+          <div className="space-y-2 pt-1 border-t border-white/20" ref={dropdownRef}>
+            <div className="ml-2">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-[#133248]">
                 Social Media Handles <span className="text-[#E52B67]">* (At least 1 required)</span>
               </label>
-              <button
-                type="button"
-                onClick={addSocialEntry}
-                disabled={isSubmitting}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E52B67] hover:underline cursor-pointer"
-              >
-                <Plus size={12} /> Add Platform
-              </button>
             </div>
 
             {socialEntries.map((entry, idx) => (
               <div key={idx} className="flex items-center gap-2">
-                <select
-                  value={entry.platform}
-                  onChange={(e) => handleSocialEntryChange(idx, "platform", e.target.value as SocialPlatform)}
-                  disabled={isSubmitting}
-                  className="w-1/3 px-3 py-2 bg-white/95 text-[#133248] font-semibold text-xs rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer"
-                >
-                  {SOCIAL_PLATFORMS.map((platform) => (
-                    <option key={platform} value={platform}>
-                      {platform}
-                    </option>
-                  ))}
-                </select>
+                
+                {/* Custom Interactive Brand Icon Menu Button */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpenDropdownIdx(openDropdownIdx === idx ? null : idx)}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-1 px-3 py-2 bg-white/95 text-[#133248] rounded-full border border-white shadow-inner hover:bg-white transition-all cursor-pointer"
+                  >
+                    {renderSocialPlatformIcon(entry.platform)}
+                    <ChevronDown size={12} className="text-slate-500" />
+                  </button>
 
+                  {/* High-Contrast Interactive Popup Menu */}
+                  {openDropdownIdx === idx && (
+                    <div className="absolute left-0 top-full mt-1 z-50 w-44 rounded-2xl bg-white border border-slate-200 p-1.5 shadow-xl space-y-0.5">
+                      {SOCIAL_PLATFORMS.map((plat) => (
+                        <button
+                          key={plat}
+                          type="button"
+                          onClick={() => handleSocialEntryChange(idx, "platform", plat)}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-xl text-left transition-colors cursor-pointer ${
+                            entry.platform === plat
+                              ? "bg-[#133248] text-white"
+                              : "text-slate-800 hover:bg-slate-100"
+                          }`}
+                        >
+                          {renderSocialPlatformIcon(plat)}
+                          <span className={entry.platform === plat ? "text-white" : "text-slate-800"}>
+                            {plat}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Username Input */}
                 <input
                   type="text"
                   placeholder={
                     entry.platform === "X (Twitter)"
-                      ? "@username or profile link *"
+                      ? "x.com handle (e.g. careconnecxs) *"
                       : entry.platform === "LinkedIn"
-                      ? "linkedin.com/in/username *"
-                      : `${entry.platform} handle/link *`
+                      ? "LinkedIn username (e.g. john-doe) *"
+                      : `${entry.platform} handle *`
                   }
                   value={entry.value}
                   onChange={(e) => handleSocialEntryChange(idx, "value", e.target.value)}
@@ -449,9 +530,21 @@ export default function RegisterPage() {
                 )}
               </div>
             ))}
+
+            {/* Add Platform Button at Bottom */}
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={addSocialEntry}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E52B67] hover:underline cursor-pointer"
+              >
+                <Plus size={12} /> Add Platform
+              </button>
+            </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting}

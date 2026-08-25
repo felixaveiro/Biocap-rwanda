@@ -65,8 +65,13 @@ export interface UpdateProfilePayload {
   firstName?: string;
   lastName?: string;
   jobTitle?: string;
+  job_title?: string;
+  title?: string;
   organizationLink?: string;
+  organization_link?: string;
   socialHandle?: string;
+  social_handle?: string;
+  dateOfBirth?: string;
 }
 
 // ─── Response Types ──────────────────────────────────────────────────────────
@@ -230,17 +235,18 @@ export async function updateMe(payload: UpdateMePayload): Promise<UserProfile> {
 
 /**
  * Profile updater used by contributor and creator profile settings pages.
+ * Directly invokes updateMe (PUT /api/auth/me) with fallback handling for legacy endpoints.
  */
 export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
   try {
-    return await apiRequest<UserProfile>("/api/contributor/profile", {
-      method: "PUT",
-      body: payload,
-      auth: true,
-    });
+    return await updateMe(payload);
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
-      return await updateMe(payload);
+      return await apiRequest<UserProfile>("/api/contributor/profile", {
+        method: "PUT",
+        body: payload,
+        auth: true,
+      });
     }
     throw err;
   }
