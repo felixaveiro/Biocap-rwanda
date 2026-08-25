@@ -23,10 +23,6 @@ import {
   Globe,
   AtSign,
   Tag,
-  CheckCircle2,
-  Share2,
-  MessageCircle,
-  Video,
   Eye,
 } from "lucide-react";
 
@@ -90,11 +86,11 @@ export default function CreateNewStoryPage() {
   const detectedSocialPlatform = useMemo(() => {
     const val = socialHandle.toLowerCase().trim();
     if (!val) return null;
-    if (val.includes("twitter.com") || val.includes("x.com")) return { name: "X (Twitter)", icon: Share2 };
-    if (val.includes("linkedin.com")) return { name: "LinkedIn", icon: Share2 };
-    if (val.includes("facebook.com")) return { name: "Facebook", icon: MessageCircle };
-    if (val.includes("instagram.com")) return { name: "Instagram", icon: Share2 };
-    if (val.includes("youtube.com") || val.includes("youtu.be")) return { name: "YouTube", icon: Video };
+    if (val.includes("twitter.com") || val.includes("x.com")) return { name: "X (Twitter)", icon: AtSign };
+    if (val.includes("linkedin.com")) return { name: "LinkedIn", icon: AtSign };
+    if (val.includes("facebook.com")) return { name: "Facebook", icon: AtSign };
+    if (val.includes("instagram.com")) return { name: "Instagram", icon: AtSign };
+    if (val.includes("youtube.com") || val.includes("youtu.be")) return { name: "YouTube", icon: AtSign };
     return { name: "Handle", icon: AtSign };
   }, [socialHandle]);
 
@@ -178,7 +174,7 @@ export default function CreateNewStoryPage() {
     setErrorMsg(null);
 
     try {
-      const creatorRole = user.role as Role;
+      const creatorRole = (user.role as Role) || "contributor";
       const payloadBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
 
       const newBlog = await blogsApi.createBlog(
@@ -209,10 +205,9 @@ export default function CreateNewStoryPage() {
     }
   };
 
-  // Construct temporary BlogPost object for ReviewStoryModal preview without redline errors
+  // Construct temporary BlogPost object for ReviewStoryModal preview
   const previewStoryObject = {
     _id: "temp-preview-id",
-    slug: "temp-preview-slug",
     title: title || "Untitled Story",
     tag: tag || "General",
     excerpt: excerpt || "",
@@ -226,11 +221,11 @@ export default function CreateNewStoryPage() {
       firstName: user.firstName || "",
       lastName: user.lastName || "",
       username: user.username || "",
-      role: user.role as Role,
+      role: (user.role as Role) || "contributor",
     },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  } as unknown as BlogPost;
+  } as BlogPost;
 
   const SocialIcon = detectedSocialPlatform ? detectedSocialPlatform.icon : AtSign;
 
@@ -356,11 +351,6 @@ export default function CreateNewStoryPage() {
               <p className="text-[10px] uppercase tracking-[0.16em] text-[#6B7268]" style={monoFont}>
                 Author Credentials &amp; Links
               </p>
-              {(user.socialHandle || user.organizationLink) && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#3F6B4F]" style={monoFont}>
-                  <CheckCircle2 size={11} /> Auto-filled from profile
-                </span>
-              )}
             </div>
 
             <div className="flex flex-wrap gap-4">
@@ -450,7 +440,7 @@ export default function CreateNewStoryPage() {
       {isReviewModalOpen && (
         <ReviewStoryModal
           story={previewStoryObject}
-          currentUserRole={user.role as Role}
+          currentUserRole={(user.role as Role) || "contributor"}
           onClose={() => setIsReviewModalOpen(false)}
           onReviewCompleted={() => {
             setIsReviewModalOpen(false);
