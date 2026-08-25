@@ -73,7 +73,7 @@ export default function Sidebar() {
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },
-      { label: "My Profile", href: "/admin/profile", icon: User },
+      { label: "My Profile", href: "/creator/profile", icon: User },
     ];
   } else if (role === "editor") {
     navItems = [
@@ -82,7 +82,7 @@ export default function Sidebar() {
       { label: "All Stories", href: "/editor/manage", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
-      { label: "My Profile", href: "/editor/profile", icon: User },
+      { label: "My Profile", href: "/creator/profile", icon: User },
     ];
   } else if (role === "communication_officer") {
     navItems = [
@@ -90,7 +90,7 @@ export default function Sidebar() {
       { label: "All Stories", href: "/officer/stories", icon: Globe, badge: "Live" },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "Alerts & Activity", href: "/officer/activity", icon: Bell },
-      { label: "My Profile", href: "/officer/profile", icon: User },
+      { label: "My Profile", href: "/creator/profile", icon: User },
     ];
   } else if (
     role === "broadcast_content_creator" ||

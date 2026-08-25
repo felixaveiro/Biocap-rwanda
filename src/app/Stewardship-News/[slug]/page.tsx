@@ -77,7 +77,7 @@ const renderSocialPlatformIcon = (platformName: string) => {
 };
 
 /**
- * Custom Share Modal Component (Inbox Direct Share + Preview)
+ * Custom Share Modal Component (Direct Inbox Sharing with Image Preview + Gmail & WhatsApp)
  */
 function CustomShareModal({
   isOpen,
@@ -108,17 +108,38 @@ function CustomShareModal({
   const shareLinks = [
     {
       name: 'WhatsApp',
-      href: `https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`,
-      bg: 'bg-[#25D366] hover:bg-[#20ba5a]',
+      href: `https://api.whatsapp.com/send?text=${encodedUrl}`,
+      bg: 'bg-transparent hover:scale-105 transition-transform',
       icon: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
-        </svg>
+        <div className="relative w-9 h-9 flex items-center justify-center">
+          <div className="w-full h-full bg-[#25D366] rounded-[10px] flex items-center justify-center p-1.5 shadow-xs">
+            <svg viewBox="0 0 24 24" className="w-full h-full fill-white">
+              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.84 9.88 0 0 0 12.04 2zm0 18.15c-1.49 0-2.95-.4-4.21-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.21 8.23zm4.51-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.09-.39-.12-.56.12-.17.25-.64.81-.78.98-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.12.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.53.61.19 1.16.16 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.18-.48-.3z" />
+            </svg>
+          </div>
+          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#38BDF8] border-2 border-white rounded-full" />
+        </div>
+      ),
+    },
+    {
+      name: 'Gmail',
+      href: `https://mail.google.com/mail/?view=cm&fs=1&su=${encodedTitle}&body=${encodedUrl}`,
+      bg: 'bg-transparent hover:scale-105 transition-transform',
+      icon: (
+        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 shadow-xs p-1.5">
+          <svg viewBox="0 0 48 48" className="w-full h-full">
+            <path fill="#4CAF50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
+            <path fill="#1E88E5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
+            <polygon fill="#E53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
+            <path fill="#C62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
+            <path fill="#FBC02D" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z" />
+          </svg>
+        </div>
       ),
     },
     {
       name: 'Telegram',
-      href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedTitle}`,
+      href: `https://t.me/share/url?url=${encodedUrl}`,
       bg: 'bg-[#229ED9] hover:bg-[#1d8cb0]',
       icon: (
         <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
@@ -162,7 +183,7 @@ function CustomShareModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5">
         
-        {/* Modal Title */}
+        {/* Modal Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-[#1B3A5C]">
             <Share2 size={18} className="text-[#C22055]" />
@@ -177,7 +198,7 @@ function CustomShareModal({
           </button>
         </div>
 
-        {/* Story Preview Card */}
+        {/* Story Card Preview */}
         <div className="flex items-center gap-3.5 rounded-xl border border-slate-200 bg-[#F9F8F6] p-3">
           {img ? (
             <img
@@ -198,12 +219,12 @@ function CustomShareModal({
           </div>
         </div>
 
-        {/* Social Share Buttons Grid */}
+        {/* Direct Social & Email Share Buttons */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
             Share directly to chat / inbox
           </p>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {shareLinks.map((link) => (
               <a
                 key={link.name}
@@ -223,7 +244,7 @@ function CustomShareModal({
           </div>
         </div>
 
-        {/* Copyable Link */}
+        {/* Copy Link Section */}
         <div className="pt-2 border-t border-slate-100">
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3">
             <Link2 size={15} className="text-slate-400 shrink-0" />
@@ -272,7 +293,7 @@ export default function StewardshipArticlePage() {
   const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
   const [consentNote, setConsentNote] = useState('');
   
-  // Custom Share Modal State
+  // Share Modal State
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const fetchStory = useCallback(async () => {
