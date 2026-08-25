@@ -8,7 +8,9 @@ import {
   AlertCircle, 
   CheckCircle2, 
   Eye,
-  EyeOff
+  EyeOff,
+  Plus,
+  Trash2
 } from "lucide-react";
 import { registerUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
@@ -18,6 +20,20 @@ import {
   ROLE_LABELS, 
   getRolesForOrganization 
 } from "@/types";
+
+type SocialPlatform = "X (Twitter)" | "LinkedIn" | "Facebook" | "Instagram";
+
+interface SocialHandleEntry {
+  platform: SocialPlatform;
+  value: string;
+}
+
+const SOCIAL_PLATFORMS: SocialPlatform[] = [
+  "X (Twitter)",
+  "LinkedIn",
+  "Facebook",
+  "Instagram",
+];
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,9 +48,13 @@ export default function RegisterPage() {
     organization: ORGANIZATIONS[0] as string,
     jobTitle: "",
     organizationLink: "",
-    socialHandle: "",
     role: "principal_investigator" as Role,
   });
+
+  // Explicit social media handle state (At least one required)
+  const [socialEntries, setSocialEntries] = useState<SocialHandleEntry[]>([
+    { platform: "X (Twitter)", value: "" },
+  ]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -42,6 +62,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAfSRwanda = form.organization === "Alliance for Science Rwanda (AfS-Rwanda)";
+  const isSocialCreator = form.role === "social_media_content_creator";
 
   const availableRoles = useMemo(() => {
     return getRolesForOrganization(form.organization);
@@ -55,6 +76,21 @@ export default function RegisterPage() {
       organization: newOrg,
       role: validRoles[0],
     }));
+  };
+
+  const handleSocialEntryChange = (index: number, field: "platform" | "value", val: string) => {
+    setSocialEntries((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: val } : item))
+    );
+  };
+
+  const addSocialEntry = () => {
+    setSocialEntries((prev) => [...prev, { platform: "LinkedIn", value: "" }]);
+  };
+
+  const removeSocialEntry = (index: number) => {
+    if (socialEntries.length === 1) return; // Keep at least one entry row
+    setSocialEntries((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -80,6 +116,13 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate that at least ONE social handle is filled
+    const validSocialEntries = socialEntries.filter((item) => item.value.trim().length > 0);
+    if (validSocialEntries.length === 0) {
+      setError("At least one social media handle is required.");
+      return;
+    }
+
     if (form.password.length < 8) {
       setError("Password must be at least 8 characters long.");
       return;
@@ -95,6 +138,11 @@ export default function RegisterPage() {
     try {
       const activeJobTitle = form.jobTitle.trim() || (isAfSRwanda ? "AfS Representative" : "Contributor");
 
+      // Format social entries into a clean serialized string for the single socialHandle field
+      const formattedSocialHandle = validSocialEntries
+        .map((e) => `${e.platform}: ${e.value.trim()}`)
+        .join(" | ");
+
       const response = await registerUser({
         username: form.username.trim(),
         email: form.email.trim(),
@@ -108,8 +156,8 @@ export default function RegisterPage() {
         title: activeJobTitle,
         organizationLink: form.organizationLink.trim() || undefined,
         organization_link: form.organizationLink.trim() || undefined,
-        socialHandle: form.socialHandle.trim() || undefined,
-        social_handle: form.socialHandle.trim() || undefined,
+        socialHandle: formattedSocialHandle,
+        social_handle: formattedSocialHandle,
         role: form.role,
       });
 
@@ -132,7 +180,7 @@ export default function RegisterPage() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#133248] via-[#235D74] to-[#632B70] overflow-hidden px-4 py-6 selection:bg-[#E52B67] selection:text-white">
       
-      {/* Background Graphic Accents */}
+      {/* Background Accents */}
       <div className="absolute top-[-10%] left-[-5%] w-[280px] h-[600px] text-[#E52B67]/15 pointer-events-none -rotate-12 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
@@ -142,7 +190,7 @@ export default function RegisterPage() {
 
       <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ── MAIN COMPACT GLASS CARD ── */}
+      {/* ── MAIN GLASS CARD ── */}
       <div className="relative z-10 w-full max-w-xl bg-white/25 backdrop-blur-md border border-white/40 rounded-[28px] p-5 sm:p-7 shadow-2xl shadow-[#133248]/50 my-auto">
         
         {/* Logo Header */}
@@ -331,8 +379,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Optional Links & Social Handle */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {/* Organization Link */}
+          <div>
             <input
               type="url"
               placeholder={form.role === "media_correspondent" ? "Organization Link (Required) *" : "Organization Link (Optional)"}
@@ -341,21 +389,73 @@ export default function RegisterPage() {
               disabled={isSubmitting}
               className="w-full px-4 py-2 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-xs sm:text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60"
             />
-            <input
-              type="text"
-              placeholder="Social Handle (e.g. @biocap)"
-              value={form.socialHandle}
-              onChange={(e) => setForm({ ...form, socialHandle: e.target.value })}
-              disabled={isSubmitting}
-              className="w-full px-4 py-2 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-xs sm:text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60"
-            />
+          </div>
+
+          {/* ── DYNAMIC SOCIAL MEDIA HANDLES (Mandatory Section) ── */}
+          <div className="space-y-2 pt-1 border-t border-white/20">
+            <div className="flex items-center justify-between ml-2">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#133248]">
+                Social Media Handles <span className="text-[#E52B67]">* (At least 1 required)</span>
+              </label>
+              <button
+                type="button"
+                onClick={addSocialEntry}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E52B67] hover:underline cursor-pointer"
+              >
+                <Plus size={12} /> Add Platform
+              </button>
+            </div>
+
+            {socialEntries.map((entry, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <select
+                  value={entry.platform}
+                  onChange={(e) => handleSocialEntryChange(idx, "platform", e.target.value as SocialPlatform)}
+                  disabled={isSubmitting}
+                  className="w-1/3 px-3 py-2 bg-white/95 text-[#133248] font-semibold text-xs rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white cursor-pointer"
+                >
+                  {SOCIAL_PLATFORMS.map((platform) => (
+                    <option key={platform} value={platform}>
+                      {platform}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="text"
+                  placeholder={
+                    entry.platform === "X (Twitter)"
+                      ? "@username or profile link *"
+                      : entry.platform === "LinkedIn"
+                      ? "linkedin.com/in/username *"
+                      : `${entry.platform} handle/link *`
+                  }
+                  value={entry.value}
+                  onChange={(e) => handleSocialEntryChange(idx, "value", e.target.value)}
+                  disabled={isSubmitting}
+                  className="flex-1 px-4 py-2 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-xs sm:text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] border border-white disabled:opacity-60"
+                />
+
+                {socialEntries.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeSocialEntry(idx)}
+                    disabled={isSubmitting}
+                    className="p-1.5 text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full mt-2 py-2.5 px-5 rounded-full bg-[#133248] hover:bg-[#0e273a] active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-lg shadow-[#133248]/30 border border-[#E52B67]/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full mt-3 py-2.5 px-5 rounded-full bg-[#133248] hover:bg-[#0e273a] active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-lg shadow-[#133248]/30 border border-[#E52B67]/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
           >
             {isSubmitting ? (
               <>

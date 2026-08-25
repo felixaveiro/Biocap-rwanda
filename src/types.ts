@@ -26,6 +26,14 @@ export const ROLE_LABELS: Record<Role, string> = {
   principal_investigator: 'Principal Investigator (PI)',
 };
 
+// ─── Supported Social Media Platforms ────────────────────────────────────────
+export type SocialPlatform = 'X (Twitter)' | 'LinkedIn' | 'Facebook' | 'Instagram';
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  handle: string;
+}
+
 // ─── Rwanda BioCap Partner Institutions ─────────────────────────────────────
 export const ORGANIZATIONS = [
   'International Potato Center (CIP)',
@@ -80,7 +88,8 @@ export interface User {
   organization: Organization | string;
   jobTitle: string; // Mandatory: Displayed as Author byline with articles
   organizationLink?: string;
-  socialHandle?: string;
+  socialHandle?: string; // Serialized string representation ("X (Twitter): @handle | LinkedIn: ...")
+  socialLinks?: SocialLink[]; // Optional structured social links
   createdBy?:
     | {
         _id: string;
@@ -286,6 +295,7 @@ export interface BlogPost {
     lastName?: string;
     jobTitle?: string;
     role?: Role;
+    socialHandle?: string;
   };
   authorRole?: Role;
 

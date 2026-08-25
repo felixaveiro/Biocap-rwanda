@@ -52,14 +52,13 @@ export function useSession(requiredPermission?: Permission) {
       } catch (error: unknown) {
         // 3. Clear session and cache if backend explicitly returned 401 Unauthorized or invalid token
         if (error instanceof ApiError && error.status === 401) {
-          console.warn("[Session] Token expired or unauthorized (401). Redirecting to login.");
+          console.warn("[Session] Token expired or unauthorized (401).");
           authCookies.clearAll();
           cachedUser = null;
           if (isMounted) {
             setUser(null);
           }
         } else {
-          // For network glitches, 5xx server errors, or Render cold-starts, log a soft warning
           console.warn("[Session] Temporary session verification error:", error);
         }
       } finally {
@@ -79,16 +78,15 @@ export function useSession(requiredPermission?: Permission) {
   const isAuthenticated = !!user;
   const allowed =
     !loading &&
-    isAuthenticated &&
-    (!requiredPermission || (user ? can(user.role, requiredPermission) : false));
+    (!requiredPermission || (isAuthenticated && user && can(user.role, requiredPermission)));
 
+  // Redirect ONLY IF requiredPermission was explicitly required
   useEffect(() => {
-    if (!loading) {
+    if (!loading && requiredPermission) {
       if (!isAuthenticated && !authCookies.isLoggedIn()) {
         router.replace("/auth/login");
       } else if (
         isAuthenticated &&
-        requiredPermission &&
         user &&
         !can(user.role, requiredPermission)
       ) {

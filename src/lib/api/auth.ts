@@ -61,6 +61,14 @@ export interface UpdateMePayload {
   dateOfBirth?: string;
 }
 
+export interface UpdateProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  jobTitle?: string;
+  organizationLink?: string;
+  socialHandle?: string;
+}
+
 // ─── Response Types ──────────────────────────────────────────────────────────
 
 export interface RegisterResponse {
@@ -148,21 +156,17 @@ export async function refreshSession(): Promise<RefreshTokenResponse | null> {
 
       return res;
     } catch (err) {
-      // If endpoint doesn't exist, try next fallback
       if (err instanceof ApiError && err.status === 404) continue;
 
-      // If explicitly unauthorized/forbidden, clear session and stop
       if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
         authCookies.clearSession();
         return null;
       }
 
-      // Otherwise try next endpoint
       continue;
     }
   }
 
-  // If all attempts failed, ensure local session is cleared
   authCookies.clearSession();
   return null;
 }
@@ -214,7 +218,7 @@ export async function getMe(): Promise<UserProfile> {
 }
 
 /**
- * Updates logged-in user's profile fields.
+ * Updates logged-in user's profile fields and returns updated profile.
  */
 export async function updateMe(payload: UpdateMePayload): Promise<UserProfile> {
   return apiRequest<UserProfile>("/api/auth/me", {
@@ -222,6 +226,24 @@ export async function updateMe(payload: UpdateMePayload): Promise<UserProfile> {
     body: payload,
     auth: true,
   });
+}
+
+/**
+ * Profile updater used by contributor and creator profile settings pages.
+ */
+export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
+  try {
+    return await apiRequest<UserProfile>("/api/contributor/profile", {
+      method: "PUT",
+      body: payload,
+      auth: true,
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return await updateMe(payload);
+    }
+    throw err;
+  }
 }
 
 /**

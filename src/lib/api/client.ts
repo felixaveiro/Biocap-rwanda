@@ -98,11 +98,15 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const { method = "GET", body, auth = false } = options;
 
+  // Check if this is an explicitly public route
+  const isPublicRoute = path.includes("/public");
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (auth) {
+  // Only attach authorization headers if auth is explicitly required AND not a public route
+  if (auth && !isPublicRoute) {
     const token = authCookies.getToken();
     if (!token) {
       throw new ApiError("You must be logged in to perform this action.", 401);
@@ -125,10 +129,11 @@ export async function apiRequest<T>(
     );
   }
 
-  // Attempt token refresh on 401 (excluding login/refresh routes to prevent loops)
+  // Attempt token refresh on 401 (excluding public endpoints, refresh, and login)
   if (
     response.status === 401 &&
     auth &&
+    !isPublicRoute &&
     !path.includes("/refresh") &&
     !path.includes("/login")
   ) {
@@ -179,9 +184,10 @@ export async function apiFormRequest<T>(
 ): Promise<T> {
   const { method = "POST", formData, auth = true } = options;
 
+  const isPublicRoute = path.includes("/public");
   const headers: Record<string, string> = {};
 
-  if (auth) {
+  if (auth && !isPublicRoute) {
     const token = authCookies.getToken();
     if (!token) {
       throw new ApiError("You must be logged in to perform this action.", 401);
@@ -207,6 +213,7 @@ export async function apiFormRequest<T>(
   if (
     response.status === 401 &&
     auth &&
+    !isPublicRoute &&
     !path.includes("/refresh") &&
     !path.includes("/login")
   ) {

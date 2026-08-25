@@ -23,6 +23,7 @@ import {
   PanelLeftOpen,
   Bell,
   MessageSquare,
+  User,
 } from "lucide-react";
 
 const fraunces = Fraunces({
@@ -72,6 +73,7 @@ export default function Sidebar() {
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },
+      { label: "My Profile", href: "/admin/profile", icon: User },
     ];
   } else if (role === "editor") {
     navItems = [
@@ -80,6 +82,7 @@ export default function Sidebar() {
       { label: "All Stories", href: "/editor/manage", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
+      { label: "My Profile", href: "/editor/profile", icon: User },
     ];
   } else if (role === "communication_officer") {
     navItems = [
@@ -87,6 +90,7 @@ export default function Sidebar() {
       { label: "All Stories", href: "/officer/stories", icon: Globe, badge: "Live" },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "Alerts & Activity", href: "/officer/activity", icon: Bell },
+      { label: "My Profile", href: "/officer/profile", icon: User },
     ];
   } else if (
     role === "broadcast_content_creator" ||
@@ -99,6 +103,7 @@ export default function Sidebar() {
       { label: "My Stories", href: "/creator/my-stories", icon: FileText },
       { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
       { label: "Live Feed", href: "/creator/published", icon: Globe },
+      { label: "My Profile", href: "/creator/profile", icon: User },
     ];
   }
 
@@ -106,6 +111,15 @@ export default function Sidebar() {
     authCookies.clearAll();
     window.location.href = "/auth/login";
   };
+
+  const profileHref =
+    role === "admin"
+      ? "/admin/profile"
+      : role === "editor"
+      ? "/editor/profile"
+      : role === "communication_officer"
+      ? "/officer/profile"
+      : "/creator/profile";
 
   const fontVars = `${fraunces.variable} ${plexMono.variable}`;
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
@@ -249,8 +263,11 @@ export default function Sidebar() {
         {/* User Profile & Sign Out Footer */}
         <div className="p-4 border-t border-[#E2DDCF] space-y-3 shrink-0 bg-[#EFECE6]/30">
           {isMounted && user && (
-            <div
-              className={`flex items-center gap-3 p-2 border border-[#E2DDCF] bg-[#FAF9F5] ${
+            <Link
+              href={profileHref}
+              onClick={() => setIsMobileOpen(false)}
+              title={isCollapsed ? "View Profile" : undefined}
+              className={`flex items-center gap-3 p-2 border border-[#E2DDCF] bg-[#FAF9F5] transition-colors hover:border-[#1E2620] hover:bg-[#EFECE6] ${
                 isCollapsed && !isMobileOpen ? "justify-center px-0 border-none bg-transparent" : ""
               }`}
             >
@@ -275,7 +292,7 @@ export default function Sidebar() {
                   </p>
                 </div>
               )}
-            </div>
+            </Link>
           )}
 
           <button

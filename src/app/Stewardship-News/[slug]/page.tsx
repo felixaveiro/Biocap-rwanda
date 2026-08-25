@@ -27,8 +27,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-// ── Same visual system as the Stewardship News hub: DM Serif Display for
-// headlines, Plus Jakarta Sans for body, navy #1B3A5C + magenta #E8185A accent.
+// ── Visual system for Stewardship News hub ──────
 
 const TAG_ACCENTS = ['#2A7F8C', '#7B3FA0', '#E8185A', '#2F8F5B', '#D97706', '#1B3A5C', '#0891B2', '#B45309'];
 const accentForTag = (key: string) => {
@@ -40,7 +39,10 @@ const accentForTag = (key: string) => {
 export default function StewardshipArticlePage() {
   const pathname = usePathname();
   const slug = pathname?.split('/').pop() || '';
+  
+  // Pass NO required permission string to useSession so public guests avoid /auth/login redirects
   const { user } = useSession();
+
   const [story, setStory] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +177,12 @@ export default function StewardshipArticlePage() {
         parentComment: replyCommentId || null,
       });
 
-      setCommentForm({ name: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '', email: user?.email || '', phone: '', content: '' });
+      setCommentForm({ 
+        name: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '', 
+        email: user?.email || '', 
+        phone: '', 
+        content: '' 
+      });
       setReplyCommentId(null);
       setCommentSuccess('Your comment has been posted successfully.');
       await fetchStory();
@@ -265,7 +272,6 @@ export default function StewardshipArticlePage() {
     );
   };
 
-  // Filter out realgreengoldltd link if present
   const isFilteredOrgLink =
     story?.organizationLink &&
     !story.organizationLink.includes('realgreengoldltd.com');
@@ -293,7 +299,7 @@ export default function StewardshipArticlePage() {
           </div>
         ) : story ? (
           <>
-            {/* ── HERO ── */}
+            {/* HERO */}
             <section className="relative overflow-hidden min-h-[380px] flex items-end px-6 lg:px-12 pb-9">
               <div className="absolute inset-0 z-0">
                 {story.img ? (
@@ -342,10 +348,9 @@ export default function StewardshipArticlePage() {
               </div>
             </section>
 
-            {/* ── BODY + SIDEBAR ── */}
+            {/* BODY + SIDEBAR */}
             <main className="mx-auto max-w-7xl px-6 lg:px-12 py-12 grid lg:grid-cols-[1fr_320px] gap-12 items-start">
               <article className="min-w-0 space-y-6">
-                {/* Body sections */}
                 {story.blocks && story.blocks.length > 0 ? (
                   story.blocks.map((block: BlogBlock, idx: number) => {
                     if (block.type === 'h2') {
@@ -421,40 +426,80 @@ export default function StewardshipArticlePage() {
                   </React.Fragment>
                 )}
 
-                {/* Compact bottom card for author credentials & attachments */}
-                {(story.socialHandle || isFilteredOrgLink || story.document || story.documentUrl) && (
-                  <div className="mt-8 pt-4">
-                    <div className="inline-flex flex-wrap items-center gap-3 rounded-lg bg-[#f7f6f4] border border-slate-200/80 px-4 py-2.5 text-xs text-slate-600 max-w-fit shadow-2xs">
-                      {story.socialHandle && (
-                        <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
-                          <AtSign size={13} className="text-[#E8185A]" /> {story.socialHandle}
-                        </span>
-                      )}
-                      {isFilteredOrgLink && (
-                        <a
-                          href={story.organizationLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 font-semibold text-[#1B3A5C] hover:underline"
-                        >
-                          <Globe size={13} /> {story.organizationLink}
-                        </a>
-                      )}
-                      {(story.document || story.documentUrl) && (
-                        <a
-                          href={story.documentUrl || story.document}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 font-semibold text-[#2F8F5B] hover:underline"
-                        >
-                          <FileText size={13} /> {story.documentName || 'Attached Document PDF'}
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* Author Credentials & Platform-Specific Social Handles */}
+                {(() => {
+                  // Fallback chain: Story socialHandle -> Original Author profile -> Author profile
+                  const rawSocialHandle =
+                    story.socialHandle ||
+                    story.originalAuthor?.socialHandle ||
+                    story.author?.socialHandle;
 
-                {/* Writer consent banner */}
+                  if (!rawSocialHandle && !isFilteredOrgLink && !story.document && !story.documentUrl) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="mt-8 pt-4">
+                      <div className="inline-flex flex-wrap items-center gap-3 rounded-lg bg-[#f7f6f4] border border-slate-200/80 px-4 py-2.5 text-xs text-slate-600 max-w-fit shadow-2xs">
+                        
+                        {/* Dynamic Social Handles parsed from Author Profile or Story */}
+                        {rawSocialHandle && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {rawSocialHandle.split(' | ').map((handleEntry, idx) => {
+                              const parts = handleEntry.split(': ');
+                              const platform = parts.length > 1 ? parts[0] : null;
+                              const handleValue = parts.length > 1 ? parts.slice(1).join(': ') : handleEntry;
+                              const isUrl = handleValue.startsWith('http://') || handleValue.startsWith('https://');
+
+                              return (
+                                <span key={idx} className="inline-flex items-center gap-1.5 font-semibold text-slate-700 bg-white border border-slate-200/80 px-2.5 py-1 rounded-md shadow-2xs">
+                                  <AtSign size={13} className="text-[#E8185A]" />
+                                  {platform && <span className="font-bold text-[#1B3A5C]">{platform}:</span>}
+                                  {isUrl ? (
+                                    <a
+                                      href={handleValue}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-[#E8185A] hover:underline max-w-[200px] sm:max-w-[300px] truncate"
+                                      title={handleValue}
+                                    >
+                                      {handleValue.replace(/^https?:\/\/(www\.)?/, '')}
+                                    </a>
+                                  ) : (
+                                    <span>{handleValue}</span>
+                                  )}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {isFilteredOrgLink && (
+                          <a
+                            href={story.organizationLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 font-semibold text-[#1B3A5C] hover:underline"
+                          >
+                            <Globe size={13} /> {story.organizationLink}
+                          </a>
+                        )}
+
+                        {(story.document || story.documentUrl) && (
+                          <a
+                            href={story.documentUrl || story.document}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 font-semibold text-[#2F8F5B] hover:underline"
+                          >
+                            <FileText size={13} /> {story.documentName || 'Attached Document PDF'}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {writerConsentPending && (
                   <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-slate-700">
                     <div className="flex items-start gap-3">
@@ -502,7 +547,7 @@ export default function StewardshipArticlePage() {
                   </div>
                 )}
 
-                {/* Discussion Comments Section */}
+                {/* Comments Section */}
                 <div className="mt-8 rounded-2xl border border-slate-200 bg-[#f8fafc] p-5">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 text-[#1B3A5C]">
@@ -582,7 +627,6 @@ export default function StewardshipArticlePage() {
                   </div>
                 </div>
 
-                {/* Bottom navigation + share */}
                 <div className="pt-6 mt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">
                   <Link
                     href="/Stewardship-News"
@@ -611,7 +655,7 @@ export default function StewardshipArticlePage() {
                 </div>
               </article>
 
-              {/* ── SIDEBAR ── */}
+              {/* SIDEBAR */}
               <aside className="space-y-5 lg:sticky lg:top-6">
                 <div className="rounded-2xl border border-[#e2e8f3] bg-white p-5 shadow-sm">
                   <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#1B3A5C] mb-4">

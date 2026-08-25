@@ -180,17 +180,25 @@ export async function getPublicBlogs(params: BlogFilterOptions = {}): Promise<Pa
   if (params.search) query.append("search", params.search);
 
   const queryString = query.toString() ? `?${query.toString()}` : "";
-  return apiRequest<PaginatedResponse<BlogPost>>(`/api/blogs/public${queryString}`);
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/blogs/public${queryString}`, { auth: false });
 }
 
 export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
-  return apiRequest<BlogPost>(`/api/blogs/public/${slug}`);
+  try {
+    return await apiRequest<BlogPost>(`/api/blogs/public/slug/${slug}`, { auth: false });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return await apiRequest<BlogPost>(`/api/blogs/public/${slug}`, { auth: false });
+    }
+    throw err;
+  }
 }
 
 export async function addPublicBlogComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
   return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/public/${slug}/comments`, {
     method: "POST",
     body: payload,
+    auth: false,
   });
 }
 
@@ -557,7 +565,7 @@ export async function markChangeImplemented(id: string, payload?: MarkChangeImpl
   return extractBlogFromResponse(res);
 }
 
-// ─── Editor Dedicated Operations (Aligned with backend routes) ─────────────
+// ─── Editor Dedicated Operations ───────────────────────────────────────────
 
 export const editorApi = {
   getBlogStats: async (): Promise<BlogStatsResponse> => {
