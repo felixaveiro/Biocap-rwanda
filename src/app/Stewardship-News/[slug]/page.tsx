@@ -428,11 +428,12 @@ export default function StewardshipArticlePage() {
 
                 {/* Author Credentials & Platform-Specific Social Handles */}
                 {(() => {
-                  // Fallback chain: Story socialHandle -> Original Author profile -> Author profile
-                  const rawSocialHandle =
-                    story.socialHandle ||
-                    story.originalAuthor?.socialHandle ||
-                    story.author?.socialHandle;
+                  const blogHandle = story.socialHandle?.trim();
+                  const authorHandle = story.originalAuthor?.socialHandle?.trim() || story.author?.socialHandle?.trim();
+
+                  // Ignore legacy defaults like "@BioCap" and prioritize author profile platforms
+                  const isDefaultHandle = !blogHandle || blogHandle.toLowerCase() === "@biocap" || blogHandle.toLowerCase() === "biocap";
+                  const rawSocialHandle = isDefaultHandle && authorHandle ? authorHandle : (blogHandle || authorHandle || "");
 
                   if (!rawSocialHandle && !isFilteredOrgLink && !story.document && !story.documentUrl) {
                     return null;
@@ -443,9 +444,9 @@ export default function StewardshipArticlePage() {
                       <div className="inline-flex flex-wrap items-center gap-3 rounded-lg bg-[#f7f6f4] border border-slate-200/80 px-4 py-2.5 text-xs text-slate-600 max-w-fit shadow-2xs">
                         
                         {/* Dynamic Social Handles parsed from Author Profile or Story */}
-                        {rawSocialHandle && (
+                        {rawSocialHandle.length > 0 && (
                           <div className="flex flex-wrap items-center gap-2">
-                            {rawSocialHandle.split(' | ').map((handleEntry, idx) => {
+                            {rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
                               const parts = handleEntry.split(': ');
                               const platform = parts.length > 1 ? parts[0] : null;
                               const handleValue = parts.length > 1 ? parts.slice(1).join(': ') : handleEntry;
@@ -474,6 +475,7 @@ export default function StewardshipArticlePage() {
                           </div>
                         )}
 
+                        {/* Organization Link */}
                         {isFilteredOrgLink && (
                           <a
                             href={story.organizationLink}
@@ -485,6 +487,7 @@ export default function StewardshipArticlePage() {
                           </a>
                         )}
 
+                        {/* Attached Document */}
                         {(story.document || story.documentUrl) && (
                           <a
                             href={story.documentUrl || story.document}
