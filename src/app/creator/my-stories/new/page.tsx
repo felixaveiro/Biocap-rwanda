@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import ImageCropperModal from "@/components/ImageCropperModal";
-import ReviewStoryModal from "@/components/ReviewStoryModal";
+import AuthorReviewModal from "@/components/AuthorReviewModal";
 import StoryEditor from "@/components/StoryEditor";
 import { base64ToFile } from "@/lib/utils/file";
 import { useSession } from "@/hooks/useSession";
@@ -15,7 +15,6 @@ import { Role, BlogPost } from "@/types";
 import {
   ArrowLeft,
   Save,
-  Send,
   AlertCircle,
   Crop,
   Image as ImageIcon,
@@ -102,7 +101,7 @@ export default function CreateNewStoryPage() {
   const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
   const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
-  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-[#5A6259])" };
 
   if (loading || !allowed || !user) {
     return (
@@ -205,7 +204,7 @@ export default function CreateNewStoryPage() {
     }
   };
 
-  // Construct temporary BlogPost object for ReviewStoryModal preview
+  // Construct temporary BlogPost object for AuthorReviewModal preview
   const previewStoryObject = {
     _id: "temp-preview-id",
     title: title || "Untitled Story",
@@ -262,7 +261,7 @@ export default function CreateNewStoryPage() {
 
           <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
             <p className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
-              Manuscript
+              Story Build-up
             </p>
             <h2 className="text-xl italic text-[#1E2620]" style={displayFont}>
               Begin a new story
@@ -397,13 +396,6 @@ export default function CreateNewStoryPage() {
           <div className="flex items-center justify-end gap-3 border-t border-[#EDEAE0] pt-6">
             <button
               type="button"
-              onClick={handleOpenReviewModal}
-              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] cursor-pointer"
-            >
-              <Eye size={14} /> Review Story
-            </button>
-            <button
-              type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit(false)}
               className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50 cursor-pointer"
@@ -413,12 +405,10 @@ export default function CreateNewStoryPage() {
             </button>
             <button
               type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(true)}
-              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
+              onClick={handleOpenReviewModal}
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] cursor-pointer"
             >
-              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              {isSubmitting ? "Submitting..." : "Submit for Review"}
+              <Eye size={14} /> Review Story
             </button>
           </div>
 
@@ -436,16 +426,12 @@ export default function CreateNewStoryPage() {
         />
       )}
 
-      {/* Full Editorial Review Modal */}
+      {/* Dedicated Author Reader Preview Modal */}
       {isReviewModalOpen && (
-        <ReviewStoryModal
+        <AuthorReviewModal
           story={previewStoryObject}
-          currentUserRole={(user.role as Role) || "contributor"}
           onClose={() => setIsReviewModalOpen(false)}
-          onReviewCompleted={() => {
-            setIsReviewModalOpen(false);
-            handleSubmit(true);
-          }}
+          onSubmitForReview={() => handleSubmit(true)}
         />
       )}
     </div>
