@@ -42,6 +42,36 @@ interface AuthorReviewModalProps {
   onSubmitForReview: () => Promise<void> | void;
 }
 
+/** Converts markdown links [label](url) and data-href spans to clickable <a> elements */
+function formatMarkdownLinks(text: string): string {
+  if (!text) return "";
+
+  // 1. Ensure absolute URL formatting
+  const normalizeUrl = (url: string) => {
+    let trimmed = url.trim();
+    if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  // 2. Convert markdown links [hello](https://...) -> <a href="..." target="_blank">hello</a>
+  let formatted = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, label, url) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="editor-link">${label}</a>`
+  );
+
+  // 3. Convert <span class="editor-link" data-href="...">hello</span> -> <a href="..." target="_blank">hello</a>
+  formatted = formatted.replace(
+    /<span class="editor-link" data-href="([^"]+)">([^<]+)<\/span>/g,
+    (_, url, label) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="editor-link">${label}</a>`
+  );
+
+  return formatted;
+}
+
 export default function AuthorReviewModal({
   story,
   onClose,
@@ -82,6 +112,22 @@ export default function AuthorReviewModal({
       className={`${fontVars} fixed inset-0 z-[9999] flex items-center justify-center bg-[#1E2620]/50 p-4 backdrop-blur-md animate-in fade-in duration-150`}
       style={bodyFont}
     >
+      <style>{`
+        .editor-link {
+          color: #0057FF !important;
+          text-decoration: underline !important;
+          text-decoration-color: #0057FF !important;
+          text-underline-offset: 2px !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          transition: color 0.15s ease !important;
+        }
+        .editor-link:hover {
+          color: #003DB8 !important;
+          text-decoration-color: #003DB8 !important;
+        }
+      `}</style>
+
       <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden border border-[#D9D4C6] bg-[#FDFCFA] shadow-2xl rounded-sm">
         
         {/* Modal Header */}
@@ -217,7 +263,7 @@ export default function AuthorReviewModal({
                   <p
                     key={idx}
                     className="text-xs sm:text-sm text-[#3A4239] leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: block.text || '' }}
+                    dangerouslySetInnerHTML={{ __html: formatMarkdownLinks(block.text || '') }}
                   />
                 );
               })

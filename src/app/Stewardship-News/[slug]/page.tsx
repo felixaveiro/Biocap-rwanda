@@ -2,12 +2,15 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { blogsApi } from '@/lib/api/blogs';
-import { BlogPost, BlogBlock, Comment } from '@/types';
+import { BlogPost, BlogBlock } from '@/types';
 import Footer from '@/components/Footer';
+import CustomShareModal from '@/components/CustomShareModal';
+import ArticleCommentSection from '@/components/ArticleCommentSection';
+import ArticleSidebar from '@/components/ArticleSidebar';
 import { useSession } from '@/hooks/useSession';
 import {
-  Tag,
   Calendar,
   User as UserIcon,
   Globe,
@@ -15,33 +18,39 @@ import {
   ArrowLeft,
   Share2,
   Link2,
-  Newspaper,
-  MessageSquare,
   CheckCircle2,
   XCircle,
   ShieldAlert,
-  Reply,
-  Send,
   Loader2,
   MessageCircle,
-  X,
-  Check,
-  Copy,
 } from 'lucide-react';
-import Link from 'next/link';
 
-// ── Visual system for Stewardship News hub ──────
+function formatPublishedLinks(text: string): string {
+  if (!text) return '';
 
-const TAG_ACCENTS = ['#2A7F8C', '#7B3FA0', '#C22055', '#2F8F5B', '#D97706', '#1B3A5C', '#0891B2', '#B45309'];
-const accentForTag = (key: string) => {
-  let hash = 0;
-  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-  return TAG_ACCENTS[hash % TAG_ACCENTS.length];
-};
+  const normalizeUrl = (url: string) => {
+    let trimmed = url.trim();
+    if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
 
-/**
- * Helper to render standalone platform vector icons
- */
+  let formatted = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, label, url) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+  );
+
+  formatted = formatted.replace(
+    /<span class="editor-link" data-href="([^"]+)">([^<]+)<\/span>/g,
+    (_, url, label) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+  );
+
+  return formatted;
+}
+
 const renderSocialPlatformIcon = (platformName: string) => {
   const p = platformName.toLowerCase();
   
@@ -76,200 +85,6 @@ const renderSocialPlatformIcon = (platformName: string) => {
   return <MessageCircle size={28} className="text-[#C22055] transition-transform group-hover:scale-110" />;
 };
 
-/**
- * Custom Share Modal Component (Direct Inbox Sharing with Image Preview + Gmail & WhatsApp)
- */
-function CustomShareModal({
-  isOpen,
-  onClose,
-  title,
-  img,
-  url,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  img?: string;
-  url: string;
-}) {
-  const [copied, setCopied] = useState(false);
-
-  if (!isOpen) return null;
-
-  const encodedUrl = encodeURIComponent(url);
-  const encodedTitle = encodeURIComponent(title);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const shareLinks = [
-    {
-      name: 'WhatsApp',
-      href: `https://api.whatsapp.com/send?text=${encodedUrl}`,
-      bg: 'bg-transparent hover:scale-105 transition-transform',
-      icon: (
-        <div className="relative w-9 h-9 flex items-center justify-center">
-          <div className="w-full h-full bg-[#25D366] rounded-[10px] flex items-center justify-center p-1.5 shadow-xs">
-            <svg viewBox="0 0 24 24" className="w-full h-full fill-white">
-              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.84 9.88 0 0 0 12.04 2zm0 18.15c-1.49 0-2.95-.4-4.21-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.21 8.21 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.21 8.23zm4.51-6.16c-.25-.12-1.47-.72-1.7-.81-.23-.09-.39-.12-.56.12-.17.25-.64.81-.78.98-.14.17-.29.19-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.39-1.72-.14-.25-.02-.38.11-.5.11-.11.25-.29.37-.43.12-.14.17-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.12.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.53.61.19 1.16.16 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.07-.1-.23-.18-.48-.3z" />
-            </svg>
-          </div>
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#38BDF8] border-2 border-white rounded-full" />
-        </div>
-      ),
-    },
-    {
-      name: 'Gmail',
-      href: `https://mail.google.com/mail/?view=cm&fs=1&su=${encodedTitle}&body=${encodedUrl}`,
-      bg: 'bg-transparent hover:scale-105 transition-transform',
-      icon: (
-        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 shadow-xs p-1.5">
-          <svg viewBox="0 0 48 48" className="w-full h-full">
-            <path fill="#4CAF50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
-            <path fill="#1E88E5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
-            <polygon fill="#E53935" points="35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17" />
-            <path fill="#C62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
-            <path fill="#FBC02D" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0 C43.076,8,45,9.924,45,12.298z" />
-          </svg>
-        </div>
-      ),
-    },
-    {
-      name: 'Telegram',
-      href: `https://t.me/share/url?url=${encodedUrl}`,
-      bg: 'bg-[#229ED9] hover:bg-[#1d8cb0]',
-      icon: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-          <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.5 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.831-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'X (Twitter)',
-      href: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`,
-      bg: 'bg-slate-900 hover:bg-slate-800',
-      icon: (
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'LinkedIn',
-      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
-      bg: 'bg-[#0A66C2] hover:bg-[#0855a0]',
-      icon: (
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-        </svg>
-      ),
-    },
-    {
-      name: 'Facebook',
-      href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      bg: 'bg-[#1877F2] hover:bg-[#1464cf]',
-      icon: (
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-      ),
-    },
-  ];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 space-y-5">
-        
-        {/* Modal Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#1B3A5C]">
-            <Share2 size={18} className="text-[#C22055]" />
-            <h3 className="text-base font-bold">Share Article</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition cursor-pointer"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Story Card Preview */}
-        <div className="flex items-center gap-3.5 rounded-xl border border-slate-200 bg-[#F9F8F6] p-3">
-          {img ? (
-            <img
-              src={img}
-              alt={title}
-              className="h-16 w-16 rounded-lg object-cover shrink-0 border border-slate-200"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-lg bg-[#1B3A5C]/10 flex items-center justify-center shrink-0">
-              <Share2 size={20} className="text-[#1B3A5C]" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-[#1B3A5C] line-clamp-2 leading-snug">
-              {title}
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500 truncate">{url}</p>
-          </div>
-        </div>
-
-        {/* Direct Social & Email Share Buttons */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2.5">
-            Share directly to chat / inbox
-          </p>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            {shareLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-                className="flex flex-col items-center gap-1.5 p-1.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition group"
-              >
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full ${link.bg} transition-transform group-hover:scale-105 shadow-xs`}>
-                  {link.icon}
-                </div>
-                <span className="text-[9px] font-semibold text-slate-600 truncate max-w-full">
-                  {link.name}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Copy Link Section */}
-        <div className="pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-3">
-            <Link2 size={15} className="text-slate-400 shrink-0" />
-            <input
-              type="text"
-              readOnly
-              value={url}
-              className="flex-1 bg-transparent text-xs text-slate-600 outline-none truncate"
-            />
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#1B3A5C] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#254a7a] cursor-pointer shrink-0"
-            >
-              {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-              {copied ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-
 export default function StewardshipArticlePage() {
   const pathname = usePathname();
   const slug = pathname?.split('/').pop() || '';
@@ -293,7 +108,6 @@ export default function StewardshipArticlePage() {
   const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
   const [consentNote, setConsentNote] = useState('');
   
-  // Share Modal State
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const fetchStory = useCallback(async () => {
@@ -381,17 +195,9 @@ export default function StewardshipArticlePage() {
   const canPublish = !story || story.publishConsentStatus === 'approved' || story.publishConsentStatus === 'not_required' || !story.publishConsentStatus;
   const writerConsentPending = story?.publishConsentStatus === 'pending' && isWriter;
 
-  const getCommentAuthorName = (comment: Comment) => {
-    if (comment.user && comment.user.firstName) {
-      return `${comment.user.firstName} ${comment.user.lastName || ''}`.trim();
-    }
-    return comment.name || 'Guest';
-  };
-
   const visibleComments = (story?.comments || []).filter(
     (comment) => !comment.isDeleted && comment.isVisible !== false
   );
-  const replyTargetComment = visibleComments.find((comment) => comment._id === replyCommentId) || null;
 
   const handleCommentSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -450,66 +256,6 @@ export default function StewardshipArticlePage() {
     }
   };
 
-  const renderCommentTree = (comment: Comment, depth = 0) => {
-    if (comment.isDeleted || comment.isVisible === false) return null;
-
-    const authorName = getCommentAuthorName(comment);
-    const replyCount = (comment.replies || []).filter(
-      (reply) => !reply.isDeleted && reply.isVisible !== false
-    ).length;
-
-    return (
-      <div 
-        key={comment._id} 
-        className="rounded-2xl border border-slate-200 bg-white p-4" 
-        style={{ marginLeft: depth > 0 ? 24 : 0 }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-[#1B3A5C]">{authorName}</p>
-              {comment.role && comment.role !== 'guest' && (
-                <span className="rounded-full bg-[#C22055]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#C22055]">
-                  {String(comment.role).replace('_', ' ')}
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-[11px] uppercase tracking-wide text-slate-400">
-              {new Date(comment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-            </p>
-          </div>
-        </div>
-
-        <p className="mt-3 text-sm leading-7 text-slate-700">
-          {comment.content}
-        </p>
-
-        <div className="mt-4 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => setReplyCommentId(comment._id)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:text-[#C22055] cursor-pointer"
-          >
-            <Reply size={12} /> Reply
-          </button>
-          {replyCount > 0 && (
-            <span className="text-[10px] uppercase tracking-wide text-slate-400">
-              {replyCount} reply{replyCount > 1 ? 'ies' : 'y'}
-            </span>
-          )}
-        </div>
-
-        {(comment.replies || []).filter((reply) => !reply.isDeleted && reply.isVisible !== false).length > 0 && (
-          <div className="mt-4 space-y-3 border-l border-slate-200 pl-4">
-            {(comment.replies || [])
-              .filter((reply) => !reply.isDeleted && reply.isVisible !== false)
-              .map((reply) => renderCommentTree(reply, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const isFilteredOrgLink =
     story?.organizationLink &&
     !story.organizationLink.includes('realgreengoldltd.com');
@@ -520,6 +266,20 @@ export default function StewardshipArticlePage() {
         @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
         .art-page { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; color: #334155; }
         .art-serif { font-family: 'DM Serif Display', Georgia, serif; }
+
+        .published-article-link, .published-article-link * {
+          color: #0057FF !important;
+          text-decoration: underline !important;
+          text-decoration-color: #0057FF !important;
+          text-underline-offset: 2px !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          transition: color 0.15s ease !important;
+        }
+        .published-article-link:hover {
+          color: #003DB8 !important;
+          text-decoration-color: #003DB8 !important;
+        }
       `}</style>
 
       <div className="art-page">
@@ -645,9 +405,10 @@ export default function StewardshipArticlePage() {
                             <p
                               key={pIdx}
                               className="text-sm sm:text-base text-slate-700 leading-relaxed text-justify mb-4"
-                            >
-                              {paragraphText.trim()}
-                            </p>
+                              dangerouslySetInnerHTML={{
+                                __html: formatPublishedLinks(paragraphText.trim()),
+                              }}
+                            />
                           ))}
                       </React.Fragment>
                     );
@@ -657,14 +418,18 @@ export default function StewardshipArticlePage() {
                     {(story.excerpt || '')
                       .split(/\n+/)
                       .map((paragraphText, pIdx) => (
-                        <p key={pIdx} className="text-sm text-slate-600 text-justify mb-4">
-                          {paragraphText.trim()}
-                        </p>
+                        <p
+                          key={pIdx}
+                          className="text-sm text-slate-600 text-justify mb-4"
+                          dangerouslySetInnerHTML={{
+                            __html: formatPublishedLinks(paragraphText.trim()),
+                          }}
+                        />
                       ))}
                   </React.Fragment>
                 )}
 
-                {/* ── STANDALONE SOCIAL ICONS ── */}
+                {/* STANDALONE SOCIAL ICONS */}
                 {(() => {
                   const blogHandle = story.socialHandle?.trim();
                   const authorHandle = story.originalAuthor?.socialHandle?.trim() || story.author?.socialHandle?.trim();
@@ -678,8 +443,6 @@ export default function StewardshipArticlePage() {
 
                   return (
                     <div className="mt-8 pt-4">
-                      
-                      {/* Title Header */}
                       <div className="mb-3 flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#C22055]" />
                         <h4 className="text-sm font-bold uppercase tracking-wider text-[#1B3A5C]">
@@ -687,9 +450,7 @@ export default function StewardshipArticlePage() {
                         </h4>
                       </div>
 
-                      {/* Icon Row */}
                       <div className="flex flex-wrap items-center gap-5">
-                        
                         {rawSocialHandle.length > 0 &&
                           rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
                             const parts = handleEntry.split(': ');
@@ -725,7 +486,6 @@ export default function StewardshipArticlePage() {
                             );
                           })}
 
-                        {/* Organization Link & Document Attachments */}
                         {isFilteredOrgLink && (
                           <a
                             href={story.organizationLink}
@@ -749,7 +509,6 @@ export default function StewardshipArticlePage() {
                             <FileText size={28} />
                           </a>
                         )}
-
                       </div>
                     </div>
                   );
@@ -802,85 +561,18 @@ export default function StewardshipArticlePage() {
                   </div>
                 )}
 
-                {/* Comments Section */}
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-[#f8fafc] p-5">
-                  <div className="mb-4 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-[#1B3A5C]">
-                      <MessageSquare size={16} />
-                      <h3 className="text-lg font-semibold">Comments</h3>
-                    </div>
-                    <span className="rounded-full bg-[#1B3A5C] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                      {visibleComments.length}
-                    </span>
-                  </div>
-
-                  <form onSubmit={handleCommentSubmit} className="space-y-4">
-                    {replyTargetComment && (
-                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[#C22055]/20 bg-[#C22055]/5 px-3 py-2 text-xs text-[#8B4136]">
-                        <span>Replying to {getCommentAuthorName(replyTargetComment)}</span>
-                        <button type="button" onClick={() => setReplyCommentId(null)} className="font-bold uppercase tracking-wide cursor-pointer">
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <input
-                        type="text"
-                        value={commentForm.name}
-                        onChange={(event) => setCommentForm((prev) => ({ ...prev, name: event.target.value }))}
-                        placeholder="Your name"
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
-                        required
-                      />
-                      <input
-                        type="email"
-                        value={commentForm.email}
-                        onChange={(event) => setCommentForm((prev) => ({ ...prev, email: event.target.value }))}
-                        placeholder="Your email"
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
-                        required
-                      />
-                    </div>
-
-                    <input
-                      type="tel"
-                      value={commentForm.phone}
-                      onChange={(event) => setCommentForm((prev) => ({ ...prev, phone: event.target.value }))}
-                      placeholder="Phone (optional)"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
-                    />
-
-                    <textarea
-                      value={commentForm.content}
-                      onChange={(event) => setCommentForm((prev) => ({ ...prev, content: event.target.value }))}
-                      placeholder={replyTargetComment ? `Write a reply to ${getCommentAuthorName(replyTargetComment)}` : 'Share your thoughts about this article'}
-                      rows={5}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-[#1B3A5C]"
-                      required
-                    />
-
-                    {commentError && <p className="text-sm text-rose-600">{commentError}</p>}
-                    {commentSuccess && <p className="text-sm text-emerald-600">{commentSuccess}</p>}
-
-                    <button
-                      type="submit"
-                      disabled={commentSubmitting}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#C22055] px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-70 cursor-pointer"
-                    >
-                      {commentSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                      {commentSubmitting ? 'Posting...' : replyTargetComment ? 'Post reply' : 'Post comment'}
-                    </button>
-                  </form>
-
-                  <div className="mt-6 space-y-4">
-                    {visibleComments.length > 0 ? (
-                      visibleComments.filter((comment) => !comment.parentComment).map((comment) => renderCommentTree(comment))
-                    ) : (
-                      <p className="text-sm text-slate-500">No public comments yet. Be the first to share your thoughts.</p>
-                    )}
-                  </div>
-                </div>
+                {/* Comments Component */}
+                <ArticleCommentSection
+                  comments={visibleComments}
+                  commentForm={commentForm}
+                  setCommentForm={setCommentForm}
+                  replyCommentId={replyCommentId}
+                  setReplyCommentId={setReplyCommentId}
+                  commentSubmitting={commentSubmitting}
+                  commentError={commentError}
+                  commentSuccess={commentSuccess}
+                  handleCommentSubmit={handleCommentSubmit}
+                />
 
                 <div className="pt-6 mt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">
                   <Link
@@ -915,95 +607,17 @@ export default function StewardshipArticlePage() {
                 </div>
               </article>
 
-              {/* SIDEBAR */}
-              <aside className="space-y-5 lg:sticky lg:top-6">
-                <div className="rounded-2xl border border-[#e2e8f3] bg-white p-5 shadow-sm">
-                  <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-[#1B3A5C] mb-4">
-                    <Newspaper size={13} className="text-[#C22055]" /> {eventLabel ? 'Event Details' : 'Story Details'}
-                  </p>
-                  <div className="space-y-3 text-xs text-slate-600">
-                    {eventLabel ? (
-                      <div className="flex items-center gap-2">
-                        <Calendar size={13} className="text-[#C22055] shrink-0" />
-                        <span className="font-semibold text-[#1B3A5C]">{eventLabel}</span>
-                      </div>
-                    ) : (
-                      publishedLabel && (
-                        <div className="flex items-center gap-2">
-                          <Calendar size={13} className="text-[#C22055] shrink-0" />
-                          <span>{publishedLabel}</span>
-                        </div>
-                      )
-                    )}
-                    <div className="flex items-center gap-2">
-                      <UserIcon size={13} className="text-[#C22055] shrink-0" />
-                      <span>{organizer || authorDisplayByline}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Tag size={13} className="text-[#C22055] shrink-0" />
-                      <span>{story.tag || 'General'}</span>
-                    </div>
-                  </div>
-
-                  {keyPartners && keyPartners.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#8B9188] mb-2">
-                        Key Partners
-                      </p>
-                      <p className="text-xs font-medium text-[#1B3A5C] leading-relaxed text-justify">
-                        {keyPartners.join(' \u00B7 ')}
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setIsShareModalOpen(true)}
-                    className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-full border border-[#1B3A5C]/20 py-2 text-[11px] font-bold uppercase tracking-widest text-[#1B3A5C] hover:bg-[#1B3A5C] hover:text-white transition cursor-pointer"
-                  >
-                    <Share2 size={13} /> Share Article
-                  </button>
-                </div>
-
-                {moreStories.length > 0 && (
-                  <div className="rounded-2xl border border-[#e2e8f3] bg-white p-5 shadow-sm">
-                    <p className="text-[11px] font-black uppercase tracking-widest text-[#1B3A5C] mb-4">
-                      More Stories
-                    </p>
-                    <div className="space-y-4">
-                      {moreStories.map((s) => {
-                        const accent = accentForTag(s.tag || s.title);
-                        return (
-                          <Link
-                            key={s._id}
-                            href={`/Stewardship-News/${s.slug}`}
-                            className="flex items-center gap-3 group"
-                          >
-                            <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                              {s.img ? (
-                                <img src={s.img} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full" style={{ background: `${accent}22` }} />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <p
-                                className="text-[10px] font-black uppercase tracking-wide mb-0.5"
-                                style={{ color: accent }}
-                              >
-                                {s.tag || 'General'}
-                              </p>
-                              <p className="text-[13px] font-semibold text-[#1B3A5C] leading-snug line-clamp-2 group-hover:text-[#C22055] transition-colors">
-                                {s.title}
-                              </p>
-                            </div>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </aside>
+              {/* Sidebar Component */}
+              <ArticleSidebar
+                story={story}
+                eventLabel={eventLabel}
+                publishedLabel={publishedLabel}
+                organizer={organizer}
+                authorDisplayByline={authorDisplayByline}
+                keyPartners={keyPartners}
+                moreStories={moreStories}
+                onOpenShareModal={() => setIsShareModalOpen(true)}
+              />
             </main>
           </>
         ) : (
@@ -1013,7 +627,7 @@ export default function StewardshipArticlePage() {
         )}
       </div>
 
-      {/* Share Article Modal */}
+      {/* Share Article Modal Component */}
       {story && (
         <CustomShareModal
           isOpen={isShareModalOpen}
