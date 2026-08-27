@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Save, User as UserIcon, Lock } from "lucide-react";
+import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Save, User as UserIcon, Lock, KeyRound } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { updateProfile } from "@/lib/api/auth";
 import Header from "@/components/Header";
+import ChangePasswordForm from "@/components/ChangePasswordForm";
 import { Role, ORGANIZATIONS, ROLE_LABELS, getRolesForOrganization } from "@/types";
 
 type SocialPlatform = "X (Twitter)" | "LinkedIn" | "Facebook" | "Instagram";
@@ -62,7 +63,6 @@ export default function ProfilePage() {
       setLastName(user.lastName || "");
       
       if (user.dateOfBirth) {
-        // Format ISO date string to YYYY-MM-DD for date input
         const formattedDob = user.dateOfBirth.split("T")[0];
         setDateOfBirth(formattedDob);
       }
@@ -106,7 +106,7 @@ export default function ProfilePage() {
   };
 
   const removeSocialEntry = (index: number) => {
-    if (socialEntries.length === 1) return; // Retain at least 1 row
+    if (socialEntries.length === 1) return;
     setSocialEntries((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -130,7 +130,6 @@ export default function ProfilePage() {
       return;
     }
 
-    // Ensure at least 1 valid social handle entry exists
     const validSocialEntries = socialEntries.filter((item) => item.value.trim().length > 0);
     if (validSocialEntries.length === 0) {
       setErrorMsg("At least one social media handle is required.");
@@ -142,17 +141,14 @@ export default function ProfilePage() {
     try {
       const activeJobTitle = jobTitle.trim() || (isAfSRwanda ? "AfS Representative" : "Contributor");
 
-      // Serialize and sanitize social entries (strips @ and full URLs)
       const formattedSocialHandle = validSocialEntries
         .map((e) => {
           let cleanValue = e.value.trim();
 
-          // Strip leading @ symbol if user included it
           if (cleanValue.startsWith('@')) {
             cleanValue = cleanValue.substring(1);
           }
 
-          // Strip full URLs if user pasted a link instead of just the handle
           cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?(twitter\.com|x\.com)\//i, '');
           cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?linkedin\.com\/in\//i, '');
           cleanValue = cleanValue.replace(/^https?:\/\/(www\.)?facebook\.com\//i, '');
@@ -193,9 +189,11 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]">
-      <Header title="Edit Profile" subtitle="Manage your account credentials, partner institution details, and social handles" />
+      <Header title="Edit Profile" subtitle="Manage your account credentials, partner institution details, security, and social handles" />
 
-      <main className="mx-auto max-w-2xl px-4 py-8">
+      <main className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+        
+        {/* Main Profile Details Form */}
         <div className="border border-[#E2DDCF] bg-white p-6 sm:p-8 space-y-6 shadow-xs">
 
           {/* Header Info Banner */}
@@ -265,7 +263,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Username & Email (System Account Identifiers) */}
+              {/* Username & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1 flex items-center justify-between text-xs font-semibold uppercase text-[#5A6259]">
@@ -456,6 +454,20 @@ export default function ProfilePage() {
 
           </form>
         </div>
+
+        {/* SECTION 4: Separate Change Password Security Card */}
+        <div className="border border-[#E2DDCF] bg-white p-6 sm:p-8 shadow-xs space-y-4">
+          <div className="flex items-center gap-2.5 border-b border-[#EDEAE0] pb-4">
+            <KeyRound size={18} className="text-[#A9812F]" />
+            <div>
+              <h3 className="text-sm font-bold text-[#1E2620]">Account Password &amp; Security</h3>
+              <p className="text-xs text-[#5A6259]">Update your login credentials securely</p>
+            </div>
+          </div>
+
+          <ChangePasswordForm />
+        </div>
+
       </main>
     </div>
   );

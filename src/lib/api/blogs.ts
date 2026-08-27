@@ -113,19 +113,9 @@ export interface AuditLogFilterOptions {
 
 // ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
 
-function getBlogBasePath(role?: Role): string {
-  switch (role) {
-    case "admin":
-      return "/api/blogs";
-    case "communication_officer":
-      return "/api/officer/published";
-    case "editor":
-    case "media_correspondent":
-    case "social_media_content_creator":
-    case "principal_investigator":
-    default:
-      return "/api/blogs";
-  }
+function getBlogBasePath(_role?: Role): string {
+  // Always query /api/blogs so officers, admins, and editors can retrieve all statuses
+  return "/api/blogs";
 }
 
 function getTrashBasePath(_role?: Role): string {
@@ -442,6 +432,25 @@ export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, 
 
 // ─── Communication Officer Operations ───────────────────────────────────────
 
+export async function getOfficerPendingBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> {
+  const query = new URLSearchParams();
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  if (params.tag) query.append("tag", params.tag);
+  if (params.search) query.append("search", params.search);
+
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  
+  try {
+    return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/officer/pending${queryString}`, { auth: true });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/blogs?status=pending_review${queryString}`, { auth: true });
+    }
+    throw err;
+  }
+}
+
 export async function getOfficerPublishedBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
   const query = new URLSearchParams();
   if (params.page) query.append("page", params.page.toString());
@@ -653,6 +662,7 @@ export const editorApi = {
 // ─── Unified Namespace Exports ────────────────────────────────────────────────
 
 export const officerApi = {
+  getPendingBlogs: getOfficerPendingBlogs,
   getPublishedBlogs: getOfficerPublishedBlogs,
   getPublishedBlogById: getOfficerPublishedBlogById,
   getArticleComments,

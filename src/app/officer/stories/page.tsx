@@ -3,10 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
-import { blogsApi, officerApi } from "@/lib/api/blogs";
+import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
-import { AlertCircle, RefreshCw, Globe, CheckCircle2, FileText } from "lucide-react";
+import { AlertCircle, RefreshCw, Globe, CheckCircle2, FileText, Clock } from "lucide-react";
 
 export default function OfficerPublishingDeskPage() {
   const {
@@ -25,14 +25,22 @@ export default function OfficerPublishingDeskPage() {
     setFetchErrorMessage(null);
 
     try {
-      // Fetch published articles using dedicated officer endpoint (/api/officer/published)
-      const apiResponse = await officerApi.getPublishedBlogs();
+      // Fetch all stories across all statuses using the authenticated user role
+      const apiResponse = await blogsApi.getBlogs(currentOfficerUser.role as Role, { limit: 100 });
 
       let extractedBlogs: BlogPost[] = [];
+
       if (Array.isArray(apiResponse)) {
         extractedBlogs = apiResponse;
-      } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
-        extractedBlogs = (apiResponse as any).data;
+      } else if (apiResponse && typeof apiResponse === 'object') {
+        const raw = apiResponse as any;
+        if (Array.isArray(raw.data)) {
+          extractedBlogs = raw.data;
+        } else if (Array.isArray(raw.docs)) {
+          extractedBlogs = raw.docs;
+        } else if (Array.isArray(raw.blogs)) {
+          extractedBlogs = raw.blogs;
+        }
       }
 
       setPublishingQueueList(extractedBlogs);
@@ -52,10 +60,8 @@ export default function OfficerPublishingDeskPage() {
     }
   }, [currentOfficerUser, isPermissionAllowed, fetchPublishingQueue]);
 
-  // Accepts BlogPost | string to match BlogTable's onPublish prop
   const handlePublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
-
     const articleId = typeof target === "string" ? target : target._id;
 
     try {
@@ -66,10 +72,8 @@ export default function OfficerPublishingDeskPage() {
     }
   };
 
-  // Accepts BlogPost | string to match BlogTable's onUnpublish prop
   const handleUnpublishArticle = async (target: BlogPost | string) => {
     if (!currentOfficerUser) return;
-
     const articleId = typeof target === "string" ? target : target._id;
 
     try {
@@ -82,6 +86,27 @@ export default function OfficerPublishingDeskPage() {
 
   const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
+
+  // Safe string-casting prevents TypeScript literal mismatch errors
+  const pendingCount = publishingQueueList.filter((s) => {
+    const statusStr = String(s.status || '').toLowerCase();
+    return (
+      statusStr === 'pending' ||
+      statusStr === 'submitted' ||
+      statusStr === 'pending_review' ||
+      statusStr === 'in_review'
+    );
+  }).length;
+
+  const approvedCount = publishingQueueList.filter((s) => {
+    const statusStr = String(s.status || '').toLowerCase();
+    return statusStr === 'approved' || s.publishConsentStatus === 'approved';
+  }).length;
+
+  const publishedCount = publishingQueueList.filter((s) => {
+    const statusStr = String(s.status || '').toLowerCase();
+    return statusStr === 'published' || (s as any).isPublished === true;
+  }).length;
 
   if (sessionLoading || !isPermissionAllowed || !currentOfficerUser) {
     return (
@@ -105,54 +130,45 @@ export default function OfficerPublishingDeskPage() {
     <div className="min-h-screen bg-[#FAF9F5] pb-20 font-sans text-[#1E2620]">
       <Header
         title="Live Publishing Desk"
-        subtitle="Manage active public articles and release approved creator manuscripts to the live website"
+        subtitle="Manage pending, approved, and live public articles from a unified editorial queue"
       />
 
       <main className="mx-auto max-w-7xl px-8 py-8">
         {/* Metric Overview Strip */}
         <div className="mb-10 grid gap-5 sm:grid-cols-3">
-          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
             <div className="flex items-center justify-between">
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
-                style={monoFont}
-              >
-                Live Catalog
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]" style={monoFont}>
+                Pending Review
               </span>
-              <Globe size={16} className="text-[#1E2620]" />
+              <Clock size={16} className="text-[#A9812F]" />
             </div>
             <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
-              {isDataLoading ? "…" : publishingQueueList.length}
+              {isDataLoading ? "…" : pendingCount}
             </p>
           </div>
 
           <div className="bg-[#FAF9F5] border-t-2 border-[#3F6B4F] border-b border-x border-[#E2DDCF] p-5">
             <div className="flex items-center justify-between">
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
-                style={monoFont}
-              >
-                Desk Status
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#3F6B4F]" style={monoFont}>
+                Approved Stories
               </span>
               <CheckCircle2 size={16} className="text-[#3F6B4F]" />
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#5A6259]">
-              Officer active. Ready to approve or withdraw live articles.
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataLoading ? "…" : approvedCount}
             </p>
           </div>
 
-          <div className="bg-[#FAF9F5] border-t-2 border-[#A9812F] border-b border-x border-[#E2DDCF] p-5">
+          <div className="bg-[#FAF9F5] border-t-2 border-[#1E2620] border-b border-x border-[#E2DDCF] p-5">
             <div className="flex items-center justify-between">
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#A9812F]"
-                style={monoFont}
-              >
-                Publication Protocol
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#1E2620]" style={monoFont}>
+                Live Published
               </span>
-              <FileText size={16} className="text-[#A9812F]" />
+              <Globe size={16} className="text-[#1E2620]" />
             </div>
-            <p className="mt-3 text-xs leading-relaxed text-[#5A6259]">
-              All items in this desk match live public records.
+            <p className="mt-3 text-3xl font-serif italic text-[#1E2620]" style={displayFont}>
+              {isDataLoading ? "…" : publishedCount}
             </p>
           </div>
         </div>
