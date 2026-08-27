@@ -1,15 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Loader2, AlertCircle, Eye, EyeOff, Clock } from "lucide-react";
 import { loginUser } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { Role } from "@/types";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // 🟢 Detect if session expired redirect parameter is present in URL
+  const isExpired = searchParams?.get("expired") === "true";
+
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -69,6 +74,126 @@ export default function LoginPage() {
   };
 
   return (
+    <div className="relative z-10 w-full max-w-sm bg-white/25 backdrop-blur-md border border-white/40 rounded-[28px] p-6 sm:p-7 shadow-2xl shadow-[#133248]/50">
+      
+      {/* Logo Header */}
+      <div className="flex justify-center mb-2">
+        <div className="relative w-14 h-14 rounded-full bg-white border-2 border-[#E52B67] shadow-md flex items-center justify-center overflow-hidden p-1.5">
+          <img 
+            src="/image/biocap-logo.png" 
+            alt="BioCap Logo" 
+            className="w-full h-full object-contain rounded-full"
+            onError={(e) => {
+              e.currentTarget.src = "/image/rab-logo.png";
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Title */}
+      <h1 className="text-xl font-bold text-center mb-4 tracking-tight">
+        <span className="text-[#E52B67]">Bio</span>
+        <span className="text-[#133248]">Cap</span>{" "}
+        <span className="text-[#133248] font-medium">Login</span>
+      </h1>
+
+      {/* 🟢 Session Expired Alert Banner */}
+      {isExpired && (
+        <div className="mb-4 rounded-xl bg-amber-500/20 border border-amber-500/40 p-2.5 flex items-center gap-2 text-amber-100 text-xs font-semibold">
+          <Clock className="w-4 h-4 text-amber-300 shrink-0" />
+          <span>Your session has expired. Please log in again to continue.</span>
+        </div>
+      )}
+
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-4 rounded-xl bg-rose-500/20 border border-rose-500/40 p-2.5 flex items-center gap-2 text-white text-xs font-semibold">
+          <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-3">
+        
+        {/* Username/Email */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Username or Email"
+            value={form.identifier}
+            onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+            disabled={isSubmitting}
+            className="w-full px-5 py-2.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] transition-all border border-white disabled:opacity-60"
+          />
+        </div>
+
+        {/* Password */}
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            disabled={isSubmitting}
+            className="w-full pl-5 pr-10 py-2.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] transition-all border border-white disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#E52B67] transition-colors cursor-pointer"
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Forgot Password */}
+        <div className="text-right pt-0.5 pb-0.5">
+          <Link
+            href="/auth/forgot-password"
+            className="text-xs font-semibold text-[#133248] hover:text-[#E52B67] transition-colors"
+          >
+            Forgot Password?
+          </Link>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full py-2.5 px-5 rounded-full bg-[#133248] hover:bg-[#0e273a] active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-[#133248]/30 border border-[#E52B67]/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-[#E52B67]" />
+              <span>Signing in...</span>
+            </>
+          ) : (
+            <span>Login</span>
+          )}
+        </button>
+      </form>
+
+      {/* Footer */}
+      <div className="mt-5 text-center border-t border-[#133248]/15 pt-3">
+        <p className="text-xs text-[#133248] font-medium">
+          No account?{" "}
+          <Link
+            href="/auth/register"
+            className="font-bold text-[#E52B67] hover:underline"
+          >
+            Register here
+          </Link>
+        </p>
+      </div>
+
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="relative h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#133248] via-[#235D74] to-[#632B70] overflow-hidden px-4 selection:bg-[#E52B67] selection:text-white">
       
       {/* ── BIOCAP DNA HELIX & BACKGROUND GRAPHICS ── */}
@@ -96,114 +221,10 @@ export default function LoginPage() {
 
       <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* ── MAIN BIOCAP COMPACT CARD ── */}
-      <div className="relative z-10 w-full max-w-sm bg-white/25 backdrop-blur-md border border-white/40 rounded-[28px] p-6 sm:p-7 shadow-2xl shadow-[#133248]/50">
-        
-        {/* Logo Header */}
-        <div className="flex justify-center mb-2">
-          <div className="relative w-14 h-14 rounded-full bg-white border-2 border-[#E52B67] shadow-md flex items-center justify-center overflow-hidden p-1.5">
-            <img 
-              src="/image/biocap-logo.png" 
-              alt="BioCap Logo" 
-              className="w-full h-full object-contain rounded-full"
-              onError={(e) => {
-                e.currentTarget.src = "/image/rab-logo.png";
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Title */}
-        <h1 className="text-xl font-bold text-center mb-5 tracking-tight">
-          <span className="text-[#E52B67]">Bio</span>
-          <span className="text-[#133248]">Cap</span>{" "}
-          <span className="text-[#133248] font-medium">Login</span>
-        </h1>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-4 rounded-xl bg-rose-500/20 border border-rose-500/40 p-2.5 flex items-center gap-2 text-white text-xs font-semibold">
-            <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          
-          {/* Username/Email */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Username or Email"
-              value={form.identifier}
-              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-              disabled={isSubmitting}
-              className="w-full px-5 py-2.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] transition-all border border-white disabled:opacity-60"
-            />
-          </div>
-
-          {/* Password */}
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              disabled={isSubmitting}
-              className="w-full pl-5 pr-10 py-2.5 bg-white/95 text-[#133248] placeholder:text-slate-400 font-medium text-sm rounded-full shadow-inner focus:outline-none focus:ring-2 focus:ring-[#E52B67] transition-all border border-white disabled:opacity-60"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
-              className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#E52B67] transition-colors cursor-pointer"
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-
-          {/* Forgot Password */}
-          <div className="text-right pt-0.5 pb-0.5">
-            <Link
-              href="/auth/forgot-password"
-              className="text-xs font-semibold text-[#133248] hover:text-[#E52B67] transition-colors"
-            >
-              Forgot Password?
-            </Link>
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-2.5 px-5 rounded-full bg-[#133248] hover:bg-[#0e273a] active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 shadow-lg shadow-[#133248]/30 border border-[#E52B67]/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin text-[#E52B67]" />
-                <span>Signing in...</span>
-              </>
-            ) : (
-              <span>Login</span>
-            )}
-          </button>
-        </form>
-
-        {/* Footer */}
-        <div className="mt-5 text-center border-t border-[#133248]/15 pt-3">
-          <p className="text-xs text-[#133248] font-medium">
-            No account?{" "}
-            <Link
-              href="/auth/register"
-              className="font-bold text-[#E52B67] hover:underline"
-            >
-              Register here
-            </Link>
-          </p>
-        </div>
-
-      </div>
+      {/* 🟢 Suspense Boundary Wrapper for Next.js Search Parameters */}
+      <Suspense fallback={<div className="text-xs text-white">Loading login form...</div>}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

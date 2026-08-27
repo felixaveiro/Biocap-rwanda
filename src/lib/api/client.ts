@@ -34,8 +34,9 @@ let refreshPromise: Promise<string | null> | null = null;
  */
 function handleAuthFailure() {
   authCookies.clearAll();
-  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-    window.location.href = "/login?expired=true";
+  // 🟢 FIX: Target '/auth/login' instead of '/login' to avoid 404
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth/login")) {
+    window.location.href = "/auth/login?expired=true";
   }
 }
 
@@ -66,7 +67,7 @@ async function tryRefreshToken(): Promise<string | null> {
         body: JSON.stringify({ refreshToken }),
       });
 
-      // 🟢 FIX: Handle 400, 401, and 403 as expired/invalid refresh sessions
+      // Handle 400, 401, and 403 as expired/invalid refresh sessions
       if (res.status === 400 || res.status === 401 || res.status === 403) {
         handleAuthFailure();
         return null;
