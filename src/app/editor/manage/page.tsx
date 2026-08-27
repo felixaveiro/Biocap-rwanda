@@ -16,7 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-// ── Type system (matches My Stories / Create Story) ────────────
+// ── Typography & System Styling ─────────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -36,8 +36,6 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
-// ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · sky #4A6E8A · line #D9D4C6
-
 export default function EditorManagePage() {
   const { user: currentEditorUser, loading: sessionLoading, allowed } = useSession("blog:view");
 
@@ -53,6 +51,7 @@ export default function EditorManagePage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  // ── High-Speed Fetch Handler ──────────────────────────────────────────────
   const fetchAllBlogs = useCallback(async () => {
     if (!currentEditorUser) return;
     setIsLoading(true);
@@ -105,73 +104,111 @@ export default function EditorManagePage() {
     return { total, pending, approved, published };
   }, [blogs]);
 
-  // ─── Workflow Actions (mirror Admin handlers) ─────────────────────────────
+  // ── Instant Optimistic Action Handlers (0ms UI Latency) ───────────────────
 
   const handlePublishToggle = async (target: BlogPost | string) => {
     if (!currentEditorUser) return;
 
-    const blog = typeof target === "string" ? blogs.find((b) => b._id === target) : target;
-    if (!blog) return;
+    const blogId = typeof target === "string" ? target : target._id;
+    const targetBlog = blogs.find((b) => b._id === blogId);
+    if (!targetBlog) return;
+
+    const isCurrentlyPublished = targetBlog.status === "published";
+    const newStatus = isCurrentlyPublished ? "approved" : "published";
+
+    // 1. Optimistic UI update (Instant feedback in table without full re-fetching)
+    setBlogs((prev) =>
+      prev.map((b) => (b._id === blogId ? { ...b, status: newStatus } : b))
+    );
 
     try {
-      if (blog.status === "published") {
-        await blogsApi.unpublishBlog(blog._id, undefined, currentEditorUser.role as Role);
+      // 2. Perform background request
+      if (isCurrentlyPublished) {
+        await blogsApi.unpublishBlog(blogId, undefined, currentEditorUser.role as Role);
       } else {
-        await blogsApi.publishBlog(blog._id, currentEditorUser.role as Role);
+        await blogsApi.publishBlog(blogId, currentEditorUser.role as Role);
       }
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to toggle publish status:", err);
+      // Rollback local state ONLY on network failure (prevents state reversion on refresh)
+      setBlogs((prev) =>
+        prev.map((b) => (b._id === blogId ? { ...b, status: targetBlog.status } : b))
+      );
+      setErrorMsg("Unable to update article status. Please check your connection.");
     }
   };
 
   const handleApprove = async (id: string) => {
     if (!currentEditorUser) return;
+
+    // Optimistic UI update
+    setBlogs((prev) =>
+      prev.map((b) => (b._id === id ? { ...b, status: "approved" } : b))
+    );
+
     try {
       await blogsApi.approveBlog(id, currentEditorUser.role as Role);
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to approve blog:", err);
+      await fetchAllBlogs();
     }
   };
 
   const handleReject = async (id: string, note?: string) => {
     if (!currentEditorUser) return;
+
+    // Optimistic UI update
+    setBlogs((prev) =>
+      prev.map((b) => (b._id === id ? { ...b, status: "draft" } : b))
+    );
+
     try {
       await blogsApi.rejectBlog(id, note, currentEditorUser.role as Role);
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to reject blog:", err);
+      await fetchAllBlogs();
     }
   };
 
   const handleSoftDelete = async (id: string) => {
     if (!currentEditorUser || !confirm("Move this article to Trash?")) return;
+
+    // Optimistic UI update (Remove instantly from active list)
+    setBlogs((prev) => prev.filter((b) => b._id !== id));
+
     try {
       await blogsApi.deleteBlog(id, currentEditorUser.role as Role);
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to soft-delete blog:", err);
+      await fetchAllBlogs();
     }
   };
 
   const handleRestore = async (id: string) => {
     if (!currentEditorUser) return;
+
+    // Optimistic UI update (Remove instantly from trash bin view)
+    setBlogs((prev) => prev.filter((b) => b._id !== id));
+
     try {
       await blogsApi.restoreBlog(id, currentEditorUser.role as Role);
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to restore blog:", err);
+      await fetchAllBlogs();
     }
   };
 
   const handlePermanentDelete = async (id: string) => {
     if (!currentEditorUser || !confirm("CRITICAL: Permanently wipe this story and remove Cloudinary media assets?")) return;
+
+    // Optimistic UI update
+    setBlogs((prev) => prev.filter((b) => b._id !== id));
+
     try {
       await blogsApi.permanentDeleteBlog(id, currentEditorUser.role as Role);
-      await fetchAllBlogs();
     } catch (err) {
       console.error("Failed to permanently delete blog:", err);
+      await fetchAllBlogs();
     }
   };
 
@@ -194,7 +231,7 @@ export default function EditorManagePage() {
       <Header title={showTrash ? "Editor Trash" : "Editor Catalog"} subtitle="Full article catalog — editable by Editors" />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Masthead / nameplate */}
+        {/* Masthead / Nameplate */}
         <div className="pb-3">
           <span className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
             Editorial Story
@@ -208,7 +245,7 @@ export default function EditorManagePage() {
           <div className="h-px w-full bg-[#1E2620]" />
         </div>
 
-        {/* Ledger stat row */}
+        {/* Ledger Stat Row */}
         {!showTrash && (
           <div className="mb-8 mt-5 grid grid-cols-2 divide-x divide-[#D9D4C6] border border-[#E2DDCF] bg-white sm:grid-cols-4">
             {[
@@ -231,7 +268,7 @@ export default function EditorManagePage() {
         )}
         {showTrash && <div className="mb-8 mt-5" />}
 
-        {/* Toolbar */}
+        {/* Toolbar Controls */}
         <div className="mb-6 flex flex-col gap-4 border-b border-[#E2DDCF] pb-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative max-w-md flex-1">
@@ -267,7 +304,7 @@ export default function EditorManagePage() {
             <button
               type="button"
               onClick={() => setShowTrash(!showTrash)}
-              className={`inline-flex items-center gap-2 border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors ${
+              className={`inline-flex items-center gap-2 border px-4 py-2 text-xs font-semibold uppercase tracking-wide transition-colors cursor-pointer ${
                 showTrash
                   ? "border-[#A9812F] bg-[#FBF6E9] text-[#8A6A24]"
                   : "border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620]"
@@ -280,7 +317,7 @@ export default function EditorManagePage() {
             <button
               type="button"
               onClick={() => fetchAllBlogs()}
-              className="inline-flex items-center justify-center gap-2 border border-[#D9D4C6] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620]"
+              className="inline-flex items-center justify-center gap-2 border border-[#D9D4C6] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] cursor-pointer"
             >
               <RefreshCw size={14} />
               Refresh
@@ -288,7 +325,7 @@ export default function EditorManagePage() {
           </div>
         </div>
 
-        {/* Error State */}
+        {/* Sync Error Callout */}
         {errorMsg && (
           <div className="mb-6 flex items-center justify-between gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
             <div className="flex items-center gap-3">
@@ -297,10 +334,10 @@ export default function EditorManagePage() {
             </div>
             <button
               onClick={fetchAllBlogs}
-              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors hover:bg-[#B65C4B] hover:text-white"
+              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors hover:bg-[#B65C4B] hover:text-white cursor-pointer"
             >
               <RefreshCw size={12} />
-              Retry
+              Retry Sync
             </button>
           </div>
         )}
@@ -335,14 +372,14 @@ export default function EditorManagePage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-35 disabled:hover:border-[#D9D4C6]"
+                className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-35 disabled:hover:border-[#D9D4C6] cursor-pointer"
               >
                 <ChevronLeft size={13} /> Previous
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-35 disabled:hover:border-[#D9D4C6]"
+                className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-white px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-35 disabled:hover:border-[#D9D4C6] cursor-pointer"
               >
                 Next <ChevronRight size={13} />
               </button>

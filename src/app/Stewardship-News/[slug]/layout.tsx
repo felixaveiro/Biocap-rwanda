@@ -16,12 +16,13 @@ async function fetchStoryForMeta(slug: string) {
   }
 }
 
+// 🟢 FIX: `params` is typed as a Promise and unwrapped with `await`
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
   const story = await fetchStoryForMeta(slug);
 
   if (!story) {

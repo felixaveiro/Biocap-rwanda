@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import Footer from '@/components/Footer';
 import ProjectDetailPage, { type Project } from '@/components/ProjectDetailPage';
 import PrecisionBiotechnologyArticle from '@/components/PrecisionBiotechnologyArticle';
@@ -581,28 +582,25 @@ const cardStyles: Record<string, { icon: typeof Sprout; accent: string; accentBg
 function StewardshipNewsContent() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const searchParams = useSearchParams();
-  const [latestStories, setLatestStories] = useState<BlogPost[]>([]);
-  const [storiesLoading, setStoriesLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchLatest = async () => {
-      setStoriesLoading(true);
-      try {
-        const res: any = await blogsApi.getPublicBlogs({ page: 1, limit: 6 });
-        let items: BlogPost[] = [];
-        if (Array.isArray(res)) items = res;
-        else if (Array.isArray(res?.data)) items = res.data;
-        else if (Array.isArray(res?.docs)) items = res.docs;
-        setLatestStories(items);
-      } catch (err) {
-        console.error('Failed to load latest stories:', err);
-      } finally {
-        setStoriesLoading(false);
-      }
-    };
+  // 🟢 OPTIMAL PRODUCTION INTERVAL: 3-Second Poll (3000ms) + Auto Revalidate on Tab Switch
+  const { data: rawStoriesData, isLoading: storiesLoading } = useSWR(
+    'public-published-stories-key',
+    () => blogsApi.getPublicBlogs({ page: 1, limit: 6 }),
+    {
+      refreshInterval: 3000,    // Polls backend every 3s for fast sync without burning free tier limits
+      revalidateOnFocus: true,   // Re-syncs immediately when visitor switches tabs back
+      dedupingInterval: 1000,    // Deduplicates simultaneous duplicate requests
+    }
+  );
 
-    fetchLatest();
-  }, []);
+  const latestStories: BlogPost[] = Array.isArray(rawStoriesData)
+    ? rawStoriesData
+    : Array.isArray((rawStoriesData as any)?.data)
+    ? (rawStoriesData as any).data
+    : Array.isArray((rawStoriesData as any)?.docs)
+    ? (rawStoriesData as any).docs
+    : [];
 
   useEffect(() => {
     const slug = searchParams.get('project');
@@ -875,7 +873,7 @@ function StewardshipNewsContent() {
         {/* ── LATEST PUBLISHED STORIES ── */}
         <section className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
           <h2 className="mb-4 text-2xl font-bold text-slate-900">Published News</h2>
-          {storiesLoading ? (
+          {storiesLoading && !rawStoriesData ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
               <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />

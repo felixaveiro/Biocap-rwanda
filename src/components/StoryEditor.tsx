@@ -78,7 +78,6 @@ const KIND_META: Record<SectionKind, { glyph: string; label: string; icon: typeo
 
 const KIND_ORDER: SectionKind[] = ["paragraph", "heading", "quote", "image"];
 
-// ── Markdown <-> rich text conversion ────────────────────────
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -174,7 +173,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
   const [linkUrlValue, setLinkUrlValue] = useState("");
 
   const [activeLinkPreview, setActiveLinkPreview] = useState<ActiveLinkPreviewState | null>(null);
-
   const activeSelectionRef = useRef<ActiveSelection | null>(null);
 
   const onChangeRef = useRef(onChange);
@@ -182,6 +180,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  // 🟢 OPTIMIZED BLOCK PAYLOAD BUILDER: Prevents embedding massive Base64 strings into JSON
   useEffect(() => {
     const blocks: any[] = [];
     const files: File[] = [];
@@ -212,11 +211,17 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
       if (sec.imageFile || sec.imagePreview) {
         const fileKey = sec.imageFileKey || `section-img-${sec.id}.jpg`;
+        
+        // If imagePreview is a blob or remote URL, use it; avoid sending raw Base64 data
+        const displaySrc = sec.imagePreview?.startsWith("data:image")
+          ? undefined
+          : sec.imagePreview;
+
         blocks.push({
           type: "image",
           fileKey: fileKey,
-          src: sec.imagePreview || undefined,
-          imagePreview: sec.imagePreview || undefined,
+          src: displaySrc,
+          rawFile: sec.imageFile || undefined, // 🟢 Attached for direct Cloudinary upload in blogs.ts
           caption: (sec.caption || "").trim(),
           fitMode: sec.fitMode || "cover",
         });
@@ -314,7 +319,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     });
   };
 
-  /** Open URL in a new browser tab safely without closing active state */
   const openUrlInNewTab = (e: React.MouseEvent, url: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -412,16 +416,23 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     reader.readAsDataURL(file);
   };
 
+  // 🟢 FAST CROPPING SAVE: Converts Base64 crop result to a lightweight Blob URL for immediate UI rendering
   const handleCropSave = (croppedBase64: string) => {
     if (!croppingSectionId) return;
 
     const fileKey = `${crypto.randomUUID()}__inline.jpg`;
-    const renamed = base64ToFile(croppedBase64, fileKey);
+    const renamedFile = base64ToFile(croppedBase64, fileKey);
+    const blobPreviewUrl = URL.createObjectURL(renamedFile); // Lightweight Object URL
 
     setSections((s) =>
       s.map((sec) =>
         sec.id === croppingSectionId
-          ? { ...sec, imageFile: renamed, imagePreview: croppedBase64, imageFileKey: fileKey }
+          ? {
+              ...sec,
+              imageFile: renamedFile,
+              imagePreview: blobPreviewUrl,
+              imageFileKey: fileKey,
+            }
           : sec
       )
     );
@@ -844,7 +855,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
             e.stopPropagation();
           }}
         >
-          {/* Directly Clickable Truncated URL Text */}
           <div className="flex items-center gap-1.5 max-w-[220px] truncate">
             <Link2 size={14} className="text-[#1a73e8] shrink-0" />
             <button
@@ -860,7 +870,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
           <div className="h-4 w-px bg-[#E2DDCF]" />
 
-          {/* Open Button */}
           <button
             type="button"
             onMouseDown={(e) => openUrlInNewTab(e, activeLinkPreview.url)}
@@ -871,7 +880,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
             <ExternalLink size={14} /> Open
           </button>
 
-          {/* Remove Link Button */}
           <button
             type="button"
             onMouseDown={(e) => {

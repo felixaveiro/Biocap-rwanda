@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, Comment, BlogBlock } from "@/types";
@@ -26,14 +26,15 @@ import {
   Plus,
   Trash2,
   Eye,
-  EyeOff,
   Feather,
   Upload,
   Image as ImageIcon,
   ShieldCheck,
+  MessageCircle,
+  Calendar,
 } from "lucide-react";
 
-// ── Type system (matches the rest of the editorial suite) ──────
+// ── Typography & Fonts ─────────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -53,6 +54,75 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+function formatPublishedLinks(text: string): string {
+  if (!text) return '';
+
+  const normalizeUrl = (url: string) => {
+    let trimmed = url.trim();
+    if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  // 1. Convert Markdown links [label](url) -> styled <a>
+  let formatted = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, label, url) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+  );
+
+  // 2. Convert rich text editor data-href spans
+  formatted = formatted.replace(
+    /<span class="editor-link" data-href="([^"]+)">([^<]+)<\/span>/g,
+    (_, url, label) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+  );
+
+  // 3. Convert standard HTML <a> tags
+  formatted = formatted.replace(
+    /<a\s+(?:[^>]*?\s+)?href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/gi,
+    (_, url, restAttrs, label) =>
+      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link"${restAttrs}>${label}</a>`
+  );
+
+  return formatted;
+}
+
+const renderSocialPlatformIcon = (platformName: string) => {
+  const p = platformName.toLowerCase();
+
+  if (p.includes('x') || p.includes('twitter')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 fill-[#1E2620] transition-transform hover:scale-110 hover:fill-[#C22055]">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+      </svg>
+    );
+  }
+  if (p.includes('linkedin')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 fill-[#0A66C2] transition-transform hover:scale-110 hover:fill-[#C22055]">
+        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
+      </svg>
+    );
+  }
+  if (p.includes('facebook')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 fill-[#1877F2] transition-transform hover:scale-110 hover:fill-[#C22055]">
+        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+      </svg>
+    );
+  }
+  if (p.includes('instagram')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 fill-[#E4405F] transition-transform hover:scale-110 hover:fill-[#C22055]">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 2.156 4.919 5.406.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 5.255-4.919 5.404-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-2.199-4.919-5.404-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-5.255 4.919-5.406 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+      </svg>
+    );
+  }
+  return <MessageCircle size={24} className="text-[#3F6B4F] transition-transform hover:scale-110" />;
+};
+
 interface ReviewStoryModalProps {
   story: BlogPost;
   currentUserRole: Role;
@@ -61,36 +131,32 @@ interface ReviewStoryModalProps {
 }
 
 export default function ReviewStoryModal({
-  story,
+  story: initialStory,
   currentUserRole,
   onClose,
   onReviewCompleted,
 }: ReviewStoryModalProps) {
+  const [story, setStory] = useState<BlogPost>(initialStory);
+  const [isLoadingFullStory, setIsLoadingFullStory] = useState(true);
+
   const [revisionFeedbackNote, setRevisionFeedbackNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ─── Editable Content States ──────────────────────────────────────────────
   const [isEditingContent, setIsEditingContent] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(story.title || "");
-  const [editedExcerpt, setEditedExcerpt] = useState(story.excerpt || "");
-  const [editedBlocks, setEditedBlocks] = useState<BlogBlock[]>(() => {
-    if (story.blocks && story.blocks.length > 0) {
-      return story.blocks;
-    }
-    return [{ type: "p", text: "" }];
-  });
+  const [editedTitle, setEditedTitle] = useState(initialStory.title || "");
+  const [editedExcerpt, setEditedExcerpt] = useState(initialStory.excerpt || "");
+  const [editedBlocks, setEditedBlocks] = useState<BlogBlock[]>([]);
 
-  // Track newly attached image Files for dynamic body section blocks
   const [editedSectionFiles, setEditedSectionFiles] = useState<Record<number, File>>({});
 
   // ─── Cover Image & Cropping States ─────────────────────────────────────────
-  const [currentImgUrl, setCurrentImgUrl] = useState<string>(story.img || "");
+  const [currentImgUrl, setCurrentImgUrl] = useState<string>(initialStory.img || "");
   const [croppedImageFile, setCroppedImageFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [pendingCropImageSrc, setPendingCropImageSrc] = useState<string | null>(null);
 
-  // File Input Refs
   const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Discussion & Moderation States ─────────────────────────────────────────
@@ -99,7 +165,7 @@ export default function ReviewStoryModal({
   const [isPostingComment, setIsPostingComment] = useState(false);
   const [activeCommentActionId, setActiveCommentActionId] = useState<string | null>(null);
 
-  // ─── Portal mount guard (avoids SSR document access) ──────────────────────
+  // ─── Portal mount guard ────────────────────────────────────────────────────
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -111,31 +177,70 @@ export default function ReviewStoryModal({
   const canModerateComments = ["admin", "editor", "communication_officer"].includes(userRoleStr);
   const isPublished = story.status === "published";
 
-  // Author Display Name Resolution
-  const authorName = story.author?.firstName
-    ? `${story.author.firstName} ${story.author.lastName || ""}`.trim()
-    : story.author?.username || story.originalAuthor?.firstName || "Contributor";
+  useEffect(() => {
+    let active = true;
+    const fetchFullStory = async () => {
+      if (!initialStory._id) return;
+      setIsLoadingFullStory(true);
+      try {
+        const fullData = await blogsApi.getBlogById(initialStory._id, currentUserRole);
+        if (active && fullData) {
+          setStory(fullData);
+          setEditedTitle(fullData.title || "");
+          setEditedExcerpt(fullData.excerpt || "");
+          setCurrentImgUrl(fullData.img || "");
+          setEditedBlocks(
+            fullData.blocks && fullData.blocks.length > 0
+              ? fullData.blocks
+              : [{ type: "p", text: "" }]
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load full story payload:", err);
+      } finally {
+        if (active) setIsLoadingFullStory(false);
+      }
+    };
+
+    fetchFullStory();
+    return () => {
+      active = false;
+    };
+  }, [initialStory._id, currentUserRole]);
+
+  const creator = story.originalAuthor || story.author;
+  const authorFullName = creator?.firstName
+    ? `${creator.firstName} ${creator.lastName || ""}`.trim()
+    : creator?.username || "BioCap Contributor";
+  const authorJobTitle = creator?.jobTitle?.trim() || "";
+  const authorDisplayByline = authorJobTitle
+    ? `${authorFullName} (${authorJobTitle})`
+    : authorFullName;
+
+  const publishedLabel = story.publishedAt
+    ? new Date(story.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    : story.createdAt
+    ? new Date(story.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    : new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
   const fetchComments = useCallback(async () => {
-    if (!story._id) return;
+    if (!story._id || !canModerateComments) return;
     try {
       const data = await officerApi.getArticleComments(story._id);
       setComments(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      if (err?.status === 403) {
-        console.warn("Role does not have permission to read internal comments.");
+      if (err?.status === 403 || err?.response?.status === 403) {
         setComments([]);
         return;
       }
       console.error("Failed to fetch comments for story:", err);
     }
-  }, [story._id]);
+  }, [story._id, canModerateComments]);
 
   useEffect(() => {
     fetchComments();
   }, [fetchComments]);
 
-  // ─── Cover Image Upload Handlers ───────────────────────────────────────────
   const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -158,7 +263,6 @@ export default function ReviewStoryModal({
     setPendingCropImageSrc(null);
   };
 
-  // ─── Comment Operations ───────────────────────────────────────────────────
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
@@ -209,7 +313,6 @@ export default function ReviewStoryModal({
     }
   };
 
-  // ─── Block Editing Helpers ──────────────────────────────────────────────────
   const updateBlockText = (index: number, text: string) => {
     setEditedBlocks((prev) =>
       prev.map((b, i) => (i === index ? { ...b, text } : b))
@@ -277,7 +380,6 @@ export default function ReviewStoryModal({
     ]);
   };
 
-  // ─── Decision Submission ──────────────────────────────────────────────────
   const handleDecision = async (decision: "approve" | "reject") => {
     setIsSubmitting(true);
     setErrorMessage(null);
@@ -344,15 +446,33 @@ export default function ReviewStoryModal({
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
   const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
+  const isFilteredOrgLink =
+    story.organizationLink &&
+    !story.organizationLink.includes('realgreengoldltd.com');
+
   if (!isMounted) return null;
 
   return createPortal(
     <>
+      <style>{`
+        .published-article-link, .published-article-link * {
+          color: #0057FF !important;
+          text-decoration: underline !important;
+          text-decoration-color: #0057FF !important;
+          text-underline-offset: 2px !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+        }
+        .published-article-link:hover {
+          color: #003DB8 !important;
+        }
+      `}</style>
+
       <div
         className={`${fontVars} fixed inset-0 z-[9999] flex items-center justify-center bg-[#1E2620]/40 p-4 backdrop-blur-md animate-in fade-in duration-150`}
         style={bodyFont}
       >
-        <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden border border-[#D9D4C6] bg-[#FDFCFA] shadow-2xl">
+        <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden border border-[#D9D4C6] bg-[#FDFCFA] shadow-2xl">
           <input
             type="file"
             ref={coverFileInputRef}
@@ -361,7 +481,7 @@ export default function ReviewStoryModal({
             className="hidden"
           />
 
-          {/* Modal masthead */}
+          {/* Modal header */}
           <div className="flex items-center justify-between border-b border-[#D9D4C6] bg-[#F3F2ED] px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="border border-[#D9D4C6] bg-white p-2 text-[#3F6B4F]">
@@ -399,16 +519,22 @@ export default function ReviewStoryModal({
 
             <div className="grid gap-8 lg:grid-cols-3">
               <div className="space-y-6 border-[#EDEAE0] pr-0 lg:col-span-2 lg:border-r lg:pr-8">
+                {/* Story metadata bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDEAE0] pb-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <span
-                      className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#3A4239]"
+                      className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#C22055] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
                     >
                       <Tag size={11} /> {story.tag || "General"}
                     </span>
-                    <span className="inline-flex items-center gap-1 text-xs text-[#6B7268]">
-                      <UserIcon size={12} className="text-[#8B9188]" /> {authorName}
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-[#1B3A5C]">
+                      <UserIcon size={12} className="text-[#1B3A5C]" /> By {authorDisplayByline}
                     </span>
+                    {publishedLabel && (
+                      <span className="inline-flex items-center gap-1 text-xs text-[#6B7268]">
+                        <Calendar size={12} className="text-[#8B9188]" /> {publishedLabel}
+                      </span>
+                    )}
                   </div>
 
                   {isEditor && !isPublished && (
@@ -419,18 +545,18 @@ export default function ReviewStoryModal({
                     >
                       {isEditingContent ? (
                         <>
-                          <Eye size={13} /> Preview mode
+                          <Eye size={13} /> Preview Mode
                         </>
                       ) : (
                         <>
-                          <Edit3 size={13} /> Edit story &amp; images
+                          <Edit3 size={13} /> Edit Story Content
                         </>
                       )}
                     </button>
                   )}
                 </div>
 
-                {(story.socialHandle || story.organizationLink || story.document) && (
+                {(story.socialHandle || story.organizationLink || story.document || story.documentUrl) && (
                   <div className="flex flex-wrap items-center gap-4 border border-[#EDEAE0] bg-[#FAF9F5] p-3 text-xs text-[#5A6259]">
                     {story.socialHandle && (
                       <span className="inline-flex items-center gap-1 font-semibold text-[#3A4239]">
@@ -447,24 +573,32 @@ export default function ReviewStoryModal({
                         <Globe size={13} /> {story.organizationLink}
                       </a>
                     )}
-                    {story.document && (
+                    {(story.document || story.documentUrl) && (
                       <a
-                        href={story.document}
+                        href={story.documentUrl || story.document}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 font-semibold text-[#4A6E8A] hover:underline"
                       >
-                        <FileText size={13} /> Attached PDF
+                        <FileText size={13} /> {story.documentName || "Download Attachment PDF"}
                       </a>
                     )}
                   </div>
                 )}
 
-                {isEditingContent ? (
+                {/* Loading skeleton */}
+                {isLoadingFullStory ? (
+                  <div className="space-y-4 animate-pulse py-6">
+                    <div className="h-6 w-3/4 bg-slate-100 rounded" />
+                    <div className="h-48 w-full bg-slate-100 rounded-xl" />
+                    <div className="h-4 w-full bg-slate-100 rounded" />
+                    <div className="h-4 w-5/6 bg-slate-100 rounded" />
+                  </div>
+                ) : isEditingContent ? (
                   <div className="space-y-5 border border-[#3F6B4F]/25 bg-[#F1F5F1] p-5">
                     <div>
                       <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#2F4F3B]">
-                        Story headline
+                        Story Headline
                       </label>
                       <input
                         type="text"
@@ -477,7 +611,7 @@ export default function ReviewStoryModal({
 
                     <div>
                       <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-[#2F4F3B]">
-                        Excerpt / summary
+                        Excerpt / Summary
                       </label>
                       <textarea
                         rows={2}
@@ -489,7 +623,7 @@ export default function ReviewStoryModal({
 
                     <div className="space-y-2">
                       <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#2F4F3B]">
-                        Cover image
+                        Cover Image
                       </label>
 
                       {currentImgUrl ? (
@@ -516,7 +650,7 @@ export default function ReviewStoryModal({
                               onClick={() => coverFileInputRef.current?.click()}
                               className="inline-flex items-center gap-1.5 border border-[#3F6B4F] bg-[#3F6B4F]/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#3F6B4F] cursor-pointer"
                             >
-                              <Upload size={13} /> Change cover
+                              <Upload size={13} /> Change Cover
                             </button>
                           </div>
                         </div>
@@ -527,7 +661,7 @@ export default function ReviewStoryModal({
                           className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#3F6B4F]/40 bg-white p-6 text-[#3F6B4F] transition hover:bg-[#F1F5F1] cursor-pointer"
                         >
                           <Upload size={22} strokeWidth={1.5} className="mb-1" />
-                          <span className="text-xs font-semibold">Upload cover image</span>
+                          <span className="text-xs font-semibold">Upload Cover Image</span>
                         </button>
                       )}
                     </div>
@@ -535,7 +669,7 @@ export default function ReviewStoryModal({
                     <div className="space-y-3 border-t border-[#3F6B4F]/20 pt-3">
                       <div className="flex items-center justify-between">
                         <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#2F4F3B]">
-                          Story body sections ({editedBlocks.length})
+                          Story Body Sections ({editedBlocks.length})
                         </label>
                         <div className="flex items-center gap-2">
                           <button
@@ -550,7 +684,7 @@ export default function ReviewStoryModal({
                             onClick={addImageBlock}
                             className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer"
                           >
-                            <ImageIcon size={13} /> Inline photo
+                            <ImageIcon size={13} /> Inline Photo
                           </button>
                         </div>
                       </div>
@@ -558,7 +692,7 @@ export default function ReviewStoryModal({
                       {editedBlocks.map((block, idx) => (
                         <div key={idx} className="relative space-y-3 border border-[#E2DDCF] bg-white p-3.5">
                           <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-[#8B9188]">
-                            <span>Section #{idx + 1} ({block.type === "image" ? "Inline image" : "Paragraph"})</span>
+                            <span>Section #{idx + 1} ({block.type === "image" ? "Inline Image" : "Paragraph"})</span>
                             {editedBlocks.length > 1 && (
                               <button
                                 type="button"
@@ -598,7 +732,7 @@ export default function ReviewStoryModal({
 
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                                 <label className="inline-flex cursor-pointer items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold text-[#3F6B4F] transition hover:bg-[#3F6B4F] hover:text-white">
-                                  <Upload size={13} /> Choose section image
+                                  <Upload size={13} /> Choose Section Image
                                   <input
                                     type="file"
                                     accept="image/*"
@@ -629,7 +763,7 @@ export default function ReviewStoryModal({
                                         : "border-[#D9D4C6] bg-white text-[#5A6259]"
                                     }`}
                                   >
-                                    Fit whole
+                                    Fit Whole
                                   </button>
                                 </div>
                               </div>
@@ -648,79 +782,195 @@ export default function ReviewStoryModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-6">
-                    <h1 className="text-2xl italic leading-snug text-[#1E2620]" style={displayFont}>
+                  <div className="space-y-6 text-[#334155]">
+                    <h1 className="art-serif text-3xl font-bold italic leading-tight text-[#1B3A5C] sm:text-4xl" style={displayFont}>
                       {editedTitle}
                     </h1>
 
                     {currentImgUrl && (
-                      <div className="group relative flex max-h-[420px] items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#0f2240]">
                         <img
                           src={currentImgUrl}
                           alt={story.title}
-                          className="max-h-[420px] w-full object-contain"
+                          className="max-h-[420px] w-full object-cover"
                         />
-                        {isEditor && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPendingCropImageSrc(currentImgUrl);
-                              setIsCropperOpen(true);
-                            }}
-                            className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] cursor-pointer"
-                          >
-                            <Crop size={14} className="text-[#8FBF9F]" /> Recrop cover image
-                          </button>
-                        )}
                       </div>
                     )}
 
+                    {/* 🟢 FIXED: Excerpt rendering with link formatting */}
                     {editedExcerpt && (
-                      <div className="border-l-2 border-[#D9D4C6] bg-[#FAF9F5] p-4 text-xs italic leading-relaxed text-[#3A4239]">
-                        "{editedExcerpt}"
-                      </div>
+                      <div
+                        className="border-l-[3px] border-[#C22055] bg-slate-50 p-4 text-sm italic leading-relaxed text-slate-700"
+                        dangerouslySetInnerHTML={{
+                          __html: `"${formatPublishedLinks(editedExcerpt.trim())}"`,
+                        }}
+                      />
                     )}
 
-                    <div className="space-y-5 pt-2">
+                    {/* FULL ARTICLE BODY BLOCKS OR HTML RENDER */}
+                    <div className="space-y-6 pt-2">
                       {editedBlocks && editedBlocks.length > 0 ? (
                         editedBlocks.map((block: BlogBlock, idx: number) => {
-                          if (block.type === "p" || !block.type) {
+                          if (block.type === 'h2') {
                             return (
-                              <p key={idx} className="text-xs leading-relaxed text-[#3A4239] sm:text-sm">
+                              <h2 key={idx} className="text-xl font-bold text-[#1B3A5C] mt-6 mb-2">
                                 {block.text}
-                              </p>
+                              </h2>
                             );
                           }
 
-                          if (block.type === "image" && (block.src || block.url)) {
+                          {/* 🟢 FIXED: Quote block rendering with link formatting */}
+                          if (block.type === 'quote') {
                             return (
-                              <div key={idx} className="my-4 space-y-2">
-                                <div className="max-h-72 overflow-hidden border border-[#E2DDCF] bg-[#F3F2ED]">
+                              <blockquote
+                                key={idx}
+                                className="border-l-[3px] border-[#C22055] pl-4 py-1 my-4 italic text-slate-700 text-sm leading-relaxed"
+                              >
+                                <span
+                                  dangerouslySetInnerHTML={{
+                                    __html: formatPublishedLinks(block.text || ''),
+                                  }}
+                                />
+                                {block.caption && (
+                                  <footer className="mt-1 not-italic text-[10px] font-bold uppercase tracking-widest text-[#C22055]">
+                                    — {block.caption}
+                                  </footer>
+                                )}
+                              </blockquote>
+                            );
+                          }
+
+                          if (block.type === 'image' && (block.src || block.url)) {
+                            return (
+                              <figure key={idx} className="my-6 space-y-2">
+                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900 max-h-96">
                                   <img
                                     src={block.src || block.url}
                                     alt={block.caption || `Section ${idx + 1}`}
-                                    className={`max-h-72 w-full ${
-                                      block.fitMode === "contain"
-                                        ? "bg-[#1E2620] object-contain"
-                                        : "object-cover"
+                                    className={`w-full max-h-96 ${
+                                      block.fitMode === 'contain' ? 'object-contain bg-slate-950' : 'object-cover'
                                     }`}
                                   />
                                 </div>
                                 {block.caption && (
-                                  <p className="text-center text-[11px] italic text-[#8B9188]">
+                                  <figcaption className="text-center text-xs font-medium text-slate-500 italic">
                                     {block.caption}
-                                  </p>
+                                  </figcaption>
                                 )}
-                              </div>
+                              </figure>
                             );
                           }
 
-                          return null;
+                          return (
+                            <div key={idx}>
+                              {(block.text || '')
+                                .split(/\n+/)
+                                .map((paragraphText, pIdx) => (
+                                  <p
+                                    key={pIdx}
+                                    className="text-xs sm:text-sm text-slate-700 leading-relaxed text-justify mb-3"
+                                    dangerouslySetInnerHTML={{
+                                      __html: formatPublishedLinks(paragraphText.trim()),
+                                    }}
+                                  />
+                                ))}
+                            </div>
+                          );
                         })
+                      ) : story.bodyHtml ? (
+                        <div
+                          className="prose text-xs sm:text-sm leading-relaxed text-slate-700"
+                          dangerouslySetInnerHTML={{ __html: formatPublishedLinks(story.bodyHtml) }}
+                        />
                       ) : (
-                        <p className="text-xs italic text-[#8B9188]">No section blocks found for this story.</p>
+                        <p className="text-xs italic text-[#8B9188]">No article content body available.</p>
                       )}
                     </div>
+
+                    {/* Standalone Author Handles & PDF Links */}
+                    {(() => {
+                      const blogHandle = story.socialHandle?.trim();
+                      const authorHandle = story.originalAuthor?.socialHandle?.trim() || story.author?.socialHandle?.trim();
+
+                      const isDefaultHandle = !blogHandle || blogHandle.toLowerCase() === "@biocap" || blogHandle.toLowerCase() === "biocap";
+                      const rawSocialHandle = isDefaultHandle && authorHandle ? authorHandle : (blogHandle || authorHandle || "");
+
+                      if (!rawSocialHandle && !isFilteredOrgLink && !story.document && !story.documentUrl) {
+                        return null;
+                      }
+
+                      return (
+                        <div className="mt-8 pt-4 border-t border-slate-100">
+                          <div className="mb-3 flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full bg-[#C22055]" />
+                            <h4 className="text-xs font-bold uppercase tracking-wider text-[#1B3A5C]">
+                              Author Social Links &amp; Credentials
+                            </h4>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-5">
+                            {rawSocialHandle.length > 0 &&
+                              rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
+                                const parts = handleEntry.split(': ');
+                                const platform = parts.length > 1 ? parts[0] : 'Social';
+                                const handleValue = parts.length > 1 ? parts.slice(1).join(': ') : handleEntry;
+
+                                let targetUrl = handleValue;
+                                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                                  if (platform.toLowerCase().includes('twitter') || platform.toLowerCase().includes('x')) {
+                                    targetUrl = `https://x.com/${handleValue.replace('@', '')}`;
+                                  } else if (platform.toLowerCase().includes('linkedin')) {
+                                    targetUrl = `https://linkedin.com/in/${handleValue}`;
+                                  } else if (platform.toLowerCase().includes('facebook')) {
+                                    targetUrl = `https://facebook.com/${handleValue}`;
+                                  } else if (platform.toLowerCase().includes('instagram')) {
+                                    targetUrl = `https://instagram.com/${handleValue.replace('@', '')}`;
+                                  } else {
+                                    targetUrl = `https://${handleValue}`;
+                                  }
+                                }
+
+                                return (
+                                  <a
+                                    key={idx}
+                                    href={targetUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={`${platform}: ${handleValue}`}
+                                    className="group relative inline-flex items-center justify-center cursor-pointer"
+                                  >
+                                    {renderSocialPlatformIcon(platform)}
+                                  </a>
+                                );
+                              })}
+
+                            {isFilteredOrgLink && (
+                              <a
+                                href={story.organizationLink}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={`Organization: ${story.organizationLink}`}
+                                className="inline-flex items-center justify-center text-[#1B3A5C] hover:text-[#C22055] transition-transform hover:scale-110"
+                              >
+                                <Globe size={24} />
+                              </a>
+                            )}
+
+                            {(story.document || story.documentUrl) && (
+                              <a
+                                href={story.documentUrl || story.document}
+                                target="_blank"
+                                rel="noreferrer"
+                                title={story.documentName || 'Download Document PDF'}
+                                className="inline-flex items-center justify-center text-[#2F8F5B] hover:text-[#C22055] transition-transform hover:scale-110"
+                              >
+                                <FileText size={24} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -730,12 +980,12 @@ export default function ReviewStoryModal({
                 {!isPublished && (
                   <div className="space-y-4 border border-[#E2DDCF] bg-[#FAF9F5] p-5">
                     <h4 className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-                      {isEditor ? "Editorial decision" : "Review approval panel"}
+                      {isEditor ? "Editorial Decision" : "Review Approval Panel"}
                     </h4>
 
                     <div>
                       <label className="mb-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase text-[#8B9188]">
-                        <MessageSquare size={13} /> Notes / instructions
+                        <MessageSquare size={13} /> Notes / Instructions
                       </label>
                       <textarea
                         rows={4}
@@ -759,10 +1009,10 @@ export default function ReviewStoryModal({
                           <CheckCircle2 size={15} />
                         )}
                         {isEditor
-                          ? "Approve for publication"
+                          ? "Approve for Publication"
                           : story.editorModifications
-                          ? "Accept editor changes"
-                          : "Approve story"}
+                          ? "Accept Editor Changes"
+                          : "Approve Story"}
                       </button>
 
                       <button
@@ -776,7 +1026,7 @@ export default function ReviewStoryModal({
                         ) : (
                           <XCircle size={15} />
                         )}
-                        Request changes
+                        Request Changes
                       </button>
                     </div>
                   </div>
@@ -786,7 +1036,7 @@ export default function ReviewStoryModal({
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
                     <h4 className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-                      <MessageSquare size={14} className="text-[#3F6B4F]" /> Internal notes ({comments.length})
+                      <MessageSquare size={14} className="text-[#3F6B4F]" /> Internal Notes ({comments.length})
                     </h4>
                     {canModerateComments && (
                       <span className="inline-flex items-center gap-1 border border-[#3F6B4F]/30 bg-[#3F6B4F]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#3F6B4F]" style={monoFont}>
@@ -808,7 +1058,7 @@ export default function ReviewStoryModal({
                       disabled={isPostingComment || !newCommentText.trim()}
                       className="inline-flex w-full items-center justify-center gap-1.5 border border-[#1E2620] bg-[#1E2620] py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
                     >
-                      <Send size={12} /> {isPostingComment ? "Posting…" : "Post comment"}
+                      <Send size={12} /> {isPostingComment ? "Posting…" : "Post Comment"}
                     </button>
                   </form>
 
@@ -848,7 +1098,6 @@ export default function ReviewStoryModal({
                               {comment.content}
                             </p>
 
-                            {/* Moderation Controls for Admins, Editors, and Officers */}
                             {canModerateComments && (
                               <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#EDEAE0]">
                                 <button
@@ -867,7 +1116,7 @@ export default function ReviewStoryModal({
                                     </>
                                   ) : (
                                     <>
-                                      <EyeOff size={11} /> Hide
+                                      <Eye size={11} /> Hide
                                     </>
                                   )}
                                 </button>

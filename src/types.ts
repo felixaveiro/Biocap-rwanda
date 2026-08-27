@@ -264,6 +264,10 @@ export interface BlogPost {
   tag: string;
   excerpt: string;
   blocks: BlogBlock[];
+  
+  // 🟢 FIXED: Added optional Rich-Text HTML content support
+  bodyHtml?: string;
+
   modal?: BlogModalMetadata;
   img: string; // Cover photo URL
   imgPublicId?: string;

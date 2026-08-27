@@ -17,9 +17,9 @@ import {
   AlertTriangle,
   MessageSquare,
   RotateCcw,
+  Globe,
 } from "lucide-react";
 
-// ── Type system ───────────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -73,7 +73,6 @@ export default function BlogTable({
   const [editingStory, setEditingStory] = useState<BlogPost | null>(null);
   const [reviewingStory, setReviewingStory] = useState<BlogPost | null>(null);
 
-  // If parent requests opening a specific story, set editingStory when available
   useEffect(() => {
     if (!openStoryId) return;
     const match = blogs.find((b) => b._id === openStoryId);
@@ -83,7 +82,6 @@ export default function BlogTable({
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Normalize user.role whether it's a string or an array
   const userRoleStr = Array.isArray(user.role) ? user.role[0] : user.role;
   const userRoles = Array.isArray(user.role) ? user.role : [user.role];
 
@@ -96,7 +94,7 @@ export default function BlogTable({
   );
   const isEditor = userRoles.some((r) => r === "editor" || r === "admin");
   const canPublish = userRoles.some(
-    (r) => r === "communication_officer" || r === "admin" || r === "editor"
+    (r) => r === "communication_officer" || r === "admin" || r === "editor" || isCreator
   );
 
   // Creator Action: Submit Draft for Review
@@ -115,18 +113,38 @@ export default function BlogTable({
     }
   };
 
-  // Editor Action: Unpublish Article
-  const handleUnpublishStory = async (storyId: string) => {
-    if (!window.confirm("Are you sure you want to return this article to review status?")) return;
+  // 🟢 DIRECT FAST PUBLISH HANDLER
+  const handlePublishStory = async (story: BlogPost) => {
+    if (onPublish) {
+      onPublish(story);
+      return;
+    }
 
-    setActiveActionId(storyId);
+    setActiveActionId(story._id);
     setActionError(null);
     try {
-      if (onUnpublish) {
-        await onUnpublish(storyId);
-      } else {
-        await editorApi.unpublishBlog(storyId, { note: "Unpublished by Editor from Catalog" });
-      }
+      await blogsApi.publishBlog(story._id, userRoleStr as Role);
+      if (onRefreshNeeded) onRefreshNeeded();
+    } catch (err: unknown) {
+      console.error("Failed to publish story:", err);
+      const msg = err instanceof Error ? err.message : "Failed to publish story.";
+      setActionError(msg);
+    } finally {
+      setActiveActionId(null);
+    }
+  };
+
+  // 🟢 DIRECT FAST UNPUBLISH HANDLER
+  const handleUnpublishStory = async (story: BlogPost) => {
+    if (onUnpublish) {
+      await onUnpublish(story._id);
+      return;
+    }
+
+    setActiveActionId(story._id);
+    setActionError(null);
+    try {
+      await blogsApi.unpublishBlog(story._id, {}, userRoleStr as Role);
       if (onRefreshNeeded) onRefreshNeeded();
     } catch (err: unknown) {
       console.error("Failed to unpublish story:", err);
@@ -252,7 +270,6 @@ export default function BlogTable({
                         {story.excerpt || "No excerpt provided."}
                       </p>
 
-                      {/* Display Editor Revision Note if Rejected */}
                       {story.status === "rejected" && story.lastRejectionNote && (
                         <div className="mt-2 inline-flex items-center gap-1.5 border border-[#A9812F]/30 bg-[#A9812F]/10 px-2.5 py-1 text-[11px] font-medium text-[#7A5D22]">
                           <MessageSquare size={12} className="shrink-0" />
@@ -290,7 +307,6 @@ export default function BlogTable({
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* TRASH BIN ACTIONS */}
                         {showTrash ? (
                           <>
                             {onRestore && (
@@ -316,108 +332,91 @@ export default function BlogTable({
                             )}
                           </>
                         ) : (
-                          /* STANDARD WORKFLOW ACTIONS */
                           <>
-                            {/* CREATOR ACTIONS */}
-                            {isCreator && (
-                              <>
-                                {/* EYE BUTTON: Triggers ReviewStoryModal */}
-                                <button
-                                  type="button"
-                                  disabled={isBusy}
-                                  onClick={() => handleOpenViewModal(story)}
-                                  className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
-                                  title="View Full Story"
-                                >
-                                  <Eye size={15} />
-                                </button>
+                            {/* COMMON VIEW & EDIT BUTTONS */}
+                            <button
+                              type="button"
+                              disabled={isBusy}
+                              onClick={() => handleOpenViewModal(story)}
+                              className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
+                              title="View Full Story"
+                            >
+                              <Eye size={15} />
+                            </button>
 
-                                {(story.status === "draft" || story.status === "rejected") && (
-                                  <button
-                                    disabled={isBusy}
-                                    onClick={() => handleSubmitForReview(story._id)}
-                                    className={btnGold}
-                                    title="Submit Draft for Editorial Review"
-                                  >
-                                    {isBusy ? (
-                                      <Loader2 size={13} className="animate-spin" />
-                                    ) : (
-                                      <Send size={13} />
-                                    )}
-                                    Submit
-                                  </button>
-                                )}
-
-                                <button
-                                  disabled={isBusy}
-                                  onClick={() => handleOpenEditModal(story)}
-                                  className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
-                                  title="Edit Story"
-                                >
-                                  <Edit3 size={15} />
-                                </button>
-
-                                <button
-                                  disabled={isBusy}
-                                  onClick={() => handleDeleteStory(story._id, story.title)}
-                                  className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
-                                  title="Delete Story Draft"
-                                >
-                                  {isBusy ? (
-                                    <Loader2 size={15} className="animate-spin" />
-                                  ) : (
-                                    <Trash2 size={15} />
-                                  )}
-                                </button>
-                              </>
-                            )}
-
-                            {/* EDITOR ACTIONS */}
-                            {isEditor && (
-                              <>
-                                <button
-                                  onClick={() => handleOpenViewModal(story)}
-                                  className={btnNeutral}
-                                  title="Review Submission Workspace"
-                                >
-                                  <Eye size={13} /> Review
-                                </button>
-
-                                {story.status === "published" && (
-                                  <button
-                                    disabled={isBusy}
-                                    onClick={() => handleUnpublishStory(story._id)}
-                                    className={btnClay}
-                                    title="Unpublish Article"
-                                  >
-                                    <XCircle size={13} /> Unpublish
-                                  </button>
-                                )}
-
-                                <button
-                                  disabled={isBusy}
-                                  onClick={() => handleDeleteStory(story._id, story.title)}
-                                  className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
-                                  title="Move Story to Trash"
-                                >
-                                  {isBusy ? (
-                                    <Loader2 size={15} className="animate-spin" />
-                                  ) : (
-                                    <Trash2 size={15} />
-                                  )}
-                                </button>
-                              </>
-                            )}
-
-                            {/* PUBLISHER ACTIONS */}
-                            {canPublish && story.status === "approved" && onPublish && (
+                            {(story.status === "draft" || story.status === "rejected") && isCreator && (
                               <button
-                                onClick={() => onPublish(story)}
-                                className={btnMoss}
+                                disabled={isBusy}
+                                onClick={() => handleSubmitForReview(story._id)}
+                                className={btnGold}
+                                title="Submit Draft for Editorial Review"
                               >
-                                <CheckCircle2 size={13} /> Publish
+                                {isBusy ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Send size={13} />
+                                )}
+                                Submit
                               </button>
                             )}
+
+                            <button
+                              disabled={isBusy}
+                              onClick={() => handleOpenEditModal(story)}
+                              className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
+                              title="Edit Story"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+
+                            {/* 🟢 PUBLISH BUTTON FOR APPROVED STORIES */}
+                            {story.status === "approved" && (
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handlePublishStory(story)}
+                                className={btnMoss}
+                                title="Publish Story Live"
+                              >
+                                {isBusy ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <Globe size={13} />
+                                )}
+                                Publish
+                              </button>
+                            )}
+
+                            {/* 🟢 UNPUBLISH BUTTON FOR PUBLISHED STORIES */}
+                            {story.status === "published" && (
+                              <button
+                                type="button"
+                                disabled={isBusy}
+                                onClick={() => handleUnpublishStory(story)}
+                                className={btnClay}
+                                title="Unpublish Article"
+                              >
+                                {isBusy ? (
+                                  <Loader2 size={13} className="animate-spin" />
+                                ) : (
+                                  <XCircle size={13} />
+                                )}
+                                Unpublish
+                              </button>
+                            )}
+
+                            <button
+                              disabled={isBusy}
+                              onClick={() => handleDeleteStory(story._id, story.title)}
+                              className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
+                              title="Delete Story Draft"
+                            >
+                              {isBusy ? (
+                                <Loader2 size={15} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={15} />
+                              )}
+                            </button>
                           </>
                         )}
                       </div>
@@ -430,7 +429,6 @@ export default function BlogTable({
         </table>
       </div>
 
-      {/* RENDER EDIT STORY MODAL */}
       {editingStory && (
         <EditStoryModal
           story={editingStory}
@@ -443,7 +441,6 @@ export default function BlogTable({
         />
       )}
 
-      {/* RENDER REVIEW STORY MODAL */}
       {reviewingStory && (
         <ReviewStoryModal
           story={reviewingStory}

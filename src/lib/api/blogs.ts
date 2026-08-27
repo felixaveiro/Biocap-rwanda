@@ -1,4 +1,7 @@
-import { apiRequest, apiFormRequest, ApiError } from "./client";
+// src/lib/api/blogs.ts
+
+import { apiRequest, ApiError } from "./client";
+import { base64ToFile } from "@/lib/utils/file";
 import {
   BlogPost,
   BlogBlock,
@@ -20,8 +23,8 @@ export interface CreateBlogPayload {
   modal?: BlogModalMetadata;
   socialHandle?: string;
   organizationLink?: string;
-  img: File;
-  document?: File;
+  img: File | string; // Allow File or hosted/base64 URL
+  document?: File | string;
   images?: File[];
 }
 
@@ -33,8 +36,8 @@ export interface UpdateBlogPayload {
   modal?: BlogModalMetadata;
   socialHandle?: string;
   organizationLink?: string;
-  img?: File;
-  document?: File;
+  img?: File | string; // Allow File or hosted/base64 URL
+  document?: File | string;
   images?: File[];
 }
 
@@ -111,10 +114,55 @@ export interface AuditLogFilterOptions {
   limit?: number;
 }
 
-// ─── Helper: Dynamic Base Route Path ──────────────────────────────────────────
+export interface CloudinarySignatureResponse {
+  signature: string;
+  timestamp: number;
+  apiKey: string;
+  cloudName: string;
+  folder: string;
+}
+
+// ─── Helper: Direct Cloudinary Signature & Parallel Upload ───────────────────
+
+/**
+ * Fetches an upload signature from the backend and uploads a file directly 
+ * from the browser to Cloudinary (bypassing the Render server).
+ */
+export async function uploadDirectToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
+  // 1. Get cryptographic signature from backend
+  const sig = await apiRequest<CloudinarySignatureResponse>("/api/upload/signature", { auth: true });
+
+  // 2. Prepare Direct Cloudinary FormData
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("api_key", sig.apiKey);
+  formData.append("timestamp", sig.timestamp.toString());
+  formData.append("signature", sig.signature);
+  formData.append("folder", sig.folder);
+
+  // 3. Upload directly to Cloudinary
+  const cloudRes = await fetch(
+    `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!cloudRes.ok) {
+    throw new ApiError("Failed to upload image directly to Cloudinary", cloudRes.status);
+  }
+
+  const data = await cloudRes.json();
+  return {
+    url: data.secure_url || data.url,
+    publicId: data.public_id,
+  };
+}
+
+// ─── Dynamic Base Route Path Helpers ──────────────────────────────────────────
 
 function getBlogBasePath(_role?: Role): string {
-  // Always query /api/blogs so officers, admins, and editors can retrieve all statuses
   return "/api/blogs";
 }
 
@@ -192,7 +240,7 @@ export async function addPublicBlogComment(slug: string, payload: PublicCommentP
   });
 }
 
-// ─── Comment Moderation API Operations ────────────────────────────────────────
+// ─── Comment Moderation Operations ───────────────────────────────────────────
 
 export async function hideBlogComment(blogId: string, commentId: string): Promise<{ message: string; comment: Comment }> {
   return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/${blogId}/comments/${commentId}/hide`, {
@@ -275,44 +323,119 @@ export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
 }
 
 export async function createBlog(payload: CreateBlogPayload, _role?: Role): Promise<BlogPost> {
-  const endpoint = "/api/blogs";
+  // 🟢 1. MULTI-TENDED PARALLEL UPLOAD PIPELINE
+  const uploadPromises: Promise<{ url: string; publicId: string }>[] = [];
 
-  const formData = new FormData();
-  formData.append("title", payload.title);
-  formData.append("tag", payload.tag);
-  formData.append("excerpt", payload.excerpt);
+  // Cover Image File Resolution
+  let coverFileToUpload: File | null = null;
+  let coverUrl = "";
+  let coverPublicId: string | undefined = undefined;
 
-  if (payload.blocks) {
-    formData.append("blocks", JSON.stringify(payload.blocks));
-  }
-  if (payload.modal) {
-    formData.append("modal", JSON.stringify(payload.modal));
-  }
-  if (payload.socialHandle) {
-    formData.append("socialHandle", payload.socialHandle);
-  }
-  if (payload.organizationLink) {
-    formData.append("organizationLink", payload.organizationLink);
+  if (payload.img instanceof File) {
+    coverFileToUpload = payload.img;
+  } else if (typeof payload.img === "string" && payload.img.startsWith("data:image")) {
+    coverFileToUpload = base64ToFile(payload.img, `cover-${Date.now()}.jpg`);
+  } else if (typeof payload.img === "string" && payload.img.trim()) {
+    coverUrl = payload.img.trim();
   }
 
-  formData.append("img", payload.img);
-  if (payload.document) {
-    formData.append("document", payload.document);
+  let coverPromiseIdx = -1;
+  if (coverFileToUpload) {
+    coverPromiseIdx = uploadPromises.length;
+    uploadPromises.push(uploadDirectToCloudinary(coverFileToUpload));
   }
-  if (payload.images && Array.isArray(payload.images)) {
-    for (const file of payload.images) {
-      try {
-        formData.append("images", file, file.name);
-      } catch {
-        formData.append("images", file as unknown as Blob);
+
+  // Document File Resolution
+  let docFileToUpload: File | null = null;
+  if (payload.document instanceof File) {
+    docFileToUpload = payload.document;
+  } else if (typeof payload.document === "string" && payload.document.startsWith("data:")) {
+    docFileToUpload = base64ToFile(payload.document, `doc-${Date.now()}.pdf`);
+  }
+
+  let docPromiseIdx = -1;
+  if (docFileToUpload) {
+    docPromiseIdx = uploadPromises.length;
+    uploadPromises.push(uploadDirectToCloudinary(docFileToUpload));
+  }
+
+  // Section Block Images Resolution
+  const blockImageIndices: { blockIdx: number; promiseIdx: number }[] = [];
+  (payload.blocks || []).forEach((block, idx) => {
+    let fileToUpload: File | null = null;
+
+    if (block.type === "image" || block.type === "hero") {
+      if ((block as any).rawFile instanceof File) {
+        fileToUpload = (block as any).rawFile;
+      } else if (typeof block.src === "string" && block.src.startsWith("data:image")) {
+        fileToUpload = base64ToFile(block.src, `inline-${Date.now()}-${idx}.jpg`);
       }
     }
+
+    if (fileToUpload) {
+      blockImageIndices.push({
+        blockIdx: idx,
+        promiseIdx: uploadPromises.length,
+      });
+      uploadPromises.push(uploadDirectToCloudinary(fileToUpload));
+    }
+  });
+
+  // 🟢 2. EXECUTE ALL UPLOADS CONCURRENTLY
+  const uploadResults = await Promise.all(uploadPromises);
+
+  // Map Cover Upload
+  if (coverPromiseIdx !== -1 && uploadResults[coverPromiseIdx]) {
+    coverUrl = uploadResults[coverPromiseIdx].url;
+    coverPublicId = uploadResults[coverPromiseIdx].publicId;
   }
 
-  const res = await apiFormRequest<unknown>(endpoint, {
+  if (!coverUrl) {
+    throw new ApiError("A cover image is required before submitting your story.", 400);
+  }
+
+  // Map Document Upload
+  let documentData: { url: string; publicId: string } | undefined;
+  if (docPromiseIdx !== -1 && uploadResults[docPromiseIdx]) {
+    documentData = uploadResults[docPromiseIdx];
+  } else if (typeof payload.document === "string" && !payload.document.startsWith("data:")) {
+    documentData = { url: payload.document, publicId: "" };
+  }
+
+  // Map Inline Block Uploads
+  const processedBlocks = (payload.blocks || []).map((block, idx) => {
+    const matchedUpload = blockImageIndices.find((b) => b.blockIdx === idx);
+    if (matchedUpload && uploadResults[matchedUpload.promiseIdx]) {
+      const result = uploadResults[matchedUpload.promiseIdx];
+      return {
+        ...block,
+        src: result.url,
+        source: result.publicId,
+      };
+    }
+    return block;
+  });
+
+  // 🟢 3. SUBMIT INSTANT (<100ms) JSON PAYLOAD
+  const res = await apiRequest<unknown>("/api/blogs", {
     method: "POST",
-    formData,
     auth: true,
+    body: {
+      title: payload.title,
+      tag: payload.tag,
+      excerpt: payload.excerpt,
+      blocks: processedBlocks,
+      modal: payload.modal,
+      socialHandle: payload.socialHandle,
+      organizationLink: payload.organizationLink,
+      img: coverUrl,
+      ...(coverPublicId && { imgPublicId: coverPublicId }),
+      ...(documentData && {
+        documentUrl: documentData.url,
+        ...(documentData.publicId && { documentPublicId: documentData.publicId }),
+        documentName: payload.document instanceof File ? payload.document.name : undefined,
+      }),
+    },
   });
 
   const normalized = extractBlogFromResponse(res);
@@ -320,33 +443,114 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
 }
 
 export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?: Role): Promise<BlogPost> {
-  const endpoint = `/api/blogs/${id}`;
+  const uploadPromises: Promise<{ url: string; publicId: string }>[] = [];
 
-  const formData = new FormData();
-  if (payload.title) formData.append("title", payload.title);
-  if (payload.tag) formData.append("tag", payload.tag);
-  if (payload.excerpt) formData.append("excerpt", payload.excerpt);
-  if (payload.blocks) formData.append("blocks", typeof payload.blocks === "string" ? payload.blocks : JSON.stringify(payload.blocks));
-  if (payload.modal) formData.append("modal", typeof payload.modal === "string" ? payload.modal : JSON.stringify(payload.modal));
-  if (payload.socialHandle) formData.append("socialHandle", payload.socialHandle);
-  if (payload.organizationLink) formData.append("organizationLink", payload.organizationLink);
+  // Cover Image
+  let coverFileToUpload: File | null = null;
+  let coverImageUrl: string | undefined;
+  let coverImagePublicId: string | undefined;
 
-  if (payload.img) formData.append("img", payload.img);
-  if (payload.document) formData.append("document", payload.document);
-  if (payload.images && Array.isArray(payload.images)) {
-    for (const file of payload.images) {
-      try {
-        formData.append("images", file, file.name);
-      } catch {
-        formData.append("images", file as unknown as Blob);
-      }
-    }
+  if (payload.img instanceof File) {
+    coverFileToUpload = payload.img;
+  } else if (typeof payload.img === "string" && payload.img.startsWith("data:image")) {
+    coverFileToUpload = base64ToFile(payload.img, `cover-${Date.now()}.jpg`);
+  } else if (typeof payload.img === "string") {
+    coverImageUrl = payload.img;
   }
 
-  const res = await apiFormRequest<unknown>(endpoint, {
+  let coverPromiseIdx = -1;
+  if (coverFileToUpload) {
+    coverPromiseIdx = uploadPromises.length;
+    uploadPromises.push(uploadDirectToCloudinary(coverFileToUpload));
+  }
+
+  // Document
+  let docFileToUpload: File | null = null;
+  if (payload.document instanceof File) {
+    docFileToUpload = payload.document;
+  } else if (typeof payload.document === "string" && payload.document.startsWith("data:")) {
+    docFileToUpload = base64ToFile(payload.document, `doc-${Date.now()}.pdf`);
+  }
+
+  let docPromiseIdx = -1;
+  if (docFileToUpload) {
+    docPromiseIdx = uploadPromises.length;
+    uploadPromises.push(uploadDirectToCloudinary(docFileToUpload));
+  }
+
+  // Blocks
+  const blockImageIndices: { blockIdx: number; promiseIdx: number }[] = [];
+  if (payload.blocks && Array.isArray(payload.blocks)) {
+    payload.blocks.forEach((block, idx) => {
+      let fileToUpload: File | null = null;
+
+      if (block.type === "image" || block.type === "hero") {
+        if ((block as any).rawFile instanceof File) {
+          fileToUpload = (block as any).rawFile;
+        } else if (typeof block.src === "string" && block.src.startsWith("data:image")) {
+          fileToUpload = base64ToFile(block.src, `inline-${crypto.randomUUID()}.jpg`);
+        }
+      }
+
+      if (fileToUpload) {
+        blockImageIndices.push({
+          blockIdx: idx,
+          promiseIdx: uploadPromises.length,
+        });
+        uploadPromises.push(uploadDirectToCloudinary(fileToUpload));
+      }
+    });
+  }
+
+  // Execute Parallel Uploads
+  const uploadResults = await Promise.all(uploadPromises);
+
+  if (coverPromiseIdx !== -1 && uploadResults[coverPromiseIdx]) {
+    coverImageUrl = uploadResults[coverPromiseIdx].url;
+    coverImagePublicId = uploadResults[coverPromiseIdx].publicId;
+  }
+
+  let documentData: { url: string; publicId: string } | undefined;
+  if (docPromiseIdx !== -1 && uploadResults[docPromiseIdx]) {
+    documentData = uploadResults[docPromiseIdx];
+  } else if (typeof payload.document === "string" && !payload.document.startsWith("data:")) {
+    documentData = { url: payload.document, publicId: "" };
+  }
+
+  let processedBlocks = payload.blocks;
+  if (payload.blocks && Array.isArray(payload.blocks)) {
+    processedBlocks = payload.blocks.map((block, idx) => {
+      const matchedUpload = blockImageIndices.find((b) => b.blockIdx === idx);
+      if (matchedUpload && uploadResults[matchedUpload.promiseIdx]) {
+        const result = uploadResults[matchedUpload.promiseIdx];
+        return {
+          ...block,
+          src: result.url,
+          source: result.publicId,
+        };
+      }
+      return block;
+    });
+  }
+
+  const res = await apiRequest<unknown>(`/api/blogs/${id}`, {
     method: "PUT",
-    formData,
     auth: true,
+    body: {
+      ...(payload.title && { title: payload.title }),
+      ...(payload.tag && { tag: payload.tag }),
+      ...(payload.excerpt && { excerpt: payload.excerpt }),
+      ...(processedBlocks && { blocks: processedBlocks }),
+      ...(payload.modal && { modal: payload.modal }),
+      ...(payload.socialHandle && { socialHandle: payload.socialHandle }),
+      ...(payload.organizationLink && { organizationLink: payload.organizationLink }),
+      ...(coverImageUrl && { img: coverImageUrl, ...(coverImagePublicId && { imgPublicId: coverImagePublicId }) }),
+      ...(documentData && {
+        documentUrl: documentData.url,
+        ...(documentData.publicId && { documentPublicId: documentData.publicId }),
+        documentName: payload.document instanceof File ? payload.document.name : undefined,
+      }),
+    },
   });
 
   const normalized = extractBlogFromResponse(res);
@@ -459,7 +663,7 @@ export async function getOfficerPublishedBlogs(params: BlogFilterOptions = {}): 
   if (params.search) query.append("search", params.search);
 
   const queryString = query.toString() ? `?${query.toString()}` : "";
-  return apiRequest<PaginatedResponse<BlogPost>>(`/api/officer/published${queryString}`, { auth: true });
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/officer/published${queryString}`, { auth: false });
 }
 
 export async function getOfficerPublishedBlogById(id: string): Promise<BlogPost> {

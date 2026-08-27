@@ -30,13 +30,23 @@ interface RequestOptions {
 let refreshPromise: Promise<string | null> | null = null;
 
 /**
+ * Helper to clear authentication state and redirect cleanly to login.
+ */
+function handleAuthFailure() {
+  authCookies.clearAll();
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login?expired=true";
+  }
+}
+
+/**
  * Clean, single-target token refresh mechanism.
  */
 async function tryRefreshToken(): Promise<string | null> {
   const refreshToken = authCookies.getRefreshToken();
 
   if (!refreshToken) {
-    authCookies.clearAll();
+    handleAuthFailure();
     return null;
   }
 
@@ -56,13 +66,14 @@ async function tryRefreshToken(): Promise<string | null> {
         body: JSON.stringify({ refreshToken }),
       });
 
-      // Handle unauthenticated state (invalid or expired refresh token)
-      if (res.status === 401 || res.status === 403) {
-        authCookies.clearAll();
+      // 🟢 FIX: Handle 400, 401, and 403 as expired/invalid refresh sessions
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
+        handleAuthFailure();
         return null;
       }
 
       if (!res.ok) {
+        handleAuthFailure();
         return null;
       }
 
@@ -83,6 +94,7 @@ async function tryRefreshToken(): Promise<string | null> {
       refreshPromise = null;
     }
 
+    handleAuthFailure();
     return null;
   })();
 
@@ -109,6 +121,7 @@ export async function apiRequest<T>(
   if (auth && !isPublicRoute) {
     const token = authCookies.getToken();
     if (!token) {
+      handleAuthFailure();
       throw new ApiError("You must be logged in to perform this action.", 401);
     }
     headers.Authorization = `Bearer ${token}`;
@@ -152,6 +165,8 @@ export async function apiRequest<T>(
           0
         );
       }
+    } else {
+      throw new ApiError("Session expired. Please log in again.", 401);
     }
   }
 
@@ -190,6 +205,7 @@ export async function apiFormRequest<T>(
   if (auth && !isPublicRoute) {
     const token = authCookies.getToken();
     if (!token) {
+      handleAuthFailure();
       throw new ApiError("You must be logged in to perform this action.", 401);
     }
     headers.Authorization = `Bearer ${token}`;
@@ -232,6 +248,8 @@ export async function apiFormRequest<T>(
           0
         );
       }
+    } else {
+      throw new ApiError("Session expired. Please log in again.", 401);
     }
   }
 

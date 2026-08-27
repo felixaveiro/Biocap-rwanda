@@ -73,6 +73,7 @@ export default function EditStoryModal({
   const [implementationNote, setImplementationNote] = useState("");
   const [isImplementing, setIsImplementing] = useState(false);
 
+  // 🟢 INSTANT RETURN SUBMISSION HANDLER
   const handleUpdateStory = async (e: React.FormEvent, submitForReview = false) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -88,7 +89,7 @@ export default function EditStoryModal({
           text: text.trim(),
         }));
 
-      // 1. Update story details via blogsApi.updateBlog
+      // 1. Send update request (blogsApi uses direct Cloudinary signed uploads)
       await blogsApi.updateBlog(
         story._id,
         {
@@ -106,13 +107,14 @@ export default function EditStoryModal({
         await blogsApi.submitBlog(story._id, currentUserRole);
       }
 
+      // 🟢 SPEED FIX: Instantly notify parent and close modal without waiting for re-renders
+      setIsSubmitting(false);
       onStoryUpdated();
       onClose();
     } catch (error: unknown) {
       console.error("Failed to update story:", error);
       const msg = error instanceof Error ? error.message : "Failed to save story changes.";
       setErrorMessage(msg);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -135,7 +137,6 @@ export default function EditStoryModal({
         currentUserRole
       );
 
-      // Refresh parent list/detail
       onStoryUpdated();
       setImplementingChange(null);
       setImplementationNote("");
@@ -169,7 +170,7 @@ export default function EditStoryModal({
     >
       <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden border border-[#E2DDCF] bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150">
         
-        {/* ── Header ────────────────────────────────────────────────── */}
+        {/* Header */}
         <div className="flex items-center justify-between border-b border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
           <div>
             <p
@@ -184,15 +185,16 @@ export default function EditStoryModal({
           </div>
           <button
             type="button"
+            disabled={isSubmitting}
             onClick={onClose}
             aria-label="Close"
-            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620] cursor-pointer"
+            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620] cursor-pointer disabled:opacity-50"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* ── Body ──────────────────────────────────────────────────── */}
+        {/* Body */}
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
           
           {/* Editor Feedback Banner */}
@@ -440,9 +442,9 @@ export default function EditStoryModal({
 
         </div>
 
-        {/* ── Footer Actions ───────────────────────────────────────── */}
+        {/* Footer Actions */}
         <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-[#E2DDCF] bg-[#FAF9F5] px-6 py-4">
-          <button type="button" onClick={onClose} className={btnNeutral}>
+          <button type="button" disabled={isSubmitting} onClick={onClose} className={btnNeutral}>
             Cancel
           </button>
           <button
@@ -452,7 +454,7 @@ export default function EditStoryModal({
             className={btnNeutral}
           >
             {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            Save Draft
+            {isSubmitting ? "Saving..." : "Save Draft"}
           </button>
           <button
             type="button"
@@ -461,7 +463,7 @@ export default function EditStoryModal({
             className={btnGold}
           >
             {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            Save &amp; Submit
+            {isSubmitting ? "Submitting..." : "Save & Submit"}
           </button>
         </div>
 

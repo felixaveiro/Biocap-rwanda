@@ -12,10 +12,7 @@ import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
 import { Plus, AlertCircle, RefreshCw, FileText, PenLine } from "lucide-react";
 
-// ── Type system ───────────────────────────────────────────────
-// Display: Fraunces (serif, editorial, used sparingly for headline moments)
-// Body/UI: Inter (clean, functional)
-// Data: IBM Plex Mono (tabular figures, eyebrows — "ledger" feel)
+// ── Typography System ─────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -35,21 +32,30 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
-// ── Palette (used via inline hex, no Tailwind config needed) ──
-// canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
-
-// Sub-component wrapper that uses useSearchParams at top level
+// ── Wrapper Component for Search Parameters ───────────────────
 function StoryTableWrapper({
   stories,
   user,
   onRefresh,
+  onEditStory,
 }: {
   stories: BlogPost[];
   user: any;
   onRefresh: () => void;
+  onEditStory: (story: BlogPost) => void;
 }) {
   const searchParams = useSearchParams();
   const openStoryId = searchParams ? searchParams.get("open") : null;
+
+  // Auto-open Edit Modal if URL contains ?open=STORY_ID
+  useEffect(() => {
+    if (openStoryId && stories.length > 0) {
+      const match = stories.find((s) => s._id === openStoryId);
+      if (match) {
+        onEditStory(match);
+      }
+    }
+  }, [openStoryId, stories, onEditStory]);
 
   return (
     <BlogTable
@@ -57,6 +63,7 @@ function StoryTableWrapper({
       user={user}
       onRefreshNeeded={onRefresh}
       openStoryId={openStoryId}
+      onEditStory={onEditStory}
     />
   );
 }
@@ -135,7 +142,7 @@ export default function CreatorMyStoriesPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
-        {/* Masthead strip */}
+        {/* Masthead Header Strip */}
         <div className="border-b border-[#D9D4C6] pb-5">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -149,7 +156,7 @@ export default function CreatorMyStoriesPage() {
                 className="mt-1 text-2xl italic text-[#1E2620]"
                 style={displayFont}
               >
-                Your submissions, at a BioCap Rwanda
+                Your submissions at BioCap Rwanda
               </h1>
             </div>
 
@@ -184,7 +191,7 @@ export default function CreatorMyStoriesPage() {
           </div>
         </div>
 
-        {/* Rejection Alert Callout */}
+        {/* Rejection Feedback Alert Callout */}
         {rejectedCount > 0 && (
           <div className="flex items-start gap-3 border-l-2 border-[#A9812F] bg-[#FBF6E9] px-4 py-3.5">
             <PenLine size={16} className="mt-0.5 shrink-0 text-[#8A6A24]" />
@@ -199,7 +206,7 @@ export default function CreatorMyStoriesPage() {
           </div>
         )}
 
-        {/* Sync Error Callout */}
+        {/* Network Sync Error Callout */}
         {fetchErrorMessage && (
           <div className="flex items-center justify-between gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
             <div className="flex items-center gap-3">
@@ -209,14 +216,14 @@ export default function CreatorMyStoriesPage() {
             <button
               type="button"
               onClick={fetchPersonalStories}
-              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors duration-200 hover:bg-[#B65C4B] hover:text-white"
+              className="inline-flex items-center gap-1.5 border border-[#B65C4B]/40 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#B65C4B] transition-colors duration-200 hover:bg-[#B65C4B] hover:text-white cursor-pointer"
             >
               <RefreshCw size={12} /> Retry Sync
             </button>
           </div>
         )}
 
-        {/* Content Table or Empty State */}
+        {/* Content Table Container */}
         {isDataLoading ? (
           <div className="h-72 w-full animate-pulse border border-[#E2DDCF] bg-white" />
         ) : personalStoriesList.length === 0 ? (
@@ -244,6 +251,7 @@ export default function CreatorMyStoriesPage() {
                 stories={personalStoriesList}
                 user={currentCreatorUser}
                 onRefresh={fetchPersonalStories}
+                onEditStory={(story) => setEditingStory(story)}
               />
             </Suspense>
           </div>

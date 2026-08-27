@@ -72,7 +72,6 @@ export default function CreateNewStoryPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Sync state with profile automatically
   useEffect(() => {
     if (user && !isProfileSynced) {
       if (user.socialHandle) setSocialHandle(user.socialHandle);
@@ -81,7 +80,6 @@ export default function CreateNewStoryPage() {
     }
   }, [user, isProfileSynced]);
 
-  // Social Platform Detector
   const detectedSocialPlatform = useMemo(() => {
     const val = socialHandle.toLowerCase().trim();
     if (!val) return null;
@@ -101,7 +99,7 @@ export default function CreateNewStoryPage() {
   const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
   const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
-  const monoFont: React.CSSProperties = { fontFamily: "var(--font-[#5A6259])" };
+  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
   if (loading || !allowed || !user) {
     return (
@@ -120,9 +118,13 @@ export default function CreateNewStoryPage() {
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setCoverImageFile(file);
+      
       const reader = new FileReader();
       reader.onload = () => {
-        setRawImageSrc(reader.result as string);
+        const result = reader.result as string;
+        setRawImageSrc(result);
+        setCroppedPreview(result);
         setIsCropperOpen(true);
       };
       reader.readAsDataURL(file);
@@ -146,27 +148,50 @@ export default function CreateNewStoryPage() {
   };
 
   const handleSubmit = async (shouldSubmitForReview: boolean = false) => {
-    if (!title.trim() || !tag.trim() || !coverImageFile) {
-      setErrorMsg("Please provide a title, tag, and cover image.");
-      return;
+    // 🟢 Cover Image Resolution
+    let finalCoverImg: File | string | null = null;
+
+    if (coverImageFile instanceof File && coverImageFile.size > 0) {
+      finalCoverImg = coverImageFile;
+    } else if (typeof croppedPreview === "string" && croppedPreview.length > 0) {
+      finalCoverImg = croppedPreview;
+    } else if (typeof rawImageSrc === "string" && rawImageSrc.length > 0) {
+      finalCoverImg = rawImageSrc;
     }
 
-    if (!excerpt.trim() && (!blocks || blocks.length === 0)) {
-      setErrorMsg("Please provide either an excerpt or at least one story section.");
-      return;
+    if (!title.trim() || !tag.trim() || !finalCoverImg) {
+      const missingErr = "A cover image is required before submitting your story. Please select or crop an image.";
+      setErrorMsg(missingErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      throw new Error(missingErr);
+    }
+
+    if (!excerpt.trim() && (!blocks || blocks.length === 0) && !content.trim()) {
+      const contentErr = "Please provide either an excerpt or at least one story section.";
+      setErrorMsg(contentErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      throw new Error(contentErr);
     }
 
     const finalSocialHandle = socialHandle.trim() || user.socialHandle || "";
     const finalOrgLink = organizationLink.trim() || user.organizationLink || "";
 
     if (isSocialCreator && !finalSocialHandle) {
-      setErrorMsg("A social media handle is required for your account type.");
-      return;
+      const handleErr = "A social media handle is required for your account type.";
+      setErrorMsg(handleErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      throw new Error(handleErr);
     }
 
     if (isMediaCorrespondent && !finalOrgLink) {
-      setErrorMsg("An organization link is required for Media Correspondent accounts.");
-      return;
+      const orgErr = "An organization link is required for Media Correspondent accounts.";
+      setErrorMsg(orgErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      throw new Error(orgErr);
     }
 
     setIsSubmitting(true);
@@ -174,17 +199,18 @@ export default function CreateNewStoryPage() {
 
     try {
       const creatorRole = (user.role as Role) || "contributor";
-      const payloadBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
+      const rawBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
 
+      // 🟢 PARALLEL CLOUDINARY UPLOAD + API SUBMISSION
       const newBlog = await blogsApi.createBlog(
         {
           title: title.trim(),
           tag: tag.trim(),
           excerpt: excerpt.trim(),
-          blocks: payloadBlocks,
+          blocks: rawBlocks,
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
-          img: coverImageFile,
+          img: finalCoverImg,
           images: inlineImages,
         },
         creatorRole
@@ -194,24 +220,27 @@ export default function CreateNewStoryPage() {
         await blogsApi.submitBlog(newBlog._id, creatorRole);
       }
 
+      // 🟢 REVALIDATE ROUTE & REDIRECT IMMEDIATELY
+      router.refresh();
       router.push("/creator/my-stories");
     } catch (err: unknown) {
       console.error("Failed to create story:", err);
       const msg = err instanceof Error ? err.message : "Failed to create story.";
       setErrorMsg(msg);
+      setIsReviewModalOpen(false);
+      throw err;
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Construct temporary BlogPost object for AuthorReviewModal preview
   const previewStoryObject = {
     _id: "temp-preview-id",
     title: title || "Untitled Story",
     tag: tag || "General",
     excerpt: excerpt || "",
     status: "draft",
-    img: croppedPreview || "",
+    img: croppedPreview || rawImageSrc || "",
     blocks: blocks.length > 0 ? blocks : [{ type: "p", text: content }],
     socialHandle: socialHandle || user.socialHandle || "",
     organizationLink: organizationLink || user.organizationLink || "",
@@ -248,7 +277,7 @@ export default function CreateNewStoryPage() {
           </Link>
         </div>
 
-        {/* Error Notification */}
+        {/* Error Notification Banner */}
         {errorMsg && (
           <div className="flex items-center gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
             <AlertCircle size={18} className="shrink-0 text-[#B65C4B]" />
@@ -426,7 +455,7 @@ export default function CreateNewStoryPage() {
         />
       )}
 
-      {/* Dedicated Author Reader Preview Modal */}
+      {/* Author Review Preview Modal */}
       {isReviewModalOpen && (
         <AuthorReviewModal
           story={previewStoryObject}
