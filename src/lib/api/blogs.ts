@@ -62,6 +62,10 @@ export interface PublicCommentPayload {
   parentComment?: string | null;
 }
 
+export interface InternalNotePayload {
+  content: string;
+}
+
 export interface BlogConsentPayload {
   approved: boolean;
   note?: string;
@@ -208,7 +212,7 @@ function extractBlogFromResponse(payload: unknown): { message: string; blog: Blo
   return { message: String(data.message || ""), blog: (null as unknown) as BlogPost };
 }
 
-// ─── Public Endpoints (No Auth Required) ──────────────────────────────────────
+// ─── 1. PUBLIC AUDIENCE ENDPOINTS (Audience Comments on Published Articles) ─────
 
 export async function getPublicBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
   const query = new URLSearchParams();
@@ -232,11 +236,55 @@ export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
   }
 }
 
-export async function addPublicBlogComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
+/** 🟢 Fetch public comments for a published article by slug */
+export async function getPublicComments(slug: string): Promise<Comment[]> {
+  try {
+    const blog = await getPublicBlogBySlug(slug);
+    return blog?.comments || [];
+  } catch {
+    return apiRequest<Comment[]>(`/api/blogs/public/${slug}/comments`, { auth: false });
+  }
+}
+
+/** 🟢 Public audience adds a comment to a published article */
+export async function addPublicComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
   return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/public/${slug}/comments`, {
     method: "POST",
     body: payload,
     auth: false,
+  });
+}
+
+/** Alias function for backward compatibility */
+export async function addPublicBlogComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
+  return addPublicComment(slug, payload);
+}
+
+// ─── 2. INTERNAL EDITORIAL REVISION NOTES (Pre-Publishing & Reviewer Discussions) 
+
+/** Post internal review notes/feedback on a story before publication */
+export async function addComment(
+  blogId: string,
+  commentData: { content: string; name?: string; email?: string }
+): Promise<Comment | { message: string; comment: Comment }> {
+  return apiRequest<Comment | { message: string; comment: Comment }>(`/api/blogs/${blogId}/comments`, {
+    method: "POST",
+    body: commentData,
+    auth: true,
+  });
+}
+
+/** Fetch internal review notes for officers/editors */
+export async function getArticleComments(articleId: string): Promise<Comment[]> {
+  return apiRequest<Comment[]>(`/api/officer/published/${articleId}/comments`, { auth: true });
+}
+
+/** Post officer review comment for revision requests */
+export async function addArticleComment(articleId: string, content: string): Promise<{ message: string; comment: Comment }> {
+  return apiRequest<{ message: string; comment: Comment }>(`/api/officer/published/${articleId}/comments`, {
+    method: "POST",
+    body: { content },
+    auth: true,
   });
 }
 
@@ -323,7 +371,7 @@ export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
 }
 
 export async function createBlog(payload: CreateBlogPayload, _role?: Role): Promise<BlogPost> {
-  // 🟢 1. MULTI-TENDED PARALLEL UPLOAD PIPELINE
+  // 🟢 1. MULTI-THREADED PARALLEL UPLOAD PIPELINE
   const uploadPromises: Promise<{ url: string; publicId: string }>[] = [];
 
   // Cover Image File Resolution
@@ -670,18 +718,6 @@ export async function getOfficerPublishedBlogById(id: string): Promise<BlogPost>
   return apiRequest<BlogPost>(`/api/officer/published/${id}`, { auth: true });
 }
 
-export async function getArticleComments(articleId: string): Promise<Comment[]> {
-  return apiRequest<Comment[]>(`/api/officer/published/${articleId}/comments`, { auth: true });
-}
-
-export async function addArticleComment(articleId: string, content: string): Promise<{ message: string; comment: Comment }> {
-  return apiRequest<{ message: string; comment: Comment }>(`/api/officer/published/${articleId}/comments`, {
-    method: "POST",
-    body: { content },
-    auth: true,
-  });
-}
-
 export async function getEditorChanges(id: string): Promise<BlogPost> {
   return apiRequest<BlogPost>(`/api/officer/blogs/${id}/editor-changes`, { auth: true });
 }
@@ -863,7 +899,7 @@ export const editorApi = {
   },
 };
 
-// ─── Unified Namespace Exports ────────────────────────────────────────────────
+// ─── Officer Dedicated Operations ──────────────────────────────────────────
 
 export const officerApi = {
   getPendingBlogs: getOfficerPendingBlogs,
@@ -882,13 +918,27 @@ export const officerApi = {
   getActivityLogById: getOfficerActivityLogById,
 };
 
+// ─── Unified Namespace Exports ────────────────────────────────────────────────
+
 export const blogsApi = {
+  // Public Audience Comments
   getPublicBlogs,
   getPublicBlogBySlug,
-  addPublicBlogComment,
+  getPublicComments,        // 🟢 EXPORTED: Resolves getPublicComments redline
+  addPublicComment,         // 🟢 EXPORTED: Resolves addPublicComment redline
+  addPublicBlogComment,     // Alias for addPublicComment
+
+  // Internal Editorial Notes & Review Comments
+  addComment,
+  getArticleComments,
+  addArticleComment,
+
+  // Comment Moderation
   hideBlogComment,
   unhideBlogComment,
   deleteBlogComment,
+
+  // Editorial Workflow & Article CRUD
   respondToWriterConsent,
   getBlogs,
   getBlogById,
@@ -907,8 +957,6 @@ export const blogsApi = {
   unpublishBlog,
   getOfficerPublishedBlogs,
   getOfficerPublishedBlogById,
-  getArticleComments,
-  addArticleComment,
   getEditorChanges,
   acceptEditorChanges,
   getOfficerNotifications,

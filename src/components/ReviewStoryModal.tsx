@@ -223,19 +223,22 @@ export default function ReviewStoryModal({
     ? new Date(story.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // 🟢 SAFE COMMENT FETCHER: Prevents 403 Forbidden errors when non-reviewers open the modal
   const fetchComments = useCallback(async () => {
-    if (!story._id || !canModerateComments) return;
+    if (!story._id) return;
     try {
-      const data = await officerApi.getArticleComments(story._id);
-      setComments(Array.isArray(data) ? data : []);
-    } catch (err: any) {
-      if (err?.status === 403 || err?.response?.status === 403) {
-        setComments([]);
-        return;
+      if (canModerateComments) {
+        const data = await officerApi.getArticleComments(story._id);
+        setComments(Array.isArray(data) ? data : []);
+      } else {
+        // Fallback to story's embedded comments for non-officers
+        setComments(Array.isArray(story.comments) ? story.comments : []);
       }
-      console.error("Failed to fetch comments for story:", err);
+    } catch {
+      // Gracefully handle 403 / status errors without crashing the console
+      setComments(Array.isArray(story.comments) ? story.comments : []);
     }
-  }, [story._id, canModerateComments]);
+  }, [story._id, story.comments, canModerateComments]);
 
   useEffect(() => {
     fetchComments();
@@ -269,21 +272,28 @@ export default function ReviewStoryModal({
 
     setIsPostingComment(true);
     try {
-      const res = await officerApi.addArticleComment(story._id, newCommentText.trim());
-      if (res.comment) {
-        setComments((prev) => [...prev, res.comment]);
+      if (canModerateComments) {
+        const res = await officerApi.addArticleComment(story._id, newCommentText.trim());
+        if (res.comment) {
+          setComments((prev) => [...prev, res.comment]);
+        } else {
+          await fetchComments();
+        }
       } else {
+        await blogsApi.addComment(story._id, { content: newCommentText.trim() });
         await fetchComments();
       }
       setNewCommentText("");
-    } catch (err: any) {
-      alert(err.message || "Failed to post comment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to post comment.";
+      alert(msg);
     } finally {
       setIsPostingComment(false);
     }
   };
 
   const handleToggleHideComment = async (commentId: string, currentIsVisible?: boolean) => {
+    if (!canModerateComments) return;
     setActiveCommentActionId(commentId);
     try {
       if (currentIsVisible === false) {
@@ -292,22 +302,25 @@ export default function ReviewStoryModal({
         await blogsApi.hideBlogComment(story._id, commentId);
       }
       await fetchComments();
-    } catch (err: any) {
-      alert(err.message || "Moderation action failed.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Moderation action failed.";
+      alert(msg);
     } finally {
       setActiveCommentActionId(null);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
+    if (!canModerateComments) return;
     if (!confirm("Are you sure you want to permanently delete this comment?")) return;
 
     setActiveCommentActionId(commentId);
     try {
       await blogsApi.deleteBlogComment(story._id, commentId);
       await fetchComments();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete comment.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete comment.";
+      alert(msg);
     } finally {
       setActiveCommentActionId(null);
     }
@@ -627,7 +640,6 @@ export default function ReviewStoryModal({
                       </label>
 
                       {currentImgUrl ? (
-                        /* 🟢 DYNAMIC IMAGE PREVIEW CONTAINER */
                         <div className="group relative flex max-h-[600px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
                           <img
                             src={currentImgUrl}
@@ -716,7 +728,6 @@ export default function ReviewStoryModal({
                           ) : (
                             <div className="space-y-3">
                               {block.src ? (
-                                /* 🟢 DYNAMIC INLINE SECTION IMAGE PREVIEW */
                                 <div className="relative max-h-[500px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg">
                                   <img
                                     src={block.src}
@@ -788,7 +799,6 @@ export default function ReviewStoryModal({
                     </h1>
 
                     {currentImgUrl && (
-                      /* 🟢 DYNAMIC PREVIEW MODE COVER IMAGE CONTAINER */
                       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#0f2240] max-h-[600px] w-full flex items-center justify-center">
                         <img
                           src={currentImgUrl}
@@ -807,7 +817,7 @@ export default function ReviewStoryModal({
                       />
                     )}
 
-                    {/* FULL ARTICLE BODY BLOCKS OR HTML RENDER */}
+                    {/* Article Body Blocks */}
                     <div className="space-y-6 pt-2">
                       {editedBlocks && editedBlocks.length > 0 ? (
                         editedBlocks.map((block: BlogBlock, idx: number) => {
@@ -884,7 +894,7 @@ export default function ReviewStoryModal({
                       )}
                     </div>
 
-                    {/* Standalone Author Handles & PDF Links */}
+                    {/* Author Social Handles & PDF Documents */}
                     {(() => {
                       const blogHandle = story.socialHandle?.trim();
                       const authorHandle = story.originalAuthor?.socialHandle?.trim() || story.author?.socialHandle?.trim();
@@ -972,7 +982,7 @@ export default function ReviewStoryModal({
                 )}
               </div>
 
-              {/* Sidebar: Decision & Moderated Comments */}
+              {/* Sidebar: Decision & Internal Notes */}
               <div className="space-y-6">
                 {!isPublished && (
                   <div className="space-y-4 border border-[#E2DDCF] bg-[#FAF9F5] p-5">
@@ -1063,7 +1073,7 @@ export default function ReviewStoryModal({
                     {comments.length === 0 ? (
                       <p className="py-4 text-center text-xs italic text-[#8B9188]">No discussion notes posted yet.</p>
                     ) : (
-                      comments.map((comment: any) => {
+                      comments.map((comment: Comment) => {
                         const isHidden = comment.isVisible === false;
                         const isBusy = activeCommentActionId === comment._id;
 
