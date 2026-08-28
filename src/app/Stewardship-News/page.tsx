@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { blogsApi } from '@/lib/api/blogs';
 import { BlogPost } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/utils/file';
 
 // Maps each project title to the slug used in the footer's "Recent News" links
 const PROJECT_SLUGS: Record<string, string> = {
@@ -583,14 +584,14 @@ function StewardshipNewsContent() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const searchParams = useSearchParams();
 
-  // 🟢 OPTIMAL PRODUCTION INTERVAL: 3-Second Poll (3000ms) + Auto Revalidate on Tab Switch
+  // 🟢 3-Second Poll (3000ms) for fast backend synchronization
   const { data: rawStoriesData, isLoading: storiesLoading } = useSWR(
     'public-published-stories-key',
     () => blogsApi.getPublicBlogs({ page: 1, limit: 6 }),
     {
-      refreshInterval: 3000,    // Polls backend every 3s for fast sync without burning free tier limits
-      revalidateOnFocus: true,   // Re-syncs immediately when visitor switches tabs back
-      dedupingInterval: 1000,    // Deduplicates simultaneous duplicate requests
+      refreshInterval: 3000,
+      revalidateOnFocus: true,
+      dedupingInterval: 1000,
     }
   );
 
@@ -609,6 +610,18 @@ function StewardshipNewsContent() {
     const match = ecoProjects.find(p => PROJECT_SLUGS[p.title] === slug);
     if (match) setActiveProject(match);
   }, [searchParams]);
+
+  // 🟢 AUTO SMOOTH SCROLL TO PUBLISHED NEWS SECTION IF HASH IS PRESENT
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#published-news') {
+      setTimeout(() => {
+        const targetElement = document.getElementById('published-news');
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 250);
+    }
+  }, []);
 
   // Handle switching views directly between articles
   if (activeProject) {
@@ -871,35 +884,62 @@ function StewardshipNewsContent() {
         </section>
 
         {/* ── LATEST PUBLISHED STORIES ── */}
-        <section className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
-          <h2 className="mb-4 text-2xl font-bold text-slate-900">Published News</h2>
+        {/* 🟢 ID 'published-news' IS TARGETED FOR DIRECT SMOOTH SCROLLING */}
+        <section id="published-news" className="max-w-7xl mx-auto px-6 lg:px-12 py-12 scroll-mt-8">
+          <h2 className="mb-6 text-2xl font-bold text-slate-900">Published News</h2>
           {storiesLoading && !rawStoriesData ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-              <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
+              <div className="h-64 rounded-2xl bg-slate-100 animate-pulse" />
             </div>
           ) : latestStories.length === 0 ? (
             <p className="text-sm text-slate-500">No published stories are available yet.</p>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {latestStories.map((s) => (
-                <Link
-                  key={s._id}
-                  href={`/Stewardship-News/${s.slug}`}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-sm transition block"
-                >
-                  <div className="mb-3 h-36 w-full overflow-hidden rounded-lg bg-slate-100">
-                    {s.img ? (
-                      <img src={s.img} alt={s.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full bg-slate-200" />
-                    )}
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900">{s.title}</h3>
-                  <p className="mt-2 text-sm text-slate-500 line-clamp-3">{s.excerpt}</p>
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {latestStories.map((s) => {
+                const cardCoverUrl = getOptimizedImageUrl(s.img, 800);
+                const tagLabel = s.tag || (s as any).category || 'General';
+                const summaryText = s.excerpt || (s as any).summary || s.blocks?.find(b => b.type === 'p')?.text || '';
+
+                return (
+                  <Link
+                    key={s._id}
+                    href={`/Stewardship-News/${s.slug}`}
+                    className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-md transition block group flex flex-col h-full"
+                  >
+                    {/* 🟢 IMAGE CONTAINER WITH FLOATING OVERLAY TAG BADGE */}
+                    <div className="relative mb-3 h-48 w-full overflow-hidden rounded-xl bg-slate-100 shrink-0">
+                      {cardCoverUrl ? (
+                        <img 
+                          src={cardCoverUrl} 
+                          alt={s.title} 
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-slate-200" />
+                      )}
+
+                      {/* FLOATING OVERLAY BADGE */}
+                      <div className="absolute top-3 left-3 z-10">
+                        <span className="inline-block border border-slate-200/80 bg-white/95 backdrop-blur-md px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-[#2F8F5B] rounded-lg shadow-xs">
+                          {tagLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col flex-1 justify-between">
+                      <h3 className="text-base font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-[#1B3A5C] transition-colors mt-1">
+                        {s.title}
+                      </h3>
+                      <p className="mt-2 text-xs text-slate-500 line-clamp-3 leading-relaxed text-justify">
+                        {summaryText}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>

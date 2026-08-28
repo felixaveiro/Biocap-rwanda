@@ -4,7 +4,11 @@ import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { Variants } from 'framer-motion';
+import useSWR from 'swr';
 import Footer from '@/components/Footer';
+import { blogsApi } from '@/lib/api/blogs';
+import { BlogPost } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/utils/file';
 
 import {
   Dna,
@@ -44,20 +48,17 @@ const FEATURES = [
     title: 'Precision Biotechnology',
     body: "For centuries, crop improvement has relied on selecting plants with desirable traits and crossing them over many generations. While conventional breeding has transformed global agriculture, it often transfers both desirable ..",
     color: COLORS.purple,
-    // Points straight at the Precision Biotechnology article on the
-    // Stewardship News page (same route the news cards there use).
     href: '/Stewardship-News?project=precision-biotechnology',
     img: '/image/Precision-decision.jpg',
   },
-{
-  Icon: Leaf,
-  title: 'Communication & Social Engagement',
-  body: 'Through Rwanda BioCap Project, communication is viewed as a continuous process of engagement that connects researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.',
-  color: COLORS.teal,
-  href: '/Stewardship-News?project=communication-social-engagement',
-  img: '/image/IMG_155.jpg',
-  
-},
+  {
+    Icon: Leaf,
+    title: 'Communication & Social Engagement',
+    body: 'Through Rwanda BioCap Project, communication is viewed as a continuous process of engagement that connects researchers, regulators, farmers, journalists, educators, policymakers, and the public throughout the innovation journey.',
+    color: COLORS.teal,
+    href: '/Stewardship-News?project=communication-social-engagement',
+    img: '/image/IMG_155.jpg',
+  },
   {
     Icon: Scale,
     title: 'Regulatory Advocacy',
@@ -66,7 +67,6 @@ const FEATURES = [
     href: '/Stewardship-News?project=regulatory-advocacy',
     img: '/image/advocacy-image.jpg',
   },
-  
   {
     Icon: Handshake,
     title: 'Farmer Participation',
@@ -96,52 +96,14 @@ const FEATURES = [
 const STATS = [
   { Icon: TrendingUp, val: '34%',  label: 'Average Yield Increase' },
   { Icon: Users,      val: '40K+', label: 'Farmers Targeted'        },
-  { Icon: Building2,  val: '6',  label: 'Partner Institutions'       },
-  { Icon: Wheat,     val: '3',    label: 'Crops'         },
+  { Icon: Building2,  val: '6',    label: 'Partner Institutions'     },
+  { Icon: Wheat,      val: '3',    label: 'Crops'                  },
 ];
 
 const CROPS = [
   { name: 'Cassava', pct: 45, tag: 'Virus-Resistance' },
   { name: 'Potato',  pct: 37, tag: 'Late Bright Resistance'       },
   { name: 'Banana',  pct: 21, tag: 'BXW Resistance'        },
-];
-
-// Mirrors the ecoProjects data from Stewardship-News.tsx, along with the
-// slug map used there, so clicking a card opens that exact project story
-// via /Stewardship-News?project=<slug>
-const NEWS = [
-  {
-    tag: 'Sustainability',
-    date: '6 May 2026',
-    title: 'DNA Week',
-    body: "UR-CST and partners marked the third DNA Week with a seminar on biotechnology in agriculture, medicine, and the environment — featuring experts from RBC, RAB, REMA, and BioCAP.",
-    img: '/image/image-04.jpg',
-    slug: 'dna-week',
-  },
-  {
-    tag: 'Biosafety',
-    date: '16–17 June 2026',
-    title: 'Risk Assessment & Stewardship',
-    body: "A two-day workshop in Kigali strengthened scientists' and regulators' understanding of how biotech crop risks are identified, evaluated, and managed.",
-    img: '/image/Risk-ssessment.jpg',
-    slug: 'risk-assessment-stewardship',
-  },
-  {
-    tag: 'Public Engagement',
-    date: '16–17 June 2026',
-    title: 'Communication & Advocacy',
-    body: 'Communicators, regulators, and scientists examined how to translate complex biotech science into clear, trustworthy public messaging.',
-    img: '/image/dna-communication-advocacy.jpg',
-    slug: 'communication-advocacy',
-  },
-  // {
-  //   tag: 'Precision Breeding',
-  //   date: '15 December 2026',
-  //   title: 'Precision Biotechnology',
-  //   body: "Through the Rwanda BioCap Project, Rwanda is building one of Africa's emerging hubs for CRISPR genome editing — protecting farmer-preferred banana varieties like Kamaramasenge and Ijangi from disease while preserving the traits farmers and consumers value most.",
-  //   img: '/image/Precision-decision.jpg',
-  //   slug: 'precision-biotechnology',
-  // },
 ];
 
 /* ── ANIMATION VARIANTS ── */
@@ -184,7 +146,6 @@ function Section({
 ══════════════════════════════════════════════════════ */
 export default function HomePage() {
   const heroRef = useRef(null);
-
   const [email, setEmail] = useState('');
 
   const [slide, setSlide] = useState(0);
@@ -192,6 +153,25 @@ export default function HomePage() {
     const id = setInterval(() => setSlide(s => (s + 1) % HERO_SLIDES.length), 5000);
     return () => clearInterval(id);
   }, []);
+
+  // 🟢 FETCH 3 MOST RECENT PUBLISHED STORIES FROM BACKEND
+  const { data: rawStoriesData, isLoading: storiesLoading } = useSWR(
+    'public-published-stories-home',
+    () => blogsApi.getPublicBlogs({ page: 1, limit: 3 }),
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+    }
+  );
+
+  const publishedStories: BlogPost[] = Array.isArray(rawStoriesData)
+    ? rawStoriesData.slice(0, 3)
+    : Array.isArray((rawStoriesData as any)?.data)
+    ? (rawStoriesData as any).data.slice(0, 3)
+    : Array.isArray((rawStoriesData as any)?.docs)
+    ? (rawStoriesData as any).docs.slice(0, 3)
+    : [];
 
   return (
     <div className="bc-root">
@@ -348,6 +328,9 @@ export default function HomePage() {
           border-radius: 20px;
           overflow: hidden;
           transition: transform 0.3s ease, box-shadow 0.3s ease;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
         .bc-news-card:hover {
           transform: translateY(-6px);
@@ -385,9 +368,6 @@ export default function HomePage() {
 
       {/* ════════ HERO ════════ */}
       <section className="bc-hero" ref={heroRef}>
-
-        {/* Background slideshow — position shifted so faces stay visible,
-            image crops from the bottom instead of the top */}
         <div className="bc-hero-bg" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
           {HERO_SLIDES.map((src, i) => (
             <div
@@ -406,8 +386,6 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Overlay — matches About page exactly:
-            bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent */}
         <div
           style={{
             position: 'absolute',
@@ -418,7 +396,6 @@ export default function HomePage() {
           }}
         />
 
-        {/* Copy — same eyebrow / h1 / paragraph classes as About page */}
         <div className="bc-hero-inner">
           <motion.div
             initial="hidden"
@@ -489,7 +466,9 @@ export default function HomePage() {
         <div className="bc-ticker-track">
           {Array(10).fill(null).map((_, i) => (
             <span key={i}>
-              {NEWS.map(n => n.title).join(' \u2022 ')} &nbsp;•&nbsp;
+              {publishedStories.length > 0
+                ? publishedStories.map(s => s.title).join(' \u2022 ')
+                : 'Rwanda BioCap Project \u2022 Agricultural Innovation \u2022 Crop Stewardship'} &nbsp;•&nbsp;
             </span>
           ))}
         </div>
@@ -603,7 +582,7 @@ export default function HomePage() {
         </div>
       </Section>
 
-      {/* ════════ NEWS ════════ */}
+      {/* ════════ DYNAMIC LATEST NEWS ════════ */}
       <section style={{ padding: '3.5rem 2.5rem', background: 'var(--off)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto 2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
@@ -614,36 +593,100 @@ export default function HomePage() {
               Latest Insights
             </h2>
           </div>
-          <Link href="/Stewardship-News" style={{ color: COLORS.pink, fontWeight: 700, textDecoration: 'none', borderBottom: `2px solid ${COLORS.pink}`, paddingBottom: '2px', fontSize: '0.9rem' }}>
+
+          {/* 🟢 DIRECT LINK TO PUBLISHED NEWS SECTION */}
+          <Link href="/Stewardship-News#published-news" style={{ color: COLORS.pink, fontWeight: 700, textDecoration: 'none', borderBottom: `2px solid ${COLORS.pink}`, paddingBottom: '2px', fontSize: '0.9rem' }}>
             View Archive
           </Link>
         </div>
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-          {NEWS.map((n, i) => (
-            <Link key={i} href={`/Stewardship-News?project=${n.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-              <motion.div
-                className="bc-news-card"
-                variants={fadeUp}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                custom={i}
-              >
-                <div style={{ height: '240px', overflow: 'hidden' }}>
-                  <img src={n.img} alt={n.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                </div>
-                <div style={{ padding: '2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <span style={{ color: COLORS.pink, fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{n.tag}</span>
-                    <span style={{ color: COLORS.gray, fontSize: '0.75rem' }}>{n.date}</span>
-                  </div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '0.75rem' }}>{n.title}</h3>
-                  <p style={{ fontSize: '0.87rem', color: COLORS.gray, lineHeight: 1.65 }}>{n.body}</p>
-                </div>
-              </motion.div>
-            </Link>
-          ))}
+          {storiesLoading && !rawStoriesData ? (
+            <>
+              <div style={{ height: '360px', borderRadius: '20px', background: '#e2e8f0' }} className="animate-pulse" />
+              <div style={{ height: '360px', borderRadius: '20px', background: '#e2e8f0' }} className="animate-pulse" />
+              <div style={{ height: '360px', borderRadius: '20px', background: '#e2e8f0' }} className="animate-pulse" />
+            </>
+          ) : publishedStories.length === 0 ? (
+            <p style={{ color: COLORS.gray, fontSize: '0.9rem' }}>No published stories are available yet.</p>
+          ) : (
+            publishedStories.map((story, i) => {
+              const cardCoverUrl = getOptimizedImageUrl(story.img, 800);
+              const tagLabel = story.tag || (story as any).category || 'General';
+              const formattedDate = story.publishedAt
+                ? new Date(story.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : story.createdAt
+                ? new Date(story.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                : '';
+
+              return (
+                <Link key={story._id} href={`/Stewardship-News/${story.slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <motion.div
+                    className="bc-news-card"
+                    variants={fadeUp}
+                    initial="hidden"
+                    whileInView="show"
+                    viewport={{ once: true }}
+                    custom={i}
+                  >
+                    <div style={{ height: '220px', overflow: 'hidden', position: 'relative', background: '#f1f5f9' }}>
+                      {cardCoverUrl ? (
+                        <img 
+                          src={cardCoverUrl} 
+                          alt={story.title} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', background: '#cbd5e1' }} />
+                      )}
+
+                      {/* Floating Overlay Category Badge */}
+                      <div style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 10 }}>
+                        <span style={{ 
+                          display: 'inline-block', 
+                          background: 'rgba(255,255,255,0.95)', 
+                          backdropFilter: 'blur(8px)',
+                          padding: '4px 10px', 
+                          fontSize: '0.65rem', 
+                          fontWeight: 800, 
+                          textTransform: 'uppercase', 
+                          letterSpacing: '0.1em',
+                          color: '#2F8F5B',
+                          borderRadius: '8px',
+                          border: '1px solid rgba(226,232,240,0.8)'
+                        }}>
+                          {tagLabel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      {formattedDate && (
+                        <div style={{ marginBottom: '0.5rem' }}>
+                          <span style={{ color: COLORS.gray, fontSize: '0.75rem' }}>{formattedDate}</span>
+                        </div>
+                      )}
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '0.75rem', color: COLORS.navy }}>
+                        {story.title}
+                      </h3>
+                      <p style={{ 
+                        fontSize: '0.87rem', 
+                        color: COLORS.gray, 
+                        lineHeight: 1.6, 
+                        display: '-webkit-box', 
+                        WebkitLineClamp: 3, 
+                        WebkitBoxOrient: 'vertical', 
+                        overflow: 'hidden' 
+                      }}>
+                        {story.excerpt || (story as any).summary || 'No summary provided.'}
+                      </p>
+                    </div>
+                  </motion.div>
+                </Link>
+              );
+            })
+          )}
         </div>
       </section>
 
