@@ -275,12 +275,16 @@ export default function AuthorReviewModal({
             </div>
           </div>
 
-          {/* Cover Image Preview */}
+          {/* 🟢 DYNAMIC COVER IMAGE PREVIEW CONTAINER */}
           {story.img && (
-            <div className="group relative flex max-h-[420px] items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
-              <img src={story.img} alt="Story Cover Preview" className="max-h-[420px] w-full object-cover" />
+            <div className="group relative flex max-h-[600px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
+              <img 
+                src={story.img} 
+                alt="Story Cover Preview" 
+                className="max-h-[600px] w-full object-contain rounded-xl" 
+              />
               <span
-                className="absolute bottom-3 left-3 border border-white/20 bg-[#1E2620]/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#A9812F] backdrop-blur-xs"
+                className="absolute bottom-3 left-3 border border-white/20 bg-[#1E2620]/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#A9812F] backdrop-blur-xs rounded"
                 style={monoFont}
               >
                 Cover Image Preview
@@ -331,16 +335,14 @@ export default function AuthorReviewModal({
                   if (block.type === 'image' && imageUrl) {
                     return (
                       <figure key={idx} className="my-6 space-y-2">
-                        <div className="max-h-96 overflow-hidden rounded-xl border border-slate-200 bg-slate-900 flex justify-center items-center">
+                        {/* 🟢 DYNAMIC INLINE SECTION IMAGE CONTAINER */}
+                        <div className="max-h-[550px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-900 flex justify-center items-center">
                           <img
                             src={imageUrl}
                             alt={block.caption || `Section ${idx + 1}`}
-                            className={`max-h-96 w-full ${
-                              block.fitMode === 'contain' ? 'object-contain bg-slate-950' : 'object-cover'
-                            }`}
+                            className="max-h-[550px] w-full object-contain rounded-xl"
                           />
                         </div>
-                        {/* 🟢 FULLY RESTORED IMAGE CAPTION */}
                         {block.caption && (
                           <figcaption className="text-center text-xs font-medium text-slate-500 italic pt-1">
                             {block.caption}

@@ -16,6 +16,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-easy-crop": "^6.2.2",
+    "react-image-crop": "^11.1.2",
     "swr": "^2.5.1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
@@ -180,7 +180,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // 🟢 OPTIMIZED BLOCK PAYLOAD BUILDER: Prevents embedding massive Base64 strings into JSON
+  // OPTIMIZED BLOCK PAYLOAD BUILDER
   useEffect(() => {
     const blocks: any[] = [];
     const files: File[] = [];
@@ -212,7 +212,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
       if (sec.imageFile || sec.imagePreview) {
         const fileKey = sec.imageFileKey || `section-img-${sec.id}.jpg`;
         
-        // If imagePreview is a blob or remote URL, use it; avoid sending raw Base64 data
         const displaySrc = sec.imagePreview?.startsWith("data:image")
           ? undefined
           : sec.imagePreview;
@@ -221,7 +220,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
           type: "image",
           fileKey: fileKey,
           src: displaySrc,
-          rawFile: sec.imageFile || undefined, // 🟢 Attached for direct Cloudinary upload in blogs.ts
+          rawFile: sec.imageFile || undefined,
           caption: (sec.caption || "").trim(),
           fitMode: sec.fitMode || "cover",
         });
@@ -416,13 +415,12 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     reader.readAsDataURL(file);
   };
 
-  // 🟢 FAST CROPPING SAVE: Converts Base64 crop result to a lightweight Blob URL for immediate UI rendering
   const handleCropSave = (croppedBase64: string) => {
     if (!croppingSectionId) return;
 
     const fileKey = `${crypto.randomUUID()}__inline.jpg`;
     const renamedFile = base64ToFile(croppedBase64, fileKey);
-    const blobPreviewUrl = URL.createObjectURL(renamedFile); // Lightweight Object URL
+    const blobPreviewUrl = URL.createObjectURL(renamedFile);
 
     setSections((s) =>
       s.map((sec) =>
@@ -706,11 +704,12 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
                       {sec.imagePreview ? (
                         <div className="space-y-2.5 pt-1">
-                          <div className="relative flex max-h-64 items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+                          {/* 🟢 DYNAMIC IMAGE PREVIEW CONTAINER */}
+                          <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
                             <img
                               src={sec.imagePreview}
-                              alt=""
-                              className={`max-h-64 w-full ${sec.fitMode === "contain" ? "object-contain" : "object-cover"}`}
+                              alt="Section preview"
+                              className="max-h-[650px] w-full object-contain rounded-xl"
                             />
                             <div className="absolute top-2 right-2 flex gap-1.5">
                               <button
@@ -719,20 +718,20 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                   setRawCropSrc(sec.imagePreview!);
                                   setCroppingSectionId(sec.id);
                                 }}
-                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer"
+                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer rounded"
                               >
                                 <Crop size={12} className="text-[#8FBF9F]" /> Recrop
                               </button>
                               <button
                                 type="button"
                                 onClick={() => removeImage(sec.id)}
-                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer"
+                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer rounded"
                               >
                                 <ImageOff size={13} />
                               </button>
                             </div>
                             <span
-                              className="absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs"
+                              className="absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs rounded"
                               style={monoFont}
                             >
                               Fig. {pad(idx + 1)}
@@ -769,7 +768,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                           </div>
                         </div>
                       ) : (
-                        <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED]">
+                        <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED] rounded-xl">
                           <ImagePlus size={22} className="text-[#B4B0A2] transition-colors group-hover:text-[#3F6B4F]" />
                           <span className="mt-2 text-[11px] font-medium text-[#8B9188] transition-colors group-hover:text-[#3F6B4F]">
                             No image attached (click to browse)

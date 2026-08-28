@@ -627,11 +627,12 @@ export default function ReviewStoryModal({
                       </label>
 
                       {currentImgUrl ? (
-                        <div className="group relative flex max-h-72 items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+                        /* 🟢 DYNAMIC IMAGE PREVIEW CONTAINER */
+                        <div className="group relative flex max-h-[600px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
                           <img
                             src={currentImgUrl}
                             alt="Cover preview"
-                            className="max-h-72 w-full object-contain"
+                            className="max-h-[600px] w-full object-contain rounded-xl"
                           />
                           <div className="absolute top-3 right-3 flex items-center gap-2">
                             <button
@@ -640,7 +641,7 @@ export default function ReviewStoryModal({
                                 setPendingCropImageSrc(currentImgUrl);
                                 setIsCropperOpen(true);
                               }}
-                              className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] cursor-pointer"
+                              className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] cursor-pointer rounded-lg"
                             >
                               <Crop size={13} className="text-[#8FBF9F]" /> Recrop
                             </button>
@@ -648,7 +649,7 @@ export default function ReviewStoryModal({
                             <button
                               type="button"
                               onClick={() => coverFileInputRef.current?.click()}
-                              className="inline-flex items-center gap-1.5 border border-[#3F6B4F] bg-[#3F6B4F]/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#3F6B4F] cursor-pointer"
+                              className="inline-flex items-center gap-1.5 border border-[#3F6B4F] bg-[#3F6B4F]/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#3F6B4F] cursor-pointer rounded-lg"
                             >
                               <Upload size={13} /> Change Cover
                             </button>
@@ -658,7 +659,7 @@ export default function ReviewStoryModal({
                         <button
                           type="button"
                           onClick={() => coverFileInputRef.current?.click()}
-                          className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#3F6B4F]/40 bg-white p-6 text-[#3F6B4F] transition hover:bg-[#F1F5F1] cursor-pointer"
+                          className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#3F6B4F]/40 bg-white p-6 text-[#3F6B4F] transition hover:bg-[#F1F5F1] cursor-pointer rounded-xl"
                         >
                           <Upload size={22} strokeWidth={1.5} className="mb-1" />
                           <span className="text-xs font-semibold">Upload Cover Image</span>
@@ -675,14 +676,14 @@ export default function ReviewStoryModal({
                           <button
                             type="button"
                             onClick={addTextBlock}
-                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer"
+                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
                           >
                             <Plus size={13} /> Paragraph
                           </button>
                           <button
                             type="button"
                             onClick={addImageBlock}
-                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer"
+                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
                           >
                             <ImageIcon size={13} /> Inline Photo
                           </button>
@@ -690,7 +691,7 @@ export default function ReviewStoryModal({
                       </div>
 
                       {editedBlocks.map((block, idx) => (
-                        <div key={idx} className="relative space-y-3 border border-[#E2DDCF] bg-white p-3.5">
+                        <div key={idx} className="relative space-y-3 border border-[#E2DDCF] bg-white p-3.5 rounded-lg">
                           <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-[#8B9188]">
                             <span>Section #{idx + 1} ({block.type === "image" ? "Inline Image" : "Paragraph"})</span>
                             {editedBlocks.length > 1 && (
@@ -709,29 +710,28 @@ export default function ReviewStoryModal({
                               rows={4}
                               value={block.text || ""}
                               onChange={(e) => updateBlockText(idx, e.target.value)}
-                              className="w-full border border-[#D9D4C6] p-2.5 text-xs text-[#3A4239] focus:border-[#3F6B4F] focus:outline-none"
+                              className="w-full border border-[#D9D4C6] p-2.5 text-xs text-[#3A4239] focus:border-[#3F6B4F] focus:outline-none rounded"
                               placeholder="Paragraph body text..."
                             />
                           ) : (
                             <div className="space-y-3">
                               {block.src ? (
-                                <div className="relative max-h-48 overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+                                /* 🟢 DYNAMIC INLINE SECTION IMAGE PREVIEW */
+                                <div className="relative max-h-[500px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg">
                                   <img
                                     src={block.src}
                                     alt={block.caption || `Section ${idx + 1}`}
-                                    className={`max-h-48 w-full ${
-                                      block.fitMode === "contain" ? "object-contain" : "object-cover"
-                                    }`}
+                                    className="max-h-[500px] w-full object-contain rounded-lg"
                                   />
                                 </div>
                               ) : (
-                                <div className="border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] p-4 text-center">
+                                <div className="border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] p-4 text-center rounded-lg">
                                   <p className="text-xs text-[#8B9188]">No image selected for this block yet</p>
                                 </div>
                               )}
 
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                                <label className="inline-flex cursor-pointer items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold text-[#3F6B4F] transition hover:bg-[#3F6B4F] hover:text-white">
+                                <label className="inline-flex cursor-pointer items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold text-[#3F6B4F] transition hover:bg-[#3F6B4F] hover:text-white rounded">
                                   <Upload size={13} /> Choose Section Image
                                   <input
                                     type="file"
@@ -746,7 +746,7 @@ export default function ReviewStoryModal({
                                   <button
                                     type="button"
                                     onClick={() => updateBlockFitMode(idx, "cover")}
-                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer ${
+                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer rounded ${
                                       block.fitMode === "cover"
                                         ? "border-[#1E2620] bg-[#1E2620] text-white"
                                         : "border-[#D9D4C6] bg-white text-[#5A6259]"
@@ -757,7 +757,7 @@ export default function ReviewStoryModal({
                                   <button
                                     type="button"
                                     onClick={() => updateBlockFitMode(idx, "contain")}
-                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer ${
+                                    className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer rounded ${
                                       block.fitMode === "contain"
                                         ? "border-[#1E2620] bg-[#1E2620] text-white"
                                         : "border-[#D9D4C6] bg-white text-[#5A6259]"
@@ -773,7 +773,7 @@ export default function ReviewStoryModal({
                                 value={block.caption || ""}
                                 onChange={(e) => updateBlockCaption(idx, e.target.value)}
                                 placeholder="Image caption or source note (optional)..."
-                                className="w-full border border-[#D9D4C6] p-2 text-xs text-[#3A4239] focus:border-[#3F6B4F] focus:outline-none"
+                                className="w-full border border-[#D9D4C6] p-2 text-xs text-[#3A4239] focus:border-[#3F6B4F] focus:outline-none rounded"
                               />
                             </div>
                           )}
@@ -788,16 +788,16 @@ export default function ReviewStoryModal({
                     </h1>
 
                     {currentImgUrl && (
-                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#0f2240]">
+                      /* 🟢 DYNAMIC PREVIEW MODE COVER IMAGE CONTAINER */
+                      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-[#0f2240] max-h-[600px] w-full flex items-center justify-center">
                         <img
                           src={currentImgUrl}
                           alt={story.title}
-                          className="max-h-[420px] w-full object-cover"
+                          className="max-h-[600px] w-full object-contain rounded-2xl"
                         />
                       </div>
                     )}
 
-                    {/* 🟢 FIXED: Excerpt rendering with link formatting */}
                     {editedExcerpt && (
                       <div
                         className="border-l-[3px] border-[#C22055] bg-slate-50 p-4 text-sm italic leading-relaxed text-slate-700"
@@ -819,7 +819,6 @@ export default function ReviewStoryModal({
                             );
                           }
 
-                          {/* 🟢 FIXED: Quote block rendering with link formatting */}
                           if (block.type === 'quote') {
                             return (
                               <blockquote
@@ -843,13 +842,11 @@ export default function ReviewStoryModal({
                           if (block.type === 'image' && (block.src || block.url)) {
                             return (
                               <figure key={idx} className="my-6 space-y-2">
-                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900 max-h-96">
+                                <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-900 max-h-[550px] flex items-center justify-center">
                                   <img
                                     src={block.src || block.url}
                                     alt={block.caption || `Section ${idx + 1}`}
-                                    className={`w-full max-h-96 ${
-                                      block.fitMode === 'contain' ? 'object-contain bg-slate-950' : 'object-cover'
-                                    }`}
+                                    className="w-full max-h-[550px] object-contain rounded-xl"
                                   />
                                 </div>
                                 {block.caption && (

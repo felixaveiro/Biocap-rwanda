@@ -108,7 +108,7 @@ export default function StewardshipArticlePage() {
   
   const { user } = useSession();
 
-  // 🟢 1. INSTANT PERSISTENT CACHE PIPELINE
+  // INSTANT PERSISTENT CACHE PIPELINE
   const [cachedStory, setCachedStory] = useState<BlogPost | null>(() => {
     if (typeof window === 'undefined' || !slug) return null;
     try {
@@ -143,7 +143,7 @@ export default function StewardshipArticlePage() {
   const story = swrStory || cachedStory;
   const loading = swrLoading && !story;
 
-  // 🟢 2. PARALLEL SIDEBAR DISPATCH
+  // PARALLEL SIDEBAR DISPATCH
   const { data: rawMoreData } = useSWR(
     'related-stories-sidebar-global',
     () => blogsApi.getPublicBlogs({ page: 1, limit: 9 }),
@@ -395,13 +395,12 @@ export default function StewardshipArticlePage() {
                       const sectionImgUrl = getOptimizedImageUrl(block.src || block.url, 1200);
                       return (
                         <figure key={idx} className="my-8 space-y-2">
-                          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-900 min-h-[420px] max-h-[580px] flex items-center justify-center">
+                          {/* 🟢 DYNAMIC IMAGE CONTAINER: Scales naturally without rigid fixed height */}
+                          <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 flex items-center justify-center max-h-[650px] w-full">
                             <img
                               src={sectionImgUrl}
                               alt={block.caption || `Story Section ${idx + 1}`}
-                              className={`w-full min-h-[420px] max-h-[580px] ${
-                                block.fitMode === 'contain' ? 'object-contain bg-slate-950' : 'object-cover'
-                              }`}
+                              className="w-full h-auto max-h-[650px] object-contain rounded-2xl"
                             />
                           </div>
                           {block.caption && (
@@ -431,7 +430,6 @@ export default function StewardshipArticlePage() {
                   })
                 ) : (
                   <React.Fragment>
-                    {/* 🟢 FIXED FALLBACK: Formats links correctly inside excerpt paragraphs */}
                     {(story.excerpt || '')
                       .split(/\n+/)
                       .map((paragraphText, pIdx) => (
