@@ -81,7 +81,7 @@ export default function Sidebar() {
       { label: "Review Queue", href: "/editor/review", icon: CheckSquare, badge: "Review" },
       { label: "All Stories", href: "/editor/manage", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
-      { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
+      { label: "New Story", href: "/creator/my-stories/new", icon: PlusSquare },
       { label: "Profile", href: "/creator/profile", icon: User },
     ];
   } else if (role === "communication_officer") {
@@ -101,7 +101,7 @@ export default function Sidebar() {
     navItems = [
       { label: "Overview Studio", href: "/creator", icon: LayoutDashboard },
       { label: "My Stories", href: "/creator/my-stories", icon: FileText },
-      { label: "New Draft", href: "/creator/my-stories/new", icon: PlusSquare },
+      { label: "New Story", href: "/creator/my-stories/new", icon: PlusSquare },
       { label: "Live Feed", href: "/creator/published", icon: Globe },
       { label: "Profile", href: "/creator/profile", icon: User },
     ];
@@ -114,11 +114,11 @@ export default function Sidebar() {
 
   const profileHref =
     role === "admin"
-      ? "/admin/profile"
+      ? "/creator/profile"
       : role === "editor"
-      ? "/editor/profile"
+      ? "/creator/profile"
       : role === "communication_officer"
-      ? "/officer/profile"
+      ? "/creator/profile"
       : "/creator/profile";
 
   const fontVars = `${fraunces.variable} ${plexMono.variable}`;
