@@ -670,10 +670,13 @@ export default function HomePage() {
                       <h3 style={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1.35, marginBottom: '0.75rem', color: COLORS.navy }}>
                         {story.title}
                       </h3>
+                      {/* 🟢 ADDED JUSTIFIED TEXT ALIGNMENT */}
                       <p style={{ 
                         fontSize: '0.87rem', 
                         color: COLORS.gray, 
                         lineHeight: 1.6, 
+                        textAlign: 'justify',
+                        textJustify: 'inter-word',
                         display: '-webkit-box', 
                         WebkitLineClamp: 3, 
                         WebkitBoxOrient: 'vertical', 

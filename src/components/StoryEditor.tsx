@@ -505,6 +505,8 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
           white-space: pre-wrap;
           word-break: break-word;
           outline: none;
+          text-align: justify !important;
+          text-justify: inter-word !important;
         }
         .story-editable:empty:before {
           content: attr(data-placeholder);
@@ -524,22 +526,32 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         }
       `}</style>
 
-      {/* Excerpt Card */}
-      <div className="border border-[#E2DDCF] bg-white p-5">
-        <div className="mb-2 flex items-baseline justify-between">
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-            Excerpt / brief summary
+      {/* 🟢 DYNAMICALLY AUTO-EXPANDING & JUSTIFIED EXCERPT FIELD */}
+      <div>
+        <div className="mb-1.5 flex items-baseline justify-between">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-[#1E2620]">
+            Excerpt / Brief Summary *
           </label>
-          <span className="text-[10px] tabular-nums text-[#B4B0A2]" style={monoFont}>
+          <span className="text-[10px] font-semibold tabular-nums text-[#5A6259]">
             {excerpt.length} chars
           </span>
         </div>
         <textarea
-          rows={2}
+          rows={3}
           value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          className="w-full border border-[#D9D4C6] px-4 py-2.5 text-xs text-[#1E2620] placeholder:text-[#B4B0A2] transition-colors focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-          placeholder="Short description for preview cards..."
+          onChange={(e) => {
+            setExcerpt(e.target.value);
+            e.target.style.height = "auto";
+            e.target.style.height = `${e.target.scrollHeight}px`;
+          }}
+          ref={(textarea) => {
+            if (textarea) {
+              textarea.style.height = "auto";
+              textarea.style.height = `${textarea.scrollHeight}px`;
+            }
+          }}
+          placeholder="Short summary for preview cards..."
+          className="w-full border border-[#D9D4C6] bg-white p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:border-[#3F6B4F] focus:outline-none overflow-hidden resize-none transition-[height] duration-100 leading-relaxed text-justify text-justify-inter-word"
         />
       </div>
 
@@ -659,12 +671,12 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                         document.execCommand("insertText", false, text);
                       }}
                       style={sec.kind === "heading" ? displayFont : undefined}
-                      className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3 py-2 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 ${
+                      className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3.5 py-2.5 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 ${
                         sec.kind === "heading"
-                          ? "min-h-[2.25rem] text-base italic"
+                          ? "min-h-[2.25rem] text-base italic font-semibold text-left"
                           : sec.kind === "quote"
-                          ? "min-h-[3rem] text-xs italic"
-                          : "min-h-[4.5rem] text-xs"
+                          ? "min-h-[3rem] text-xs italic font-medium text-left"
+                          : "min-h-[4.5rem] text-xs font-normal text-justify"
                       }`}
                     />
                   )}
@@ -679,7 +691,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                         )
                       }
                       placeholder="Attribution (optional)"
-                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 text-justify"
                     />
                   )}
 
@@ -704,7 +716,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
                       {sec.imagePreview ? (
                         <div className="space-y-2.5 pt-1">
-                          {/* 🟢 DYNAMIC IMAGE PREVIEW CONTAINER */}
                           <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
                             <img
                               src={sec.imagePreview}
@@ -759,7 +770,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                 )
                               }
                               placeholder="Describe this image (mandatory for publication)..."
-                              className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors ${
+                              className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors text-justify ${
                                 isCaptionMissing
                                   ? "border-[#B65C4B] bg-[#FBEEEC]/30 focus:border-[#B65C4B] focus:ring-[#B65C4B]/20"
                                   : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-[#3F6B4F]/15"
@@ -800,7 +811,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         </div>
       </div>
 
-      {/* Gmail-Style Floating Link Input Popover Container */}
+      {/* Floating Link Popover */}
       {linkPopover && (
         <div
           ref={linkPopoverRef}
@@ -844,7 +855,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         </div>
       )}
 
-      {/* Applied Link Floating Preview Tooltip Card */}
+      {/* Link Floating Preview Card */}
       {activeLinkPreview && (
         <div
           className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-3 rounded-xl border border-[#D0D5DD] bg-white px-3.5 py-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-xs text-[#202124]"
