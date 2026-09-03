@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
 import CommentManager from "@/components/CommentManager";
+import ImageCropperModal from "@/components/ImageCropperModal";
+import { base64ToFile } from "@/lib/utils/file";
 import {
   X,
   Save,
@@ -16,10 +18,13 @@ import {
   CheckCircle2,
   Clock,
   User,
-  ImagePlus,
+  Crop,
+  Plus,
+  Trash2,
+  ImageIcon,
 } from "lucide-react";
 
-// ── Editorial Type & Styling System ──────────────────────────────
+// ── Editorial Type & Styling System ──────────────────────────────────────────
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600"],
@@ -56,54 +61,156 @@ export default function EditStoryModal({
   const [articleTitle, setArticleTitle] = useState(story.title || "");
   const [articleTag, setArticleTag] = useState(story.tag || "General");
   const [articleExcerpt, setArticleExcerpt] = useState(story.excerpt || "");
-  const [articleContent, setArticleContent] = useState(() => {
+  
+  // ── Block-Based Manuscript Engine State ────────────────────────────────
+  const [editedBlocks, setEditedBlocks] = useState<BlogBlock[]>(() => {
     if (Array.isArray(story.blocks) && story.blocks.length > 0) {
-      return story.blocks.map((b) => b.text || "").filter(Boolean).join("\n\n");
+      return story.blocks;
     }
-    return (story as any).content || "";
+    const rawContent = (story as any).content || story.bodyHtml || "";
+    if (!rawContent) return [{ type: "p", text: "" }];
+    return rawContent
+      .split("\n\n")
+      .filter((p: string) => p.trim().length > 0)
+      .map((text: string): BlogBlock => ({ type: "p", text: text.trim() }));
   });
-  const [newCoverImageFile, setNewCoverImageFile] = useState<File | null>(null);
+
+  const [editedSectionFiles, setEditedSectionFiles] = useState<Record<number, File>>({});
+
+  // ── Cover Photo & Cropping States ───────────────────────────────────────
+  const [currentCoverUrl, setCurrentCoverUrl] = useState<string>(story.img || "");
+  const [croppedCoverFile, setCroppedCoverFile] = useState<File | null>(null);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [pendingCropSrc, setPendingCropImageSrc] = useState<string | null>(null);
+
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const editorFeedbackNote = localStory.lastRejectionNote || null;
 
-  // Change Requests State
+  // ── Revision Requests State ──────────────────────────────────────────────
   const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
   const [implementationNote, setImplementationNote] = useState("");
   const [isImplementing, setIsImplementing] = useState(false);
 
-  // 🟢 INSTANT RETURN SUBMISSION HANDLER
+  // Cover Image Selection & Cropping
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64Src = reader.result as string;
+      setPendingCropImageSrc(base64Src);
+      setIsCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropSave = (croppedBase64: string) => {
+    setCurrentCoverUrl(croppedBase64);
+    const file = base64ToFile(croppedBase64, `cover-edited-${story._id}.jpg`);
+    setCroppedCoverFile(file);
+    setIsCropperOpen(false);
+    setPendingCropImageSrc(null);
+  };
+
+  // Block Editing Helpers
+  const updateBlockText = (index: number, text: string) => {
+    setEditedBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, text } : b))
+    );
+  };
+
+  const updateBlockFitMode = (index: number, fitMode: "cover" | "contain") => {
+    setEditedBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, fitMode } : b))
+    );
+  };
+
+  const updateBlockCaption = (index: number, caption: string) => {
+    setEditedBlocks((prev) =>
+      prev.map((b, i) => (i === index ? { ...b, caption } : b))
+    );
+  };
+
+  const handleSectionImageChange = (index: number, file?: File | null) => {
+    if (!file) return;
+
+    const fileKey = `${crypto.randomUUID()}__inline_editor.jpg`;
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setEditedBlocks((prev) =>
+        prev.map((b, i) =>
+          i === index
+            ? {
+                ...b,
+                type: "image",
+                src: base64,
+                fileKey,
+                fitMode: b.fitMode || "cover",
+              }
+            : b
+        )
+      );
+
+      const renamedFile = base64ToFile(base64, fileKey);
+      setEditedSectionFiles((prev) => ({ ...prev, [index]: renamedFile }));
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const removeBlock = (index: number) => {
+    setEditedBlocks((prev) => prev.filter((_, i) => i !== index));
+    setEditedSectionFiles((prev) => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
+  };
+
+  const addTextBlock = () => {
+    setEditedBlocks((prev) => [...prev, { type: "p", text: "" }]);
+  };
+
+  const addImageBlock = () => {
+    setEditedBlocks((prev) => [
+      ...prev,
+      { type: "image", src: "", caption: "", fitMode: "cover" },
+    ]);
+  };
+
+  // Submission Handler
   const handleUpdateStory = async (e: React.FormEvent, submitForReview = false) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      // Structure paragraph blocks with explicit string typing
-      const updatedBlocks: BlogBlock[] = articleContent
-        .split("\n\n")
-        .filter((paragraph: string) => paragraph.trim().length > 0)
-        .map((text: string): BlogBlock => ({
-          type: "p",
-          text: text.trim(),
-        }));
+      const payload: Record<string, any> = {
+        title: articleTitle,
+        tag: articleTag,
+        excerpt: articleExcerpt,
+        blocks: JSON.stringify(editedBlocks),
+      };
 
-      // 1. Send update request
-      await blogsApi.updateBlog(
-        localStory._id,
-        {
-          title: articleTitle,
-          tag: articleTag,
-          excerpt: articleExcerpt,
-          blocks: updatedBlocks.length > 0 ? updatedBlocks : [{ type: "p", text: articleContent }],
-          ...(newCoverImageFile && { img: newCoverImageFile }),
-        },
-        currentUserRole
-      );
+      if (croppedCoverFile) {
+        payload.img = croppedCoverFile;
+      }
 
-      // 2. Submit for review if requested
+      const newInlineFiles = Object.values(editedSectionFiles);
+      if (newInlineFiles.length > 0) {
+        payload.images = newInlineFiles;
+      }
+
+      await blogsApi.updateBlog(localStory._id, payload, currentUserRole);
+
       if (submitForReview) {
         await blogsApi.submitBlog(localStory._id, currentUserRole);
       }
@@ -124,7 +231,6 @@ export default function EditStoryModal({
     setImplementationNote(cr.implementationNote || "");
   };
 
-  // 🟢 CONFIRM IMPLEMENTED: Updates backend and instantly removes/marks change in local UI
   const handleConfirmImplement = async () => {
     if (!implementingChange || !implementingChange._id) return;
     setIsImplementing(true);
@@ -138,7 +244,6 @@ export default function EditStoryModal({
         currentUserRole
       );
 
-      // Update local story state so the change request disappears or reflects implemented status instantly
       setLocalStory((prev) => {
         if (!prev.changeRequests) return prev;
         const updatedRequests = prev.changeRequests.map((cr) => {
@@ -187,13 +292,20 @@ export default function EditStoryModal({
 
   return (
     <div
-      /* 🟢 z-[99999] prevents the top navigation header from overlapping the modal */
       className={`${fontVars} fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-6`}
       style={bodyFont}
     >
-      <div className="flex max-h-[95vh] w-full max-w-4xl flex-col overflow-hidden border border-[#D9D4C6] bg-white shadow-2xl rounded-sm">
+      <input
+        type="file"
+        ref={coverFileInputRef}
+        onChange={handleCoverFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+
+      <div className="flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden border border-[#D9D4C6] bg-white shadow-2xl rounded-sm">
         
-        {/* Header */}
+        {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#E2DDCF] bg-[#F7F6F2] px-6 py-4">
           <div>
             <p
@@ -217,12 +329,12 @@ export default function EditStoryModal({
           </button>
         </div>
 
-        {/* Body */}
+        {/* Modal Scrollable Body */}
         <div className="flex-1 space-y-6 overflow-y-auto p-6 bg-white">
           
-          {/* 🟢 High-contrast Editor Feedback Banner */}
+          {/* Editor Feedback Banner */}
           {editorFeedbackNote && (
-            <div className="border-l-4 border-amber-600 bg-amber-50 p-4 shadow-xs">
+            <div className="border-l-4 border-amber-600 bg-amber-50 p-4 shadow-xs rounded-r">
               <div
                 className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-amber-900"
                 style={monoFont}
@@ -235,7 +347,7 @@ export default function EditStoryModal({
 
           {/* Change Requests Section */}
           {openChangeRequests.length > 0 && (
-            <div className="border border-[#E2DDCF] bg-white">
+            <div className="border border-[#E2DDCF] bg-white rounded-sm">
               <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-3 bg-[#FAF9F5]">
                 <p
                   className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#1E2620]"
@@ -339,7 +451,7 @@ export default function EditStoryModal({
             </div>
           )}
 
-          {/* Error Message */}
+          {/* Error Alert */}
           {errorMessage && (
             <div className="flex items-center gap-2.5 border-l-4 border-rose-600 bg-rose-50 p-3.5 text-rose-950">
               <AlertCircle size={16} className="shrink-0 text-rose-700" />
@@ -347,22 +459,67 @@ export default function EditStoryModal({
             </div>
           )}
 
-          {/* Edit Form Fields */}
-          <div className="space-y-5">
+          {/* Manuscript Form Fields */}
+          <div className="space-y-6">
+            
+            {/* 🟢 COVER IMAGE NOW POSITIONED ON TOP */}
             <div>
-              <label className={labelCls}>Article Title</label>
-              <input
-                type="text"
-                required
-                value={articleTitle}
-                onChange={(e) => setArticleTitle(e.target.value)}
-                className={`${inputCls} text-sm font-bold text-[#1E2620]`}
-              />
+              <label className={labelCls}>Cover Photo</label>
+              {currentCoverUrl ? (
+                <div className="relative flex max-h-[360px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg">
+                  <img
+                    src={currentCoverUrl}
+                    alt="Cover preview"
+                    className="max-h-[360px] w-full object-contain rounded-lg"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingCropImageSrc(currentCoverUrl);
+                        setIsCropperOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition hover:bg-[#1E2620] cursor-pointer rounded"
+                    >
+                      <Crop size={11} className="text-[#8FBF9F]" /> Recrop
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => coverFileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1 border border-[#3F6B4F] bg-[#3F6B4F] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#345A42] cursor-pointer rounded"
+                    >
+                      <Upload size={11} /> Change
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="flex w-full flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] p-5 text-[#3F6B4F] transition hover:bg-white cursor-pointer rounded-lg"
+                >
+                  <Upload size={20} className="mb-1" />
+                  <span className="text-xs font-semibold">Upload Cover Photo</span>
+                </button>
+              )}
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            {/* TITLE & CATEGORY FIELDS BELOW COVER IMAGE */}
+            <div className="grid gap-5 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Article Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={articleTitle}
+                  onChange={(e) => setArticleTitle(e.target.value)}
+                  style={displayFont}
+                  className={`${inputCls} text-base font-bold italic text-[#1E2620]`}
+                />
+              </div>
+
               <div>
-                <label className={labelCls}>Category Tag</label>
+                <label className={labelCls}>Category Tag *</label>
                 <select
                   value={articleTag}
                   onChange={(e) => setArticleTag(e.target.value)}
@@ -375,65 +532,142 @@ export default function EditStoryModal({
                   <option value="BioCap">BioCap</option>
                 </select>
               </div>
-
-              <div>
-                <label className={labelCls}>Cover Image</label>
-                {newCoverImageFile ? (
-                  <div className="flex items-center justify-between border border-[#D9D4C6] bg-white px-3 py-2.5">
-                    <span className="truncate text-xs font-semibold text-[#1E2620]">{newCoverImageFile.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setNewCoverImageFile(null)}
-                      className="ml-2 shrink-0 text-rose-600 hover:text-rose-800 cursor-pointer"
-                      aria-label="Remove selected cover image"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="flex cursor-pointer items-center justify-center gap-1.5 border border-dashed border-[#D9D4C6] bg-[#FAF9F5] px-3 py-2.5 text-[11px] font-bold text-[#1E2620] transition-colors hover:border-[#3F6B4F] hover:bg-white">
-                    <ImagePlus size={14} className="text-[#3F6B4F]" /> Replace cover image
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setNewCoverImageFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
             </div>
 
             <div>
               <div className="mb-1.5 flex items-baseline justify-between">
-                <label className={labelCls}>Excerpt / brief summary</label>
+                <label className={labelCls}>Excerpt / Brief Summary *</label>
                 <span className="text-[10px] font-semibold tabular-nums text-[#5A6259]" style={monoFont}>
                   {articleExcerpt.length} chars
                 </span>
               </div>
               <textarea
-                rows={2}
+                rows={3}
                 value={articleExcerpt}
                 onChange={(e) => setArticleExcerpt(e.target.value)}
-                placeholder="Short description for preview cards..."
-                className={`${inputCls} font-medium`}
+                placeholder="Short summary for preview cards..."
+                className={`${inputCls} leading-relaxed text-justify text-justify-inter-word`}
               />
             </div>
 
-            <div>
-              <label className={labelCls}>Main Story Content</label>
-              <textarea
-                rows={9}
-                required
-                value={articleContent}
-                onChange={(e) => setArticleContent(e.target.value)}
-                className={`${inputCls} leading-relaxed font-normal`}
-                placeholder="Write your article body paragraphs here..."
-              />
+            {/* Block-Based Story Content Engine */}
+            <div className="space-y-3 border-t border-[#EDEAE0] pt-4">
+              <div className="flex items-center justify-between">
+                <label className={labelCls}>
+                  Story Body Sections ({editedBlocks.length})
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={addTextBlock}
+                    className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
+                  >
+                    <Plus size={13} /> Paragraph
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addImageBlock}
+                    className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2.5 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
+                  >
+                    <ImageIcon size={13} /> Inline Photo
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {editedBlocks.map((block, idx) => (
+                  <div key={idx} className="relative space-y-3 border border-[#E2DDCF] bg-[#FAF9F5] p-3.5 rounded-lg">
+                    <div className="flex items-center justify-between text-[10px] font-medium uppercase tracking-wide text-[#8B9188]" style={monoFont}>
+                      <span>Section #{idx + 1} ({block.type === "image" ? "Inline Image" : "Paragraph"})</span>
+                      {editedBlocks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeBlock(idx)}
+                          className="p-1 text-[#B65C4B] hover:text-[#8A3A2C] cursor-pointer"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {block.type === "p" || !block.type ? (
+                      <textarea
+                        rows={4}
+                        value={block.text || ""}
+                        onChange={(e) => updateBlockText(idx, e.target.value)}
+                        className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded text-justify text-justify-inter-word leading-relaxed"
+                        placeholder="Paragraph body text..."
+                      />
+                    ) : (
+                      <div className="space-y-3">
+                        {block.src || block.url ? (
+                          <div className="relative max-h-[400px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg flex items-center justify-center">
+                            <img
+                              src={block.src || block.url}
+                              alt={block.caption || `Section ${idx + 1}`}
+                              className="max-h-[400px] w-full object-contain rounded-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-[#D9D4C6] bg-white p-4 text-center rounded-lg">
+                            <p className="text-xs text-[#8B9188]">No image selected for this block yet</p>
+                          </div>
+                        )}
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                          <label className="inline-flex cursor-pointer items-center gap-1.5 border border-[#3F6B4F]/40 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#3F6B4F] transition hover:bg-[#F1F5F1] rounded">
+                            <Upload size={13} /> Choose Section Image
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => handleSectionImageChange(idx, e.target.files?.[0])}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <div className="flex items-center gap-1 text-xs" style={monoFont}>
+                            <span className="mr-1 text-[#8B9188]">Fit:</span>
+                            <button
+                              type="button"
+                              onClick={() => updateBlockFitMode(idx, "cover")}
+                              className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer rounded ${
+                                block.fitMode === "cover"
+                                  ? "border-[#1E2620] bg-[#1E2620] text-white"
+                                  : "border-[#D9D4C6] bg-white text-[#5A6259]"
+                              }`}
+                            >
+                              Fill
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateBlockFitMode(idx, "contain")}
+                              className={`border px-2 py-0.5 text-[10px] font-semibold uppercase cursor-pointer rounded ${
+                                block.fitMode === "contain"
+                                  ? "border-[#1E2620] bg-[#1E2620] text-white"
+                                  : "border-[#D9D4C6] bg-white text-[#5A6259]"
+                              }`}
+                            >
+                              Fit Whole
+                            </button>
+                          </div>
+                        </div>
+
+                        <input
+                          type="text"
+                          value={block.caption || ""}
+                          onChange={(e) => updateBlockCaption(idx, e.target.value)}
+                          placeholder="Image caption or source note (optional)..."
+                          className="w-full border border-[#D9D4C6] bg-white p-2 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* 🟢 Embedded Moderated Comments Section */}
+          {/* Embedded Moderated Comments Section */}
           <div className="pt-4 border-t border-[#EDEAE0]">
             <CommentManager
               articleId={localStory._id}
@@ -441,7 +675,6 @@ export default function EditStoryModal({
               currentUserRole={currentUserRole}
             />
           </div>
-
         </div>
 
         {/* Footer Actions */}
@@ -468,8 +701,21 @@ export default function EditStoryModal({
             {isSubmitting ? "Submitting..." : "Save & Submit"}
           </button>
         </div>
-
       </div>
+
+      {/* Cover Image Cropper Modal */}
+      {pendingCropSrc && (
+        <ImageCropperModal
+          isOpen={isCropperOpen}
+          imageSrc={pendingCropSrc}
+          aspectRatio={16 / 9}
+          onClose={() => {
+            setIsCropperOpen(false);
+            setPendingCropImageSrc(null);
+          }}
+          onSave={handleCropSave}
+        />
+      )}
     </div>
   );
 }

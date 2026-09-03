@@ -99,7 +99,7 @@ export default function Sidebar() {
     role === "principal_investigator"
   ) {
     navItems = [
-      { label: "Overview Studio", href: "/creator", icon: LayoutDashboard },
+      { label: "Overview", href: "/creator", icon: LayoutDashboard },
       { label: "My Stories", href: "/creator/my-stories", icon: FileText },
       { label: "New Story", href: "/creator/my-stories/new", icon: PlusSquare },
       { label: "Live Feed", href: "/creator/published", icon: Globe },
@@ -303,7 +303,7 @@ export default function Sidebar() {
               isCollapsed && !isMobileOpen ? "px-0" : ""
             }`}
             style={monoFont}
-          >
+          >   
             <LogOut size={13} />
             {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
