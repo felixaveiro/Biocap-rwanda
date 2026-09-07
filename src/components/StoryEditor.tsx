@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
 import {
@@ -20,26 +19,6 @@ import {
   ExternalLink,
   Unlink,
 } from "lucide-react";
-
-// ── Type system ──────────────────────────────────────────────
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-body",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["500"],
-  variable: "--font-mono",
-});
 
 type SectionKind = "paragraph" | "heading" | "quote" | "image";
 
@@ -405,14 +384,60 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     closeLinkPopover();
   };
 
-  const handleImageSelect = (id: string, file?: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setRawCropSrc(reader.result as string);
-      setCroppingSectionId(id);
-    };
-    reader.readAsDataURL(file);
+  // 🟢 MULTI-FILE SELECTION HANDLER FOR INLINE SECTION IMAGES
+  const handleMultiImageSelect = (targetSectionId: string, fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+
+    const filesArray = Array.from(fileList);
+
+    // If 1 image selected, open cropper dialog for adjustment
+    if (filesArray.length === 1) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setRawCropSrc(reader.result as string);
+        setCroppingSectionId(targetSectionId);
+      };
+      reader.readAsDataURL(filesArray[0]);
+      return;
+    }
+
+    // If MULTIPLE images selected at once, automatically map them to section image blocks
+    filesArray.forEach((file, idx) => {
+      const fileKey = `${crypto.randomUUID()}__inline_${idx}.jpg`;
+      const previewUrl = URL.createObjectURL(file);
+
+      if (idx === 0) {
+        // First file maps directly to the current section
+        setSections((s) =>
+          s.map((sec) =>
+            sec.id === targetSectionId
+              ? {
+                  ...sec,
+                  kind: "image",
+                  imageFile: file,
+                  imagePreview: previewUrl,
+                  imageFileKey: fileKey,
+                }
+              : sec
+          )
+        );
+      } else {
+        // Subsequent files create new section blocks
+        setSections((s) => [
+          ...s,
+          {
+            id: crypto.randomUUID(),
+            kind: "image",
+            text: "",
+            plainText: "",
+            imageFile: file,
+            imagePreview: previewUrl,
+            imageFileKey: fileKey,
+            fitMode: "cover",
+          },
+        ]);
+      }
+    });
   };
 
   const handleCropSave = (croppedBase64: string) => {
@@ -427,6 +452,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         sec.id === croppingSectionId
           ? {
               ...sec,
+              kind: "image",
               imageFile: renamedFile,
               imagePreview: blobPreviewUrl,
               imageFileKey: fileKey,
@@ -493,13 +519,8 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     }
   };
 
-  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
-  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
-  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
-  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
-
   return (
-    <div className={`${fontVars} space-y-6`} style={bodyFont}>
+    <div className="space-y-6">
       <style>{`
         .story-editable {
           white-space: pre-wrap;
@@ -526,13 +547,13 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         }
       `}</style>
 
-      {/* 🟢 DYNAMICALLY AUTO-EXPANDING & JUSTIFIED EXCERPT FIELD */}
+      {/* DYNAMICALLY AUTO-EXPANDING & JUSTIFIED EXCERPT FIELD */}
       <div>
         <div className="mb-1.5 flex items-baseline justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-[#1E2620]">
             Excerpt / Brief Summary *
           </label>
-          <span className="text-[10px] font-semibold tabular-nums text-[#5A6259]">
+          <span className="font-mono text-[10px] font-semibold tabular-nums text-[#5A6259]">
             {excerpt.length} chars
           </span>
         </div>
@@ -551,22 +572,22 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
             }
           }}
           placeholder="Short summary for preview cards..."
-          className="w-full border border-[#D9D4C6] bg-white p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:border-[#3F6B4F] focus:outline-none overflow-hidden resize-none transition-[height] duration-100 leading-relaxed text-justify text-justify-inter-word"
+          className="w-full border border-[#D9D4C6] bg-white p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:border-[#3F6B4F] focus:outline-none overflow-hidden resize-none transition-[height] duration-100 leading-relaxed text-justify text-justify-inter-word rounded-[2px]"
         />
       </div>
 
       {/* Manuscript Section */}
-      <div className="border border-[#E2DDCF] bg-white">
+      <div className="border border-[#E2DDCF] bg-white rounded-[2px]">
         <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]">
               Manuscript
             </p>
-            <p className="mt-0.5 text-lg italic text-[#1E2620]" style={displayFont}>
+            <p className="font-display mt-0.5 text-lg italic text-[#1E2620]">
               Story body
             </p>
           </div>
-          <p className="hidden text-[10px] text-[#B4B0A2] sm:block" style={monoFont}>
+          <p className="font-mono hidden text-[10px] text-[#B4B0A2] sm:block">
             Select text to insert link · Click link to view or open in new tab
           </p>
         </div>
@@ -581,8 +602,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
               <div key={sec.id} className="flex gap-4 p-5 transition-opacity duration-200">
                 <div className="flex w-9 shrink-0 flex-col items-center gap-2 pt-0.5">
                   <span
-                    className="text-sm font-semibold tabular-nums text-[#A9812F]"
-                    style={monoFont}
+                    className="font-mono text-sm font-semibold tabular-nums text-[#A9812F]"
                     aria-hidden
                     title={meta.label}
                   >
@@ -594,7 +614,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                       disabled={idx === 0}
                       onClick={() => moveSection(sec.id, -1)}
                       aria-label="Move section up"
-                      className="rounded-sm p-0.5 text-[#8B9188] transition-colors hover:bg-[#EDEAE0] hover:text-[#1E2620] disabled:pointer-events-none disabled:opacity-25"
+                      className="rounded-[2px] p-0.5 text-[#8B9188] transition-colors hover:bg-[#EDEAE0] hover:text-[#1E2620] disabled:pointer-events-none disabled:opacity-25 cursor-pointer"
                     >
                       <ChevronUp size={13} />
                     </button>
@@ -603,7 +623,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                       disabled={idx === sections.length - 1}
                       onClick={() => moveSection(sec.id, 1)}
                       aria-label="Move section down"
-                      className="rounded-sm p-0.5 text-[#8B9188] transition-colors hover:bg-[#EDEAE0] hover:text-[#1E2620] disabled:pointer-events-none disabled:opacity-25"
+                      className="rounded-[2px] p-0.5 text-[#8B9188] transition-colors hover:bg-[#EDEAE0] hover:text-[#1E2620] disabled:pointer-events-none disabled:opacity-25 cursor-pointer"
                     >
                       <ChevronDown size={13} />
                     </button>
@@ -613,7 +633,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
                 <div className="min-w-0 flex-1 space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div className="inline-flex border border-[#D9D4C6]">
+                    <div className="inline-flex border border-[#D9D4C6] rounded-[2px]">
                       {KIND_ORDER.map((k) => {
                         const active = sec.kind === k;
                         const Icon = KIND_META[k].icon;
@@ -670,10 +690,9 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                         const text = e.clipboardData.getData("text/plain");
                         document.execCommand("insertText", false, text);
                       }}
-                      style={sec.kind === "heading" ? displayFont : undefined}
-                      className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3.5 py-2.5 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 ${
+                      className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3.5 py-2.5 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 rounded-[2px] ${
                         sec.kind === "heading"
-                          ? "min-h-[2.25rem] text-base italic font-semibold text-left"
+                          ? "font-display min-h-[2.25rem] text-base italic font-semibold text-left"
                           : sec.kind === "quote"
                           ? "min-h-[3rem] text-xs italic font-medium text-left"
                           : "min-h-[4.5rem] text-xs font-normal text-justify"
@@ -691,7 +710,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                         )
                       }
                       placeholder="Attribution (optional)"
-                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 text-justify"
+                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 text-justify rounded-[2px]"
                     />
                   )}
 
@@ -700,15 +719,16 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                       {sec.kind === "paragraph" && (
                         <div className="flex items-center justify-between">
                           <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[#3A4239] transition-colors hover:text-[#3F6B4F]">
-                            <ImagePlus size={13} /> {sec.imagePreview ? "Replace image" : "Add an image (optional)"}
+                            <ImagePlus size={13} /> {sec.imagePreview ? "Replace / Add images" : "Add images (select one or multiple)"}
                             <input
                               type="file"
                               accept="image/*"
-                              onChange={(e) => handleImageSelect(sec.id, e.target.files?.[0])}
+                              multiple
+                              onChange={(e) => handleMultiImageSelect(sec.id, e.target.files)}
                               className="hidden"
                             />
                           </label>
-                          <span className="text-[10px] tabular-nums text-[#B4B0A2]" style={monoFont}>
+                          <span className="font-mono text-[10px] tabular-nums text-[#B4B0A2]">
                             {wordCount(sec.plainText ?? sec.text)} words
                           </span>
                         </div>
@@ -716,11 +736,11 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
 
                       {sec.imagePreview ? (
                         <div className="space-y-2.5 pt-1">
-                          <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
+                          <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
                             <img
                               src={sec.imagePreview}
                               alt="Section preview"
-                              className="max-h-[650px] w-full object-contain rounded-xl"
+                              className="max-h-[650px] w-full object-contain rounded-[2px]"
                             />
                             <div className="absolute top-2 right-2 flex gap-1.5">
                               <button
@@ -729,21 +749,20 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                   setRawCropSrc(sec.imagePreview!);
                                   setCroppingSectionId(sec.id);
                                 }}
-                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer rounded"
+                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer rounded-[2px]"
                               >
                                 <Crop size={12} className="text-[#8FBF9F]" /> Recrop
                               </button>
                               <button
                                 type="button"
                                 onClick={() => removeImage(sec.id)}
-                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer rounded"
+                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer rounded-[2px]"
                               >
                                 <ImageOff size={13} />
                               </button>
                             </div>
                             <span
-                              className="absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs rounded"
-                              style={monoFont}
+                              className="font-mono absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs rounded-[2px]"
                             >
                               Fig. {pad(idx + 1)}
                             </span>
@@ -770,7 +789,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                                 )
                               }
                               placeholder="Describe this image (mandatory for publication)..."
-                              className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors text-justify ${
+                              className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors text-justify rounded-[2px] ${
                                 isCaptionMissing
                                   ? "border-[#B65C4B] bg-[#FBEEEC]/30 focus:border-[#B65C4B] focus:ring-[#B65C4B]/20"
                                   : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-[#3F6B4F]/15"
@@ -779,15 +798,16 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
                           </div>
                         </div>
                       ) : (
-                        <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED] rounded-xl">
+                        <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED] rounded-[2px]">
                           <ImagePlus size={22} className="text-[#B4B0A2] transition-colors group-hover:text-[#3F6B4F]" />
                           <span className="mt-2 text-[11px] font-medium text-[#8B9188] transition-colors group-hover:text-[#3F6B4F]">
-                            No image attached (click to browse)
+                            No image attached (click or drag to select one or multiple images)
                           </span>
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => handleImageSelect(sec.id, e.target.files?.[0])}
+                            multiple
+                            onChange={(e) => handleMultiImageSelect(sec.id, e.target.files)}
                             className="hidden"
                           />
                         </label>
@@ -804,7 +824,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
           <button
             type="button"
             onClick={addSection}
-            className="group inline-flex items-center gap-1.5 border border-[#1E2620] bg-[#1E2620] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] cursor-pointer"
+            className="group inline-flex items-center gap-1.5 border border-[#1E2620] bg-[#1E2620] px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] cursor-pointer rounded-[2px]"
           >
             <Plus size={14} className="transition-transform group-hover:rotate-90" /> Add section
           </button>
@@ -815,11 +835,11 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
       {linkPopover && (
         <div
           ref={linkPopoverRef}
-          className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-2 rounded-2xl border border-[#D0D5DD] bg-white px-3 py-2 shadow-xl animate-in fade-in zoom-in-95 duration-100"
+          className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-2 border border-[#D0D5DD] bg-white px-3 py-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 rounded-[2px]"
           style={{ top: linkPopover.top - 12, left: linkPopover.left }}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="flex flex-1 items-center gap-2 rounded-lg border border-[#1a73e8] bg-white px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-[#1a73e8]/20">
+          <div className="flex flex-1 items-center gap-2 border border-[#1a73e8] bg-white px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-[#1a73e8]/20 rounded-[2px]">
             <Link2 size={16} className="text-[#5f6368] shrink-0" />
             <input
               ref={linkUrlInputRef}
@@ -848,7 +868,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
               applyLink();
             }}
             disabled={!linkUrlValue.trim()}
-            className="px-3 py-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] rounded-md transition-colors disabled:text-[#c6c6c6] disabled:pointer-events-none cursor-pointer"
+            className="px-3 py-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors disabled:text-[#c6c6c6] disabled:pointer-events-none cursor-pointer rounded-[2px]"
           >
             Apply
           </button>
@@ -858,7 +878,7 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
       {/* Link Floating Preview Card */}
       {activeLinkPreview && (
         <div
-          className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-3 rounded-xl border border-[#D0D5DD] bg-white px-3.5 py-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-xs text-[#202124]"
+          className="fixed z-50 -translate-x-1/2 -translate-y-full flex items-center gap-3 border border-[#D0D5DD] bg-white px-3.5 py-2 shadow-xl animate-in fade-in zoom-in-95 duration-100 text-xs text-[#202124] rounded-[2px]"
           style={{ top: activeLinkPreview.top - 10, left: activeLinkPreview.left }}
           onMouseDown={(e) => {
             e.preventDefault();

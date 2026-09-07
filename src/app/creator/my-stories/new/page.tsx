@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
@@ -20,42 +20,53 @@ import {
   Loader2,
   Globe,
   AtSign,
-  Tag,
   Eye,
-  Sprout,
-  GraduationCap,
-  Presentation,
-  ShieldCheck,
+  Cpu,
+  Tractor,
+  Leaf,
+  HeartHandshake,
+  Dna,
+  FileText,
+  ShoppingBag,
 } from "lucide-react";
 
-// Preset Category Pills Mapping matching exact label casing & icons
+// Preset Category Pills Mapping
 const CATEGORIES = [
   {
-    label: "CONFINED FIELD TRIALS (CFTS)",
-    value: "Confined Field Trials (CFTs)",
-    icon: Sprout,
-  },
-    {
-    label: "GENERAL",
-    value: "General",
-    icon: Tag,
+    label: "TECHNOLOGY ADOPTION",
+    value: "Technology Adoption",
+    icon: Cpu,
   },
   {
-    label: "CAPACITY-BUILDING & TRAINING",
-    value: "Capacity-Building & Training",
-    icon: GraduationCap,
+    label: "MODERN AGRICULTURE",
+    value: "Modern Agriculture",
+    icon: Tractor,
   },
   {
-    label: "REGULATORY & LAUNCH PROCEEDINGS",
-    value: "Regulatory & Launch Proceedings",
-    icon: Presentation,
+    label: "FARMERS & ENVIRONMENT",
+    value: "Farmers & Environment",
+    icon: Leaf,
   },
   {
-    label: "STEWARDSHIP & GOVERNANCE",
-    value: "Stewardship & Governance",
-    icon: ShieldCheck,
+    label: "SCIENCE FOR HUMANITY",
+    value: "Science for Humanity",
+    icon: HeartHandshake,
   },
-
+  {
+    label: "BIOTECH INNOVATION",
+    value: "Biotech Innovation",
+    icon: Dna,
+  },
+  {
+    label: "AGRICULTURAL POLICY",
+    value: "Agricultural Policy",
+    icon: FileText,
+  },
+  {
+    label: "TRADE & FOOD",
+    value: "Trade & Food",
+    icon: ShoppingBag,
+  },
 ];
 
 export default function CreateNewStoryPage() {
@@ -63,7 +74,7 @@ export default function CreateNewStoryPage() {
   const { user, loading, allowed } = useSession("blog:create");
 
   const [title, setTitle] = useState("");
-  const [tag, setTag] = useState("Capacity-Building & Training");
+  const [tag, setTag] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
@@ -85,6 +96,12 @@ export default function CreateNewStoryPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // 🟢 REFS FOR AUTO-SCROLLING TO UNFILLED REQUIRED FIELDS
+  const coverRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user && !isProfileSynced) {
@@ -110,12 +127,21 @@ export default function CreateNewStoryPage() {
     setInlineImages(files || []);
   }, []);
 
+  const scrollToElement = (ref: React.RefObject<HTMLElement | null>) => {
+    if (ref.current) {
+      ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (ref.current instanceof HTMLInputElement || ref.current instanceof HTMLTextAreaElement) {
+        ref.current.focus();
+      }
+    }
+  };
+
   if (loading || !allowed || !user) {
     return (
       <div className="min-h-screen bg-[#F3F2ED] pb-16 font-sans">
         <Header title="Create Story" subtitle="Loading editor permissions..." />
         <div className="mx-auto max-w-4xl px-4 py-8">
-          <div className="h-96 animate-pulse border border-[#E2DDCF] bg-[#E7E3D6]" />
+          <div className="h-96 animate-pulse border border-[#E2DDCF] bg-[#E7E3D6] rounded-[2px]" />
         </div>
       </div>
     );
@@ -147,11 +173,41 @@ export default function CreateNewStoryPage() {
     setIsCropperOpen(false);
   };
 
+  // 🟢 VALIDATE & AUTO-SCROLL TO MISSING REQUIRED FIELD ON REVIEW
   const handleOpenReviewModal = () => {
-    if (!title.trim()) {
-      setErrorMsg("Please add a title before opening review mode.");
+    let finalCoverImg: File | string | null = null;
+    if (coverImageFile instanceof File && coverImageFile.size > 0) {
+      finalCoverImg = coverImageFile;
+    } else if (typeof croppedPreview === "string" && croppedPreview.length > 0) {
+      finalCoverImg = croppedPreview;
+    } else if (typeof rawImageSrc === "string" && rawImageSrc.length > 0) {
+      finalCoverImg = rawImageSrc;
+    }
+
+    if (!finalCoverImg) {
+      setErrorMsg("A cover image is required before reviewing your story.");
+      scrollToElement(coverRef);
       return;
     }
+
+    if (!title.trim()) {
+      setErrorMsg("Please add a title before opening review mode.");
+      scrollToElement(titleRef);
+      return;
+    }
+
+    if (!tag.trim()) {
+      setErrorMsg("Please select a category/tag before reviewing your story.");
+      scrollToElement(categoryRef);
+      return;
+    }
+
+    if (!excerpt.trim() && (!blocks || blocks.length === 0) && !content.trim()) {
+      setErrorMsg("Please provide an excerpt or content in the manuscript section.");
+      scrollToElement(editorRef);
+      return;
+    }
+
     setErrorMsg(null);
     setIsReviewModalOpen(true);
   };
@@ -167,12 +223,31 @@ export default function CreateNewStoryPage() {
       finalCoverImg = rawImageSrc;
     }
 
-    if (!title.trim() || !tag.trim() || !finalCoverImg) {
-      const missingErr = "A cover image is required before submitting your story. Please select or crop an image.";
-      setErrorMsg(missingErr);
+    if (!finalCoverImg) {
+      const coverErr = "A cover image is required before submitting your story.";
+      setErrorMsg(coverErr);
       setIsReviewModalOpen(false);
       setIsSubmitting(false);
-      throw new Error(missingErr);
+      scrollToElement(coverRef);
+      throw new Error(coverErr);
+    }
+
+    if (!title.trim()) {
+      const titleErr = "A story title is required before submitting.";
+      setErrorMsg(titleErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      scrollToElement(titleRef);
+      throw new Error(titleErr);
+    }
+
+    if (!tag.trim()) {
+      const tagErr = "Please select a category/tag before submitting your story.";
+      setErrorMsg(tagErr);
+      setIsReviewModalOpen(false);
+      setIsSubmitting(false);
+      scrollToElement(categoryRef);
+      throw new Error(tagErr);
     }
 
     if (!excerpt.trim() && (!blocks || blocks.length === 0) && !content.trim()) {
@@ -180,6 +255,7 @@ export default function CreateNewStoryPage() {
       setErrorMsg(contentErr);
       setIsReviewModalOpen(false);
       setIsSubmitting(false);
+      scrollToElement(editorRef);
       throw new Error(contentErr);
     }
 
@@ -276,7 +352,7 @@ export default function CreateNewStoryPage() {
         <div className="flex items-center justify-between">
           <Link
             href="/creator/my-stories"
-            className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-3.5 py-2 text-xs font-semibold text-[#5A6259] transition-colors hover:border-[#1E2620] hover:text-[#1E2620]"
+            className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-3.5 py-2 text-xs font-semibold text-[#5A6259] transition-colors hover:border-[#1E2620] hover:text-[#1E2620] rounded-[2px]"
           >
             <ArrowLeft size={16} />
             Back to Stories
@@ -285,14 +361,14 @@ export default function CreateNewStoryPage() {
 
         {/* Error Notification Banner */}
         {errorMsg && (
-          <div className="flex items-center gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5">
+          <div className="flex items-center gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5 rounded-[2px]">
             <AlertCircle size={18} className="shrink-0 text-[#B65C4B]" />
             <p className="text-xs font-medium text-[#7A362A]">{errorMsg}</p>
           </div>
         )}
 
         {/* Main Form Card Container */}
-        <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8">
+        <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8 rounded-[2px]">
 
           {/* Form Header */}
           <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
@@ -305,7 +381,7 @@ export default function CreateNewStoryPage() {
           </div>
 
           {/* Cover Image Upload */}
-          <div>
+          <div ref={coverRef}>
             <div className="flex items-center justify-between mb-2.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
                 Cover Image <span className="text-[#B65C4B]">*</span>
@@ -314,19 +390,19 @@ export default function CreateNewStoryPage() {
             </div>
 
             {croppedPreview ? (
-              <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620]">
+              <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
                 <img src={croppedPreview} alt="Cover Preview" className="h-full w-full object-cover" />
                 <button
                   type="button"
                   onClick={() => setIsCropperOpen(true)}
-                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620]"
+                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] rounded-[2px]"
                 >
                   <Crop size={14} className="text-[#8FBF9F]" /> Adjust &amp; crop
                 </button>
               </div>
             ) : (
-              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3B664B] hover:bg-[#F1F5F1]">
-                <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3B664B]">
+              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3B664B] hover:bg-[#F1F5F1] rounded-[2px]">
+                <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3B664B] rounded-[2px]">
                   <ImageIcon size={24} strokeWidth={1.5} className="text-[#8B9188] transition group-hover:text-[#3B664B]" />
                 </div>
                 <div className="mt-3 text-center">
@@ -344,19 +420,27 @@ export default function CreateNewStoryPage() {
               Story Title <span className="text-[#B65C4B]">*</span>
             </label>
             <input
+              ref={titleRef}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a captivating headline..."
-              className="font-display w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15"
+              className="font-display w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15 rounded-[2px]"
             />
           </div>
 
-          {/* 🟢 CATEGORY / TAG PILLS */}
-          <div className="space-y-2">
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
-              Category / Tag <span className="text-[#B65C4B]">*</span>
-            </label>
+          {/* CATEGORY / TAG PILLS */}
+          <div ref={categoryRef} className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
+                Category / Tag <span className="text-[#B65C4B]">*</span>
+              </label>
+              {!tag && (
+                <span className="text-[10px] font-medium text-[#B65C4B]">
+                  Selection required
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1.5 pb-4">
               {CATEGORIES.map((cat) => {
@@ -368,7 +452,7 @@ export default function CreateNewStoryPage() {
                     key={cat.value}
                     type="button"
                     onClick={() => setTag(cat.value)}
-                    className={`inline-flex items-center gap-2 rounded-[2px] border px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer rounded-[2px] ${
                       isSelected
                         ? "border-[#3B664B] bg-[#3B664B] text-white shadow-xs"
                         : "border-[#9EAF91]/70 bg-white text-[#3B664B] hover:border-[#3B664B] hover:bg-[#FAF9F5]"
@@ -388,28 +472,8 @@ export default function CreateNewStoryPage() {
             <div className="border-b border-[#EDEAE0] pt-1" />
           </div>
 
-          {/* 🟢 EXCERPT / BRIEF SUMMARY */}
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
-                Excerpt / Brief Summary <span className="text-[#B65C4B]">*</span>
-              </label>
-              <span className="font-mono text-[11px] font-medium tabular-nums text-[#8B9188]">
-                {excerpt.length} chars
-              </span>
-            </div>
-
-            <textarea
-              rows={3}
-              value={excerpt}
-              onChange={(e) => setExcerpt(e.target.value)}
-              placeholder="Short summary for preview cards..."
-              className="w-full border border-[#D9D4C6] bg-white p-3.5 text-xs font-normal leading-relaxed text-[#1E2620] placeholder:text-[#A39F93] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15"
-            />
-          </div>
-
           {/* Story Editor */}
-          <div className="border-t border-[#EDEAE0] pt-6">
+          <div ref={editorRef} className="border-t border-[#EDEAE0] pt-6">
             <StoryEditor
               excerpt={excerpt}
               setExcerpt={setExcerpt}
@@ -443,7 +507,7 @@ export default function CreateNewStoryPage() {
                     value={socialHandle}
                     onChange={(e) => setSocialHandle(e.target.value)}
                     placeholder="@username or social profile link"
-                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none rounded-[2px]"
                   />
                 </div>
               </div>
@@ -459,7 +523,7 @@ export default function CreateNewStoryPage() {
                     value={organizationLink}
                     onChange={(e) => setOrganizationLink(e.target.value)}
                     placeholder="https://organization.org"
-                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none rounded-[2px]"
                   />
                 </div>
               </div>
@@ -472,7 +536,7 @@ export default function CreateNewStoryPage() {
               type="button"
               disabled={isSubmitting}
               onClick={() => handleSubmit(false)}
-              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50 cursor-pointer rounded-[2px]"
             >
               {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               Save Draft
@@ -480,7 +544,7 @@ export default function CreateNewStoryPage() {
             <button
               type="button"
               onClick={handleOpenReviewModal}
-              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3B664B] hover:border-[#3B664B] cursor-pointer"
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3B664B] hover:border-[#3B664B] cursor-pointer rounded-[2px]"
             >
               <Eye size={14} /> Review Story
             </button>
