@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import AuthorReviewModal from "@/components/AuthorReviewModal";
@@ -23,33 +22,48 @@ import {
   AtSign,
   Tag,
   Eye,
+  Sprout,
+  GraduationCap,
+  Presentation,
+  ShieldCheck,
 } from "lucide-react";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
+// Preset Category Pills Mapping matching exact label casing & icons
+const CATEGORIES = [
+  {
+    label: "CONFINED FIELD TRIALS (CFTS)",
+    value: "Confined Field Trials (CFTs)",
+    icon: Sprout,
+  },
+    {
+    label: "GENERAL",
+    value: "General",
+    icon: Tag,
+  },
+  {
+    label: "CAPACITY-BUILDING & TRAINING",
+    value: "Capacity-Building & Training",
+    icon: GraduationCap,
+  },
+  {
+    label: "REGULATORY & LAUNCH PROCEEDINGS",
+    value: "Regulatory & Launch Proceedings",
+    icon: Presentation,
+  },
+  {
+    label: "STEWARDSHIP & GOVERNANCE",
+    value: "Stewardship & Governance",
+    icon: ShieldCheck,
+  },
 
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-body",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["500"],
-  variable: "--font-mono",
-});
+];
 
 export default function CreateNewStoryPage() {
   const router = useRouter();
   const { user, loading, allowed } = useSession("blog:create");
 
   const [title, setTitle] = useState("");
-  const [tag, setTag] = useState("General");
+  const [tag, setTag] = useState("Capacity-Building & Training");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
@@ -96,14 +110,9 @@ export default function CreateNewStoryPage() {
     setInlineImages(files || []);
   }, []);
 
-  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
-  const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
-  const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
-  const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
-
   if (loading || !allowed || !user) {
     return (
-      <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16`} style={bodyFont}>
+      <div className="min-h-screen bg-[#F3F2ED] pb-16 font-sans">
         <Header title="Create Story" subtitle="Loading editor permissions..." />
         <div className="mx-auto max-w-4xl px-4 py-8">
           <div className="h-96 animate-pulse border border-[#E2DDCF] bg-[#E7E3D6]" />
@@ -148,7 +157,6 @@ export default function CreateNewStoryPage() {
   };
 
   const handleSubmit = async (shouldSubmitForReview: boolean = false) => {
-    // 🟢 Cover Image Resolution
     let finalCoverImg: File | string | null = null;
 
     if (coverImageFile instanceof File && coverImageFile.size > 0) {
@@ -201,7 +209,6 @@ export default function CreateNewStoryPage() {
       const creatorRole = (user.role as Role) || "contributor";
       const rawBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
 
-      // 🟢 PARALLEL CLOUDINARY UPLOAD + API SUBMISSION
       const newBlog = await blogsApi.createBlog(
         {
           title: title.trim(),
@@ -220,7 +227,6 @@ export default function CreateNewStoryPage() {
         await blogsApi.submitBlog(newBlog._id, creatorRole);
       }
 
-      // 🟢 REVALIDATE ROUTE & REDIRECT IMMEDIATELY
       router.refresh();
       router.push("/creator/my-stories");
     } catch (err: unknown) {
@@ -258,7 +264,7 @@ export default function CreateNewStoryPage() {
   const SocialIcon = detectedSocialPlatform ? detectedSocialPlatform.icon : AtSign;
 
   return (
-    <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16 text-[#1E2620]`} style={bodyFont}>
+    <div className="min-h-screen bg-[#F3F2ED] pb-16 font-sans text-[#1E2620]">
       <Header
         title="Create New Story"
         subtitle="Craft an insightful article and publish or submit for review"
@@ -285,14 +291,15 @@ export default function CreateNewStoryPage() {
           </div>
         )}
 
-        {/* Form Container */}
+        {/* Main Form Card Container */}
         <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8">
 
+          {/* Form Header */}
           <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-[#6B7268]" style={monoFont}>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#6B7268]">
               Story Build-up
             </p>
-            <h2 className="text-xl italic text-[#1E2620]" style={displayFont}>
+            <h2 className="font-display text-xl italic text-[#1E2620]">
               Begin a new story
             </h2>
           </div>
@@ -300,10 +307,10 @@ export default function CreateNewStoryPage() {
           {/* Cover Image Upload */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
                 Cover Image <span className="text-[#B65C4B]">*</span>
               </label>
-              <span className="text-[11px] font-medium text-[#8B9188]" style={monoFont}>16:9 landscape</span>
+              <span className="font-mono text-[11px] font-medium text-[#8B9188]">16:9 landscape</span>
             </div>
 
             {croppedPreview ? (
@@ -318,12 +325,12 @@ export default function CreateNewStoryPage() {
                 </button>
               </div>
             ) : (
-              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3F6B4F] hover:bg-[#F1F5F1]">
-                <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3F6B4F]">
-                  <ImageIcon size={24} strokeWidth={1.5} className="text-[#8B9188] transition group-hover:text-[#3F6B4F]" />
+              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3B664B] hover:bg-[#F1F5F1]">
+                <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3B664B]">
+                  <ImageIcon size={24} strokeWidth={1.5} className="text-[#8B9188] transition group-hover:text-[#3B664B]" />
                 </div>
                 <div className="mt-3 text-center">
-                  <span className="text-xs font-semibold text-[#3A4239] transition group-hover:text-[#3F6B4F]">Upload cover image</span>
+                  <span className="text-xs font-semibold text-[#3A4239] transition group-hover:text-[#3B664B]">Upload cover image</span>
                   <p className="mt-0.5 text-[11px] text-[#8B9188]">Drag and drop or click to browse (JPG, PNG, WEBP)</p>
                 </div>
                 <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
@@ -331,9 +338,9 @@ export default function CreateNewStoryPage() {
             )}
           </div>
 
-          {/* Title */}
+          {/* Title Input */}
           <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
               Story Title <span className="text-[#B65C4B]">*</span>
             </label>
             <input
@@ -341,26 +348,64 @@ export default function CreateNewStoryPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter a captivating headline..."
-              style={displayFont}
-              className="w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
+              className="font-display w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15"
             />
           </div>
 
-          {/* Category Tag */}
-          <div>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#5A6259]">
+          {/* 🟢 CATEGORY / TAG PILLS */}
+          <div className="space-y-2">
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
               Category / Tag <span className="text-[#B65C4B]">*</span>
             </label>
-            <div className="relative">
-              <Tag size={16} className="absolute left-3.5 top-3 text-[#8B9188]" />
-              <input
-                type="text"
-                value={tag}
-                onChange={(e) => setTag(e.target.value)}
-                placeholder="e.g. Technology, Innovation, BioCap"
-                className="w-full border border-[#D9D4C6] bg-white py-2.5 pl-10 pr-4 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15"
-              />
+
+            <div className="flex flex-wrap items-center gap-2.5 pt-1.5 pb-4">
+              {CATEGORIES.map((cat) => {
+                const Icon = cat.icon;
+                const isSelected = tag === cat.value;
+
+                return (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => setTag(cat.value)}
+                    className={`inline-flex items-center gap-2 rounded-[2px] border px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-[#3B664B] bg-[#3B664B] text-white shadow-xs"
+                        : "border-[#9EAF91]/70 bg-white text-[#3B664B] hover:border-[#3B664B] hover:bg-[#FAF9F5]"
+                    }`}
+                  >
+                    <Icon
+                      size={14}
+                      className={isSelected ? "text-white" : "text-[#3B664B]"}
+                      strokeWidth={2}
+                    />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
             </div>
+
+            <div className="border-b border-[#EDEAE0] pt-1" />
+          </div>
+
+          {/* 🟢 EXCERPT / BRIEF SUMMARY */}
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
+                Excerpt / Brief Summary <span className="text-[#B65C4B]">*</span>
+              </label>
+              <span className="font-mono text-[11px] font-medium tabular-nums text-[#8B9188]">
+                {excerpt.length} chars
+              </span>
+            </div>
+
+            <textarea
+              rows={3}
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+              placeholder="Short summary for preview cards..."
+              className="w-full border border-[#D9D4C6] bg-white p-3.5 text-xs font-normal leading-relaxed text-[#1E2620] placeholder:text-[#A39F93] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15"
+            />
           </div>
 
           {/* Story Editor */}
@@ -376,17 +421,17 @@ export default function CreateNewStoryPage() {
           {/* Author Credentials & Links */}
           <div className="border-t border-[#EDEAE0] pt-6 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.16em] text-[#6B7268]" style={monoFont}>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#6B7268]">
                 Author Credentials &amp; Links
               </p>
             </div>
 
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[240px]">
-                <label className="mb-1 flex items-center justify-between text-[10px] font-semibold uppercase text-[#5A6259]">
+                <label className="mb-1 flex items-center justify-between text-[10px] font-bold uppercase text-[#5A6259]">
                   <span>Social Handle {isSocialCreator && <span className="text-[#B65C4B]">*</span>}</span>
                   {detectedSocialPlatform && (
-                    <span className="text-[#3F6B4F] font-semibold tracking-wider" style={monoFont}>
+                    <span className="font-mono text-[#3B664B] font-semibold tracking-wider">
                       {detectedSocialPlatform.name}
                     </span>
                   )}
@@ -398,13 +443,13 @@ export default function CreateNewStoryPage() {
                     value={socialHandle}
                     onChange={(e) => setSocialHandle(e.target.value)}
                     placeholder="@username or social profile link"
-                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div className="flex-1 min-w-[240px]">
-                <label className="mb-1 block text-[10px] font-semibold uppercase text-[#5A6259]">
+                <label className="mb-1 block text-[10px] font-bold uppercase text-[#5A6259]">
                   Organization Link {isMediaCorrespondent && <span className="text-[#B65C4B]">*</span>}
                 </label>
                 <div className="relative">
@@ -414,7 +459,7 @@ export default function CreateNewStoryPage() {
                     value={organizationLink}
                     onChange={(e) => setOrganizationLink(e.target.value)}
                     placeholder="https://organization.org"
-                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none"
+                    className="w-full border border-[#D9D4C6] bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#1E2620] focus:border-[#3B664B] focus:outline-none"
                   />
                 </div>
               </div>
@@ -435,7 +480,7 @@ export default function CreateNewStoryPage() {
             <button
               type="button"
               onClick={handleOpenReviewModal}
-              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] cursor-pointer"
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3B664B] hover:border-[#3B664B] cursor-pointer"
             >
               <Eye size={14} /> Review Story
             </button>
