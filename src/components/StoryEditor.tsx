@@ -38,6 +38,7 @@ interface Section {
 interface Props {
   excerpt: string;
   setExcerpt: (v: string) => void;
+  excerptError?: boolean; // 🟢 Prop for localized validation
   initialSections?: Section[];
   onChange?: (blocks: any[], files: File[]) => void;
   controlsPosition?: "top" | "bottom";
@@ -131,7 +132,7 @@ interface ActiveLinkPreviewState {
   element: HTMLElement;
 }
 
-export default function StoryEditor({ excerpt, setExcerpt, initialSections, onChange }: Props) {
+export default function StoryEditor({ excerpt, setExcerpt, excerptError, initialSections, onChange }: Props) {
   const [sections, setSections] = useState<Section[]>(() =>
     (initialSections && initialSections.length > 0
       ? initialSections
@@ -159,7 +160,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // OPTIMIZED BLOCK PAYLOAD BUILDER
   useEffect(() => {
     const blocks: any[] = [];
     const files: File[] = [];
@@ -384,13 +384,11 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
     closeLinkPopover();
   };
 
-  // 🟢 MULTI-FILE SELECTION HANDLER FOR INLINE SECTION IMAGES
   const handleMultiImageSelect = (targetSectionId: string, fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
     const filesArray = Array.from(fileList);
 
-    // If 1 image selected, open cropper dialog for adjustment
     if (filesArray.length === 1) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -401,13 +399,11 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
       return;
     }
 
-    // If MULTIPLE images selected at once, automatically map them to section image blocks
     filesArray.forEach((file, idx) => {
       const fileKey = `${crypto.randomUUID()}__inline_${idx}.jpg`;
       const previewUrl = URL.createObjectURL(file);
 
       if (idx === 0) {
-        // First file maps directly to the current section
         setSections((s) =>
           s.map((sec) =>
             sec.id === targetSectionId
@@ -422,7 +418,6 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
           )
         );
       } else {
-        // Subsequent files create new section blocks
         setSections((s) => [
           ...s,
           {
@@ -547,15 +542,22 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
         }
       `}</style>
 
-      {/* DYNAMICALLY AUTO-EXPANDING & JUSTIFIED EXCERPT FIELD */}
+      {/* 🟢 LOCALIZED EXCERPT / BRIEF SUMMARY FIELD WITH RED WARNING TEXT & BORDER ON ERROR */}
       <div>
         <div className="mb-1.5 flex items-baseline justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-[#1E2620]">
-            Excerpt / Brief Summary *
+            Excerpt / Brief Summary <span className="text-[#B65C4B]">*</span>
           </label>
-          <span className="font-mono text-[10px] font-semibold tabular-nums text-[#5A6259]">
-            {excerpt.length} chars
-          </span>
+          <div className="flex items-center gap-2">
+            {excerptError && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                <AlertCircle size={10} /> Excerpt / Brief Summary is required
+              </span>
+            )}
+            <span className="font-mono text-[10px] font-semibold tabular-nums text-[#5A6259]">
+              {excerpt.length} chars
+            </span>
+          </div>
         </div>
         <textarea
           rows={3}
@@ -572,7 +574,11 @@ export default function StoryEditor({ excerpt, setExcerpt, initialSections, onCh
             }
           }}
           placeholder="Short summary for preview cards..."
-          className="w-full border border-[#D9D4C6] bg-white p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:border-[#3F6B4F] focus:outline-none overflow-hidden resize-none transition-[height] duration-100 leading-relaxed text-justify text-justify-inter-word rounded-[2px]"
+          className={`w-full border p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:outline-none overflow-hidden resize-none transition-all duration-100 leading-relaxed text-justify text-justify-inter-word rounded-[2px] ${
+            excerptError
+              ? "border-[#B65C4B] bg-[#FBEEEC]/40 focus:border-[#B65C4B] focus:ring-2 focus:ring-[#B65C4B]/20"
+              : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-2 focus:ring-[#3F6B4F]/15"
+          }`}
         />
       </div>
 

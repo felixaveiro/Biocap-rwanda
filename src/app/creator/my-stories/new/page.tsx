@@ -30,43 +30,14 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
-// Preset Category Pills Mapping
 const CATEGORIES = [
-  {
-    label: "TECHNOLOGY ADOPTION",
-    value: "Technology Adoption",
-    icon: Cpu,
-  },
-  {
-    label: "MODERN AGRICULTURE",
-    value: "Modern Agriculture",
-    icon: Tractor,
-  },
-  {
-    label: "FARMERS & ENVIRONMENT",
-    value: "Farmers & Environment",
-    icon: Leaf,
-  },
-  {
-    label: "SCIENCE FOR HUMANITY",
-    value: "Science for Humanity",
-    icon: HeartHandshake,
-  },
-  {
-    label: "BIOTECH INNOVATION",
-    value: "Biotech Innovation",
-    icon: Dna,
-  },
-  {
-    label: "AGRICULTURAL POLICY",
-    value: "Agricultural Policy",
-    icon: FileText,
-  },
-  {
-    label: "TRADE & FOOD",
-    value: "Trade & Food",
-    icon: ShoppingBag,
-  },
+  { label: "TECHNOLOGY ADOPTION", value: "Technology Adoption", icon: Cpu },
+  { label: "MODERN AGRICULTURE", value: "Modern Agriculture", icon: Tractor },
+  { label: "FARMERS & ENVIRONMENT", value: "Farmers & Environment", icon: Leaf },
+  { label: "SCIENCE FOR HUMANITY", value: "Science for Humanity", icon: HeartHandshake },
+  { label: "BIOTECH INNOVATION", value: "Biotech Innovation", icon: Dna },
+  { label: "AGRICULTURAL POLICY", value: "Agricultural Policy", icon: FileText },
+  { label: "TRADE & FOOD", value: "Trade & Food", icon: ShoppingBag },
 ];
 
 export default function CreateNewStoryPage() {
@@ -76,28 +47,30 @@ export default function CreateNewStoryPage() {
   const [title, setTitle] = useState("");
   const [tag, setTag] = useState("");
   const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
+  const [content] = useState("");
   const [blocks, setBlocks] = useState<any[]>([]);
   const [inlineImages, setInlineImages] = useState<File[]>([]);
   
-  // Profile handles & org links
   const [socialHandle, setSocialHandle] = useState("");
   const [organizationLink, setOrganizationLink] = useState("");
   const [isProfileSynced, setIsProfileSynced] = useState(false);
 
-  // Cropping & File Upload States
   const [rawImageSrc, setRawImageSrc] = useState<string | null>(null);
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
 
-  // Review Modal Toggle State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 🟢 REFS FOR AUTO-SCROLLING TO UNFILLED REQUIRED FIELDS
+  const [errors, setErrors] = useState<{
+    cover?: boolean;
+    title?: boolean;
+    tag?: boolean;
+    excerpt?: boolean;
+    content?: boolean;
+  }>({});
+
   const coverRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
@@ -154,6 +127,7 @@ export default function CreateNewStoryPage() {
     const file = e.target.files?.[0];
     if (file) {
       setCoverImageFile(file);
+      setErrors((prev) => ({ ...prev, cover: false }));
       
       const reader = new FileReader();
       reader.onload = () => {
@@ -173,7 +147,6 @@ export default function CreateNewStoryPage() {
     setIsCropperOpen(false);
   };
 
-  // 🟢 VALIDATE & AUTO-SCROLL TO MISSING REQUIRED FIELD ON REVIEW
   const handleOpenReviewModal = () => {
     let finalCoverImg: File | string | null = null;
     if (coverImageFile instanceof File && coverImageFile.size > 0) {
@@ -184,31 +157,21 @@ export default function CreateNewStoryPage() {
       finalCoverImg = rawImageSrc;
     }
 
-    if (!finalCoverImg) {
-      setErrorMsg("A cover image is required before reviewing your story.");
-      scrollToElement(coverRef);
-      return;
-    }
+    const newErrors: typeof errors = {};
 
-    if (!title.trim()) {
-      setErrorMsg("Please add a title before opening review mode.");
-      scrollToElement(titleRef);
-      return;
-    }
+    if (!finalCoverImg) newErrors.cover = true;
+    if (!title.trim()) newErrors.title = true;
+    if (!tag.trim()) newErrors.tag = true;
+    if (!excerpt.trim()) newErrors.excerpt = true;
+    if ((!blocks || blocks.length === 0) && !content.trim()) newErrors.content = true;
 
-    if (!tag.trim()) {
-      setErrorMsg("Please select a category/tag before reviewing your story.");
-      scrollToElement(categoryRef);
-      return;
-    }
+    setErrors(newErrors);
 
-    if (!excerpt.trim() && (!blocks || blocks.length === 0) && !content.trim()) {
-      setErrorMsg("Please provide an excerpt or content in the manuscript section.");
-      scrollToElement(editorRef);
-      return;
-    }
+    if (newErrors.cover) return scrollToElement(coverRef);
+    if (newErrors.title) return scrollToElement(titleRef);
+    if (newErrors.tag) return scrollToElement(categoryRef);
+    if (newErrors.excerpt || newErrors.content) return scrollToElement(editorRef);
 
-    setErrorMsg(null);
     setIsReviewModalOpen(true);
   };
 
@@ -223,63 +186,40 @@ export default function CreateNewStoryPage() {
       finalCoverImg = rawImageSrc;
     }
 
-    if (!finalCoverImg) {
-      const coverErr = "A cover image is required before submitting your story.";
-      setErrorMsg(coverErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
+    const newErrors: typeof errors = {};
+
+    if (!finalCoverImg) newErrors.cover = true;
+    if (!title.trim()) newErrors.title = true;
+    if (!tag.trim()) newErrors.tag = true;
+    if (!excerpt.trim()) newErrors.excerpt = true;
+    if ((!blocks || blocks.length === 0) && !content.trim()) newErrors.content = true;
+
+    setErrors(newErrors);
+
+    if (newErrors.cover) {
       scrollToElement(coverRef);
-      throw new Error(coverErr);
+      throw new Error("Cover image required.");
     }
-
-    if (!title.trim()) {
-      const titleErr = "A story title is required before submitting.";
-      setErrorMsg(titleErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
+    if (newErrors.title) {
       scrollToElement(titleRef);
-      throw new Error(titleErr);
+      throw new Error("Title required.");
     }
-
-    if (!tag.trim()) {
-      const tagErr = "Please select a category/tag before submitting your story.";
-      setErrorMsg(tagErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
+    if (newErrors.tag) {
       scrollToElement(categoryRef);
-      throw new Error(tagErr);
+      throw new Error("Category required.");
     }
-
-    if (!excerpt.trim() && (!blocks || blocks.length === 0) && !content.trim()) {
-      const contentErr = "Please provide either an excerpt or at least one story section.";
-      setErrorMsg(contentErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
+    if (newErrors.excerpt || newErrors.content) {
       scrollToElement(editorRef);
-      throw new Error(contentErr);
+      throw new Error("Excerpt and manuscript content required.");
     }
 
     const finalSocialHandle = socialHandle.trim() || user.socialHandle || "";
     const finalOrgLink = organizationLink.trim() || user.organizationLink || "";
 
-    if (isSocialCreator && !finalSocialHandle) {
-      const handleErr = "A social media handle is required for your account type.";
-      setErrorMsg(handleErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
-      throw new Error(handleErr);
-    }
-
-    if (isMediaCorrespondent && !finalOrgLink) {
-      const orgErr = "An organization link is required for Media Correspondent accounts.";
-      setErrorMsg(orgErr);
-      setIsReviewModalOpen(false);
-      setIsSubmitting(false);
-      throw new Error(orgErr);
-    }
+    if (isSocialCreator && !finalSocialHandle) throw new Error("Social handle required.");
+    if (isMediaCorrespondent && !finalOrgLink) throw new Error("Organization link required.");
 
     setIsSubmitting(true);
-    setErrorMsg(null);
 
     try {
       const creatorRole = (user.role as Role) || "contributor";
@@ -293,7 +233,7 @@ export default function CreateNewStoryPage() {
           blocks: rawBlocks,
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
-          img: finalCoverImg,
+          img: finalCoverImg!,
           images: inlineImages,
         },
         creatorRole
@@ -307,8 +247,6 @@ export default function CreateNewStoryPage() {
       router.push("/creator/my-stories");
     } catch (err: unknown) {
       console.error("Failed to create story:", err);
-      const msg = err instanceof Error ? err.message : "Failed to create story.";
-      setErrorMsg(msg);
       setIsReviewModalOpen(false);
       throw err;
     } finally {
@@ -347,8 +285,6 @@ export default function CreateNewStoryPage() {
       />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
-
-        {/* Back Link */}
         <div className="flex items-center justify-between">
           <Link
             href="/creator/my-stories"
@@ -359,18 +295,7 @@ export default function CreateNewStoryPage() {
           </Link>
         </div>
 
-        {/* Error Notification Banner */}
-        {errorMsg && (
-          <div className="flex items-center gap-3 border-l-2 border-[#B65C4B] bg-[#FBEEEC] px-4 py-3.5 rounded-[2px]">
-            <AlertCircle size={18} className="shrink-0 text-[#B65C4B]" />
-            <p className="text-xs font-medium text-[#7A362A]">{errorMsg}</p>
-          </div>
-        )}
-
-        {/* Main Form Card Container */}
         <div className="space-y-8 border border-[#E2DDCF] bg-white p-6 sm:p-8 rounded-[2px]">
-
-          {/* Form Header */}
           <div className="flex items-center justify-between border-b border-[#EDEAE0] pb-5">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#6B7268]">
               Story Build-up
@@ -380,13 +305,19 @@ export default function CreateNewStoryPage() {
             </h2>
           </div>
 
-          {/* Cover Image Upload */}
           <div ref={coverRef}>
             <div className="flex items-center justify-between mb-2.5">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
                 Cover Image <span className="text-[#B65C4B]">*</span>
               </label>
-              <span className="font-mono text-[11px] font-medium text-[#8B9188]">16:9 landscape</span>
+              <div className="flex items-center gap-2">
+                {errors.cover && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                    <AlertCircle size={10} /> Cover image is required
+                  </span>
+                )}
+                <span className="font-mono text-[11px] font-medium text-[#8B9188]">16:9 landscape</span>
+              </div>
             </div>
 
             {croppedPreview ? (
@@ -401,7 +332,11 @@ export default function CreateNewStoryPage() {
                 </button>
               </div>
             ) : (
-              <label className="group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition duration-200 hover:border-[#3B664B] hover:bg-[#F1F5F1] rounded-[2px]">
+              <label className={`group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed transition duration-200 rounded-[2px] ${
+                errors.cover
+                  ? "border-[#B65C4B] bg-[#FBEEEC]/40"
+                  : "border-[#D9D4C6] bg-[#FAF9F5] hover:border-[#3B664B] hover:bg-[#F1F5F1]"
+              }`}>
                 <div className="border border-[#D9D4C6] bg-white p-3.5 transition duration-200 group-hover:border-[#3B664B] rounded-[2px]">
                   <ImageIcon size={24} strokeWidth={1.5} className="text-[#8B9188] transition group-hover:text-[#3B664B]" />
                 </div>
@@ -414,30 +349,42 @@ export default function CreateNewStoryPage() {
             )}
           </div>
 
-          {/* Title Input */}
           <div>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
-              Story Title <span className="text-[#B65C4B]">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
+                Story Title <span className="text-[#B65C4B]">*</span>
+              </label>
+              {errors.title && (
+                <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                  <AlertCircle size={10} /> Title is required
+                </span>
+              )}
+            </div>
             <input
               ref={titleRef}
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (e.target.value.trim()) setErrors((prev) => ({ ...prev, title: false }));
+              }}
               placeholder="Enter a captivating headline..."
-              className="font-display w-full border border-[#D9D4C6] bg-white px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:border-[#3B664B] focus:outline-none focus:ring-2 focus:ring-[#3B664B]/15 rounded-[2px]"
+              className={`font-display w-full border px-4 py-3 text-lg italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-all rounded-[2px] ${
+                errors.title
+                  ? "border-[#B65C4B] bg-[#FBEEEC]/40 focus:border-[#B65C4B] focus:ring-[#B65C4B]/20"
+                  : "border-[#D9D4C6] bg-white focus:border-[#3B664B] focus:ring-[#3B664B]/15"
+              }`}
             />
           </div>
 
-          {/* CATEGORY / TAG PILLS */}
           <div ref={categoryRef} className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-bold uppercase tracking-wider text-[#3B4237]">
                 Category / Tag <span className="text-[#B65C4B]">*</span>
               </label>
-              {!tag && (
-                <span className="text-[10px] font-medium text-[#B65C4B]">
-                  Selection required
+              {errors.tag && (
+                <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                  <AlertCircle size={10} /> Selection required
                 </span>
               )}
             </div>
@@ -451,16 +398,21 @@ export default function CreateNewStoryPage() {
                   <button
                     key={cat.value}
                     type="button"
-                    onClick={() => setTag(cat.value)}
+                    onClick={() => {
+                      setTag(cat.value);
+                      setErrors((prev) => ({ ...prev, tag: false }));
+                    }}
                     className={`inline-flex items-center gap-2 border px-4 py-2 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer rounded-[2px] ${
                       isSelected
                         ? "border-[#3B664B] bg-[#3B664B] text-white shadow-xs"
+                        : errors.tag
+                        ? "border-[#B65C4B] bg-[#FBEEEC]/40 text-[#B65C4B] hover:border-[#B65C4B]"
                         : "border-[#9EAF91]/70 bg-white text-[#3B664B] hover:border-[#3B664B] hover:bg-[#FAF9F5]"
                     }`}
                   >
                     <Icon
                       size={14}
-                      className={isSelected ? "text-white" : "text-[#3B664B]"}
+                      className={isSelected ? "text-white" : errors.tag ? "text-[#B65C4B]" : "text-[#3B664B]"}
                       strokeWidth={2}
                     />
                     <span>{cat.label}</span>
@@ -472,17 +424,19 @@ export default function CreateNewStoryPage() {
             <div className="border-b border-[#EDEAE0] pt-1" />
           </div>
 
-          {/* Story Editor */}
           <div ref={editorRef} className="border-t border-[#EDEAE0] pt-6">
             <StoryEditor
               excerpt={excerpt}
-              setExcerpt={setExcerpt}
+              setExcerpt={(v) => {
+                setExcerpt(v);
+                if (v.trim()) setErrors((prev) => ({ ...prev, excerpt: false }));
+              }}
+              excerptError={errors.excerpt}
               controlsPosition="bottom"
               onChange={handleStoryEditorChange}
             />
           </div>
 
-          {/* Author Credentials & Links */}
           <div className="border-t border-[#EDEAE0] pt-6 space-y-3">
             <div className="flex items-center justify-between">
               <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#6B7268]">
@@ -530,7 +484,6 @@ export default function CreateNewStoryPage() {
             </div>
           </div>
 
-          {/* Footer Action Buttons */}
           <div className="flex items-center justify-end gap-3 border-t border-[#EDEAE0] pt-6">
             <button
               type="button"
@@ -549,11 +502,9 @@ export default function CreateNewStoryPage() {
               <Eye size={14} /> Review Story
             </button>
           </div>
-
         </div>
       </main>
 
-      {/* Cropper Modal */}
       {rawImageSrc && (
         <ImageCropperModal
           isOpen={isCropperOpen}
@@ -564,7 +515,6 @@ export default function CreateNewStoryPage() {
         />
       )}
 
-      {/* Author Review Preview Modal */}
       {isReviewModalOpen && (
         <AuthorReviewModal
           story={previewStoryObject}
