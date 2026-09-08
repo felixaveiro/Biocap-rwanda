@@ -354,7 +354,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#E52B67] cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#8b4136] cursor-pointer"
               >
                 {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
@@ -459,7 +459,7 @@ export default function RegisterPage() {
           <div className="space-y-2 pt-1 border-t border-white/20" ref={dropdownRef}>
             <div className="ml-2">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-[#133248]">
-                Social Media Handles <span className="text-[#E52B67]">* (At least 1 required)</span>
+                Social Media Handles <span className="text-[#8b4136]">* (At least 1 required)</span>
               </label>
             </div>
 
@@ -537,7 +537,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={addSocialEntry}
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E52B67] hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#8b4136] hover:underline cursor-pointer"
               >
                 <Plus size={12} /> Add Platform
               </button>
@@ -552,7 +552,7 @@ export default function RegisterPage() {
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-[#E52B67]" />
+                <Loader2 className="w-4 h-4 animate-spin text-[#8b4136]" />
                 <span>Creating account...</span>
               </>
             ) : (
@@ -567,7 +567,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/auth/login"
-              className="font-bold text-[#E52B67] hover:underline"
+              className="font-bold text-[#8b4136] hover:underline"
             >
               Sign in here
             </Link>

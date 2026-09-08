@@ -142,7 +142,7 @@ function LoginForm() {
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             tabIndex={-1}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#E52B67] transition-colors cursor-pointer"
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#8b4136] transition-colors cursor-pointer"
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
@@ -152,7 +152,7 @@ function LoginForm() {
         <div className="text-right pt-0.5 pb-0.5">
           <Link
             href="/auth/forgot-password"
-            className="text-xs font-semibold text-[#133248] hover:text-[#E52B67] transition-colors"
+            className="text-xs font-semibold text-[#133248] hover:text-[#8b4136] transition-colors"
           >
             Forgot Password?
           </Link>
@@ -166,7 +166,7 @@ function LoginForm() {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin text-[#E52B67]" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#8b4136]" />
               <span>Signing in...</span>
             </>
           ) : (
@@ -181,7 +181,7 @@ function LoginForm() {
           No account?{" "}
           <Link
             href="/auth/register"
-            className="font-bold text-[#E52B67] hover:underline"
+            className="font-bold text-[#8b4136] hover:underline"
           >
             Register here
           </Link>
@@ -197,7 +197,7 @@ export default function LoginPage() {
     <div className="relative h-screen w-full flex items-center justify-center bg-gradient-to-br from-[#133248] via-[#235D74] to-[#632B70] overflow-hidden px-4 selection:bg-[#E52B67] selection:text-white">
       
       {/* ── BIOCAP DNA HELIX & BACKGROUND GRAPHICS ── */}
-      <div className="absolute top-[-10%] left-[-5%] w-[280px] h-[600px] text-[#E52B67]/15 pointer-events-none -rotate-12 blur-[1px]">
+      <div className="absolute top-[-10%] left-[-5%] w-[280px] h-[600px] text-[#8b4136]/15 pointer-events-none -rotate-12 blur-[1px]">
         <svg viewBox="0 0 100 400" className="w-full h-full fill-none stroke-current stroke-2">
           <path d="M 30,0 Q 80,50 30,100 T 30,200 T 30,300 T 30,400" strokeWidth="3" />
           <path d="M 70,0 Q 20,50 70,100 T 70,200 T 70,300 T 70,400" strokeWidth="3" />
@@ -219,7 +219,7 @@ export default function LoginPage() {
         </svg>
       </div>
 
-      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#E52B67]/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-[#8b4136]/20 rounded-full blur-3xl pointer-events-none" />
 
       {/* 🟢 Suspense Boundary Wrapper for Next.js Search Parameters */}
       <Suspense fallback={<div className="text-xs text-white">Loading login form...</div>}>
