@@ -176,7 +176,7 @@ function LoginForm() {
       </form>
 
       {/* Footer */}
-      <div className="mt-5 text-center border-t border-[#133248]/15 pt-3">
+      <div className="mt-5 text-center border-t border-[#133248]/15 pt-3 space-y-1.5">
         <p className="text-xs text-[#133248] font-medium">
           No account?{" "}
           <Link
@@ -185,6 +185,19 @@ function LoginForm() {
           >
             Register here
           </Link>
+        </p>
+
+        {/* 🟢 "Are you new on this system? Learn More" link with #8b4136 color */}
+        <p className="text-xs text-[#133248] font-medium">
+          Are you new on this system?{" "}
+          <a
+            href="https://docs.google.com/document/d/1ipmqRGMnrnIlzufOueUWJzr4c2TWkjgMD6YNAJ9AyGg/edit?tab=t.0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#8b4136] hover:underline"
+          >
+            Learn More
+          </a>
         </p>
       </div>
 
