@@ -1,7 +1,8 @@
+// src/lib/utils/permissions.ts
 import { Role, BlogPost } from "@/types";
 
 export type Permission =
-  | "blog:view"       // Resolves useSession("blog:view") TypeScript checks
+  | "blog:view"
   | "blog:view:all"
   | "blog:create"
   | "blog:edit"
@@ -11,6 +12,8 @@ export type Permission =
   | "blog:publish"
   | "blog:unpublish"
   | "blog:submit"
+  | "gallery:view"
+  | "gallery:manage" // Upload/Edit/Delete rights for Admin & Editor
   | "user:view"
   | "user:create"
   | "user:edit:info"
@@ -31,6 +34,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:publish",
     "blog:unpublish",
     "blog:submit",
+    "gallery:view",
+    "gallery:manage",
     "user:view",
     "user:create",
     "user:edit:info",
@@ -50,6 +55,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:publish",
     "blog:unpublish",
     "blog:submit",
+    "gallery:view",
     "user:view",
     "user:create",
     "user:edit:info",
@@ -66,21 +72,26 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "blog:publish",
     "blog:unpublish",
     "blog:submit",
+    "gallery:view",
+    "gallery:manage",
   ],
   social_media_content_creator: [
     "blog:view",
     "blog:create",
     "blog:submit",
+    "gallery:view",
   ],
   media_correspondent: [
     "blog:view",
     "blog:create",
     "blog:submit",
+    "gallery:view",
   ],
   principal_investigator: [
     "blog:view",
     "blog:create",
     "blog:submit",
+    "gallery:view",
   ],
 };
 

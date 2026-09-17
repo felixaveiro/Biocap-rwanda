@@ -265,7 +265,7 @@ export interface BlogPost {
   excerpt: string;
   blocks: BlogBlock[];
   
-  // 🟢 FIXED: Added optional Rich-Text HTML content support
+  // Rich-Text HTML content support
   bodyHtml?: string;
 
   modal?: BlogModalMetadata;
@@ -360,4 +360,43 @@ export interface BlogStatsResponse {
   rejected?: number;
   deleted?: number;
   total: number;
+}
+
+// ─── Gallery Domain ──────────────────────────────────────────────────────────
+export type GalleryMediaType = 'folder' | 'video';
+export type GalleryCategory = 'events' | 'team' | 'activities';
+
+export interface GalleryImage {
+  url: string;
+  publicId: string;
+  _id?: string;
+}
+
+export interface GalleryItem {
+  _id: string;
+  mediaType: GalleryMediaType;
+  title: string;
+  category: GalleryCategory;
+  caption: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  images?: GalleryImage[];
+  createdBy: {
+    _id: string;
+    username: string;
+    role: Role;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryResponse {
+  success: boolean;
+  count: number;
+  pagination: {
+    total: number;
+    page: number;
+    pages: number;
+  };
+  data: GalleryItem[];
 }

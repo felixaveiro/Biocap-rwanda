@@ -27,6 +27,9 @@ import {
   AtSign,
   Globe,
   MessageCircle,
+  Edit3,
+  Eye,
+  Link as LinkIcon,
 } from "lucide-react";
 
 // ── Editorial Type & Styling System ──────────────────────────────────────────
@@ -48,6 +51,45 @@ const plexMono = IBM_Plex_Mono({
   weight: ["500"],
   variable: "--font-mono",
 });
+
+function formatPublishedLinks(text: string): string {
+  if (!text) return '';
+
+  const normalizeUrl = (url: string) => {
+    let trimmed = url.trim();
+    if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    return trimmed;
+  };
+
+  let formatted = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, label, url) => {
+      const cleanUrl = normalizeUrl(url);
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${label}</a>`;
+    }
+  );
+
+  formatted = formatted.replace(
+    /<span class="editor-link" data-href="([^"]+)">([^<]+)<\/span>/g,
+    (_, url, label) => {
+      const cleanUrl = normalizeUrl(url);
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${label}</a>`;
+    }
+  );
+
+  formatted = formatted.replace(
+    /<a\s+(?:[^>]*?\s+)?href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/gi,
+    (_, url, restAttrs, label) => {
+      const cleanUrl = normalizeUrl(url);
+      const cleanLabel = label.replace(/^🔗\s*/, '');
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link"${restAttrs}>${cleanLabel}</a>`;
+    }
+  );
+
+  return formatted;
+}
 
 const renderSocialPlatformIcon = (platformName: string) => {
   const p = platformName.toLowerCase();
@@ -102,12 +144,29 @@ export default function EditStoryModal({
   const [articleTitle, setArticleTitle] = useState(initialStory.title || "");
   const [articleTag, setArticleTag] = useState(initialStory.tag || "General");
   const [articleExcerpt, setArticleExcerpt] = useState(initialStory.excerpt || "");
-  
-  // ── Block-Based Manuscript Engine State ────────────────────────────────
+
+  const [isEditingContent, setIsEditingContent] = useState(false);
+
+  // Floating Link Toolbar State
+  const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
+  const [selectedText, setSelectedText] = useState<string>('');
+
+  // Link popover (for contentEditable paragraphs)
+  const editableRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const linkPopoverRef = useRef<HTMLDivElement | null>(null);
+  const linkUrlInputRef = useRef<HTMLInputElement | null>(null);
+  const [linkPopover, setLinkPopover] = useState<{ idx: number; top: number; left: number } | null>(null);
+  const [linkUrlValue, setLinkUrlValue] = useState("");
+  const activeSelectionRef = useRef<{ idx: number; range: Range } | null>(null);
+
+  // Refs for paragraph textareas to support markdown link insertion
+  const paraRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
+
+  // Manuscript Engine Blocks State
   const [editedBlocks, setEditedBlocks] = useState<BlogBlock[]>([]);
   const [editedSectionFiles, setEditedSectionFiles] = useState<Record<number, File>>({});
 
-  // ── Cover Photo & Cropping States ───────────────────────────────────────
+  // Cover Image States
   const [currentCoverUrl, setCurrentCoverUrl] = useState<string>(initialStory.img || "");
   const [croppedCoverFile, setCroppedCoverFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
@@ -120,12 +179,11 @@ export default function EditStoryModal({
 
   const editorFeedbackNote = localStory.lastRejectionNote || null;
 
-  // ── Revision Requests State ──────────────────────────────────────────────
+  // Revision Requests State
   const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
   const [implementationNote, setImplementationNote] = useState("");
   const [isImplementing, setIsImplementing] = useState(false);
 
-  // 🟢 FETCH FULL AUTHOR SUBMISSION DETAILS (Matching ReviewStoryModal logic)
   useEffect(() => {
     let active = true;
     const fetchFullStory = async () => {
@@ -139,11 +197,11 @@ export default function EditStoryModal({
           setArticleTag(fullData.tag || "General");
           setArticleExcerpt(fullData.excerpt || "");
           setCurrentCoverUrl(fullData.img || "");
-          setEditedBlocks(
-            fullData.blocks && fullData.blocks.length > 0
-              ? fullData.blocks
-              : [{ type: "p", text: (fullData as any).content || fullData.bodyHtml || "" }]
-          );
+          const incomingBlocks = fullData.blocks && fullData.blocks.length > 0
+            ? fullData.blocks.map((b: BlogBlock) => ({ ...b, text: htmlToMarkdown(b.text || '') }))
+            : [{ type: 'p', text: htmlToMarkdown((fullData as any).content || fullData.bodyHtml || '') }];
+
+          setEditedBlocks(incomingBlocks as BlogBlock[]);
         }
       } catch (err) {
         console.error("Failed to load full author story payload:", err);
@@ -158,7 +216,147 @@ export default function EditStoryModal({
     };
   }, [initialStory._id, currentUserRole]);
 
-  // Author Byline Formatting
+  // Selection detection for text highlight hyperlink tool
+  const handleSelectionCheck = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      setToolbarPos(null);
+      setSelectedText('');
+      setLinkPopover(null);
+      activeSelectionRef.current = null;
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    // detect which editable paragraph contains the selection
+    let foundIdx: number | null = null;
+    for (const [idx, el] of editableRefs.current.entries()) {
+      if (el.contains(selection.anchorNode)) {
+        foundIdx = idx;
+        break;
+      }
+    }
+
+    const rect = range.getBoundingClientRect();
+
+    setToolbarPos({ top: rect.top - 45, left: rect.left + rect.width / 2 - 60 });
+    setSelectedText(selection.toString());
+
+    if (foundIdx !== null) {
+      activeSelectionRef.current = { idx: foundIdx, range: range.cloneRange() };
+      setLinkPopover({ idx: foundIdx, top: rect.top, left: rect.left + rect.width / 2 });
+      requestAnimationFrame(() => linkUrlInputRef.current?.focus());
+    } else {
+      setLinkPopover(null);
+      activeSelectionRef.current = null;
+    }
+  };
+
+  const closeLinkPopover = () => {
+    setLinkPopover(null);
+    setLinkUrlValue("");
+    activeSelectionRef.current = null;
+  };
+
+  const insertLinkOnSelection = () => {
+    // If we don't have an active editable selection, ask the user to highlight
+    // text inside a paragraph. Avoid using `document.execCommand` which inserts
+    // raw <a> tags and breaks serialization; only use our popover-based flow.
+    if (!linkPopover || !activeSelectionRef.current) {
+      alert("Please highlight the text you want to link inside the paragraph, then click Insert Link.");
+      setToolbarPos(null);
+      setSelectedText("");
+      return;
+    }
+
+    // otherwise open the popover input (already opened by handleSelectionCheck)
+    requestAnimationFrame(() => linkUrlInputRef.current?.focus());
+  };
+
+  const applyLinkToSelection = () => {
+    const active = activeSelectionRef.current;
+    if (!active) return;
+    let url = linkUrlValue.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) {
+      url = `https://${url}`;
+    }
+
+    const { idx, range } = active;
+    const el = editableRefs.current.get(idx);
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    const span = document.createElement("span");
+    span.className = "editor-link";
+    span.setAttribute("data-href", url);
+
+    try {
+      const contents = range.extractContents();
+      span.appendChild(contents);
+      range.insertNode(span);
+    } catch (err) {
+      console.error("Failed to insert link element:", err);
+      closeLinkPopover();
+      return;
+    }
+
+    const spacer = document.createTextNode("\u200B");
+    if (span.parentNode) {
+      if (span.nextSibling) {
+        span.parentNode.insertBefore(spacer, span.nextSibling);
+      } else {
+        span.parentNode.appendChild(spacer);
+      }
+    }
+
+    if (sel) {
+      const newRange = document.createRange();
+      newRange.setStart(spacer, spacer.length);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+    }
+
+    // update block state from DOM (serialize to markdown)
+    updateBlockText(idx, serializeContainer(el));
+    closeLinkPopover();
+  };
+
+  // Insert markdown-style link into a paragraph textarea at the current selection
+  const insertMarkdownLinkInParagraph = (idx: number) => {
+    const el = paraRefs.current.get(idx);
+    if (!el) {
+      // fallback to existing selection-based link for contentEditable areas
+      insertLinkOnSelection();
+      return;
+    }
+
+    const start = typeof el.selectionStart === 'number' ? el.selectionStart : 0;
+    const end = typeof el.selectionEnd === 'number' ? el.selectionEnd : 0;
+    const selected = el.value.substring(start, end) || '';
+    const url = prompt('Enter link URL:', 'https://');
+    if (!url) return;
+    const final = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+    const label = selected || final;
+    const linkMarkdown = `[${label}](${final})`;
+
+    const newVal = el.value.substring(0, start) + linkMarkdown + el.value.substring(end);
+    updateBlockText(idx, newVal);
+
+    // restore focus and place cursor after inserted link
+    setTimeout(() => {
+      el.focus();
+      const pos = start + linkMarkdown.length;
+      el.setSelectionRange(pos, pos);
+    }, 0);
+  };
+
   const creator = localStory.originalAuthor || localStory.author;
   const authorFullName = creator?.firstName
     ? `${creator.firstName} ${creator.lastName || ""}`.trim()
@@ -174,7 +372,6 @@ export default function EditStoryModal({
     ? new Date(localStory.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
-  // Cover Image Selection & Cropping
   const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -197,7 +394,6 @@ export default function EditStoryModal({
     setPendingCropImageSrc(null);
   };
 
-  // Block Editing Helpers
   const updateBlockText = (index: number, text: string) => {
     setEditedBlocks((prev) =>
       prev.map((b, i) => (i === index ? { ...b, text } : b))
@@ -265,7 +461,6 @@ export default function EditStoryModal({
     ]);
   };
 
-  // Submission Handler
   const handleUpdateStory = async (e: React.FormEvent, submitForReview = false) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -378,6 +573,80 @@ export default function EditStoryModal({
       className={`${fontVars} fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-6`}
       style={bodyFont}
     >
+      <style>{`
+        /* Standard Hyperlink Display Styling */
+        .published-article-link,
+        .published-article-link *,
+        a.published-article-link,
+        a.published-article-link * {
+          color: #0057FF !important;
+          text-decoration: underline !important;
+          text-decoration-color: #0057FF !important;
+          text-underline-offset: 2px !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          display: inline !important;
+        }
+        .published-article-link:hover,
+        .published-article-link *:hover {
+          color: #003DB8 !important;
+          text-decoration-color: #003DB8 !important;
+        }
+        /* Editor inline link styling so inserted spans look like real links */
+        .editor-link,
+        .editor-link * {
+          color: #0057FF !important;
+          text-decoration: underline !important;
+          text-decoration-color: #0057FF !important;
+          text-underline-offset: 2px !important;
+          font-weight: 600 !important;
+          cursor: pointer !important;
+          display: inline !important;
+        }
+        .editor-link:hover,
+        .editor-link *:hover {
+          color: #003DB8 !important;
+          text-decoration-color: #003DB8 !important;
+        }
+      `}</style>
+
+      {/* Floating Tooltip Button on Text Selection */}
+      {toolbarPos && (
+        <div
+          style={{ top: toolbarPos.top, left: toolbarPos.left }}
+          className="fixed z-[100000] flex items-center gap-1 bg-[#1E2620] text-white p-1 rounded shadow-xl animate-in fade-in duration-100"
+        >
+          <button
+            type="button"
+            onClick={insertLinkOnSelection}
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer"
+          >
+            <LinkIcon size={12} /> Insert Link
+          </button>
+        </div>
+      )}
+
+      {/* Link Popover for contentEditable paragraphs */}
+      {linkPopover && (
+        <div
+          ref={linkPopoverRef}
+          style={{ top: linkPopover.top - 50, left: linkPopover.left - 120 }}
+          className="fixed z-[100001] w-[240px] bg-white border border-[#D9D4C6] p-2 rounded shadow-xl"
+        >
+          <input
+            ref={linkUrlInputRef}
+            value={linkUrlValue}
+            onChange={(e) => setLinkUrlValue(e.target.value)}
+            placeholder="https://example.com"
+            className="w-full border border-[#EDEAE0] px-2 py-1 text-xs rounded"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button type="button" onClick={closeLinkPopover} className="text-xs text-[#5A6259]">Cancel</button>
+            <button type="button" onClick={applyLinkToSelection} className="text-xs font-semibold text-white bg-[#3F6B4F] px-2 py-1 rounded">Apply</button>
+          </div>
+        </div>
+      )}
+
       <input
         type="file"
         ref={coverFileInputRef}
@@ -398,7 +667,7 @@ export default function EditStoryModal({
               <FileText size={13} /> Manuscript Workspace
             </p>
             <h3 className="mt-0.5 text-xl font-bold italic text-[#1E2620]" style={displayFont}>
-              Edit Story Draft
+              {isEditingContent ? "Structured Section Editor" : "Interactive Manuscript Mode"}
             </h3>
           </div>
           <button
@@ -413,14 +682,12 @@ export default function EditStoryModal({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 space-y-6 overflow-y-auto p-6 sm:p-8 bg-white" onMouseUp={handleSelectionCheck}>
           
-          {/* Author Byline & Metadata Header Bar (Same as Review Modal) */}
+          {/* Metadata Header Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDEAE0] pb-3">
             <div className="flex flex-wrap items-center gap-3">
-              <span
-                className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#C22055] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
-              >
+              <span className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#C22055] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
                 <Tag size={11} /> {articleTag || "General"}
               </span>
               <span className="inline-flex items-center gap-1 text-xs font-medium text-[#1B3A5C]">
@@ -432,38 +699,25 @@ export default function EditStoryModal({
                 </span>
               )}
             </div>
-          </div>
 
-          {/* Social Links & Attachment Bar (Same as Review Modal) */}
-          {(localStory.socialHandle || localStory.organizationLink || localStory.document || localStory.documentUrl) && (
-            <div className="flex flex-wrap items-center gap-4 border border-[#EDEAE0] bg-[#FAF9F5] p-3 text-xs text-[#5A6259]">
-              {localStory.socialHandle && (
-                <span className="inline-flex items-center gap-1 font-semibold text-[#3A4239]">
-                  <AtSign size={13} className="text-[#3F6B4F]" /> {localStory.socialHandle}
-                </span>
-              )}
-              {localStory.organizationLink && (
-                <a
-                  href={localStory.organizationLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-[#3F6B4F] hover:underline"
-                >
-                  <Globe size={13} /> {localStory.organizationLink}
-                </a>
-              )}
-              {(localStory.document || localStory.documentUrl) && (
-                <a
-                  href={localStory.documentUrl || localStory.document}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-semibold text-[#4A6E8A] hover:underline"
-                >
-                  <FileText size={13} /> {localStory.documentName || "Download Attachment PDF"}
-                </a>
-              )}
-            </div>
-          )}
+            {!isLoadingFullStory && (
+              <button
+                type="button"
+                onClick={() => setIsEditingContent((v) => !v)}
+                className="inline-flex items-center gap-1.5 border border-[#3F6B4F]/40 bg-[#F1F5F1] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#3F6B4F] transition-colors hover:bg-[#3F6B4F] hover:text-white cursor-pointer"
+              >
+                {isEditingContent ? (
+                  <>
+                    <Eye size={13} /> Interactive Preview
+                  </>
+                ) : (
+                  <>
+                    <Edit3 size={13} /> Edit Section Blocks
+                  </>
+                )}
+              </button>
+            )}
+          </div>
 
           {/* Editor Feedback Banner */}
           {editorFeedbackNote && (
@@ -600,11 +854,11 @@ export default function EditStoryModal({
               <div className="h-4 w-full bg-slate-100 rounded" />
               <div className="h-4 w-5/6 bg-slate-100 rounded" />
             </div>
-          ) : (
-            /* Manuscript Form Fields */
-            <div className="space-y-6">
+          ) : isEditingContent ? (
+            /* ── STRUCTURED BLOCK FORM UI ───────────────────────────────── */
+            <div className="space-y-6 border-t border-[#EDEAE0] pt-6">
               
-              {/* COVER IMAGE ON TOP OF TITLE */}
+              {/* COVER IMAGE EDITING */}
               <div>
                 <label className={labelCls}>Cover Photo</label>
                 {currentCoverUrl ? (
@@ -692,7 +946,7 @@ export default function EditStoryModal({
                 />
               </div>
 
-              {/* Block-Based Story Content Engine */}
+              {/* Block-Based Content Form Engine */}
               <div className="space-y-3 border-t border-[#EDEAE0] pt-4">
                 <div className="flex items-center justify-between">
                   <label className={labelCls}>
@@ -733,23 +987,43 @@ export default function EditStoryModal({
                       </div>
 
                       {block.type === "p" || !block.type ? (
-                        <textarea
-                          rows={4}
-                          value={block.text || ""}
-                          onChange={(e) => updateBlockText(idx, e.target.value)}
-                          className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded text-justify text-justify-inter-word leading-relaxed"
-                          placeholder="Paragraph body text..."
-                        />
+                        <div>
+                          <textarea
+                            rows={4}
+                            ref={(el) => {
+                              if (el) paraRefs.current.set(idx, el);
+                              else paraRefs.current.delete(idx);
+                            }}
+                            value={block.text || ""}
+                            onChange={(e) => updateBlockText(idx, e.target.value)}
+                            className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded text-justify text-justify-inter-word leading-relaxed"
+                            placeholder="Paragraph body text..."
+                          />
+                          <div className="mt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => insertMarkdownLinkInParagraph(idx)}
+                              className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
+                            >
+                              <LinkIcon size={13} /> Insert Link
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <div className="space-y-3">
                           {block.src || block.url ? (
-                            <div className="relative max-h-[400px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg flex items-center justify-center">
-                              <img
-                                src={block.src || block.url}
-                                alt={block.caption || `Section ${idx + 1}`}
-                                className="max-h-[400px] w-full object-contain rounded-lg"
-                              />
-                            </div>
+                            <>
+                              <div className="relative max-h-[400px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg flex items-center justify-center">
+                                <img
+                                  src={block.src || block.url}
+                                  alt={block.caption || `Section ${idx + 1}`}
+                                  className="max-h-[400px] w-full object-contain rounded-lg"
+                                />
+                              </div>
+                              {block.caption ? (
+                                <p className="text-xs text-[#8B9188] mt-2">{block.caption}</p>
+                              ) : null}
+                            </>
                           ) : (
                             <div className="border-2 border-dashed border-[#D9D4C6] bg-white p-4 text-center rounded-lg">
                               <p className="text-xs text-[#8B9188]">No image selected for this block yet</p>
@@ -807,8 +1081,105 @@ export default function EditStoryModal({
                   ))}
                 </div>
               </div>
+            </div>
+          ) : (
+            /* ── INTERACTIVE DIRECT CLICK-TO-EDIT MANUSCRIPT PREVIEW ──────── */
+            <div className="space-y-6 text-[#1E2620]">
+              
+              {/* Click to Edit Title */}
+              <h1
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => setArticleTitle(e.currentTarget.textContent || "")}
+                className="text-2xl font-bold italic leading-tight text-[#1B3A5C] sm:text-3xl p-2 border border-transparent hover:border-dashed hover:border-[#3F6B4F] focus:border-solid focus:border-[#3F6B4F] focus:bg-[#FAF9F5] focus:outline-none rounded transition-all cursor-text"
+                style={displayFont}
+                title="Click to edit title directly"
+              >
+                {articleTitle || "Untitled Story"}
+              </h1>
 
-              {/* Author Social Links & Credentials Footer Bar */}
+              {/* Cover Image Container */}
+              {currentCoverUrl && (
+                <div className="relative group overflow-hidden rounded-xl border border-[#D9D4C6] bg-[#1E2620] max-h-[480px] w-full flex items-center justify-center">
+                  <img
+                    src={currentCoverUrl}
+                    alt={articleTitle}
+                    className="max-h-[480px] w-full object-contain rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="absolute bottom-3 right-3 bg-white/90 hover:bg-white text-xs font-bold px-3 py-1.5 rounded border border-[#D9D4C6] shadow-sm transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                  >
+                    Change Cover Image
+                  </button>
+                </div>
+              )}
+
+              {/* Click to Edit Excerpt */}
+              <div
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => setArticleExcerpt(e.currentTarget.textContent || "")}
+                className="border-l-[3px] border-[#C22055] bg-slate-50 p-4 text-xs sm:text-sm italic text-[#3A4239] leading-relaxed hover:bg-slate-100 focus:bg-white focus:outline-none transition-all cursor-text"
+                title="Click to edit summary directly"
+              >
+                {articleExcerpt || "Click here to add an article summary..."}
+              </div>
+
+              {/* Click-to-Edit Paragraph Blocks with Inline Hyperlink Parsing */}
+              <div className="space-y-6 pt-2">
+                {editedBlocks && editedBlocks.length > 0 ? (
+                  editedBlocks.map((block: BlogBlock, idx: number) => {
+                    if (block.type === 'image' && (block.src || block.url)) {
+                      return (
+                        <figure key={idx} className="my-6 space-y-2">
+                          <div className="overflow-hidden rounded-xl border border-[#D9D4C6] bg-[#1E2620] max-h-[480px] flex items-center justify-center">
+                            <img
+                              src={block.src || block.url}
+                              alt={block.caption || `Section ${idx + 1}`}
+                              className="w-full max-h-[480px] object-contain rounded-xl"
+                            />
+                          </div>
+                          {block.caption ? (
+                            <figcaption className="text-xs text-[#8B9188] mt-2">{block.caption}</figcaption>
+                          ) : null}
+                        </figure>
+                      );
+                    }
+
+                    return (
+                      <p
+                        key={idx}
+                        ref={(el) => {
+                          if (el) editableRefs.current.set(idx, el);
+                          else editableRefs.current.delete(idx);
+                        }}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={(e) => updateBlockText(idx, serializeContainer(e.currentTarget) || "")}
+                        onMouseUp={handleSelectionCheck}
+                        dangerouslySetInnerHTML={{
+                          __html: renderHtmlForEditor(block.text || "Click to write paragraph content..."),
+                        }}
+                        className="text-xs sm:text-sm text-[#3A4239] leading-relaxed text-justify p-2 border border-transparent hover:border-dashed hover:border-[#3F6B4F] focus:border-solid focus:border-[#3F6B4F] focus:bg-[#FAF9F5] focus:outline-none rounded transition-all cursor-text mb-3"
+                        title="Highlight text to add a link, or click to edit text"
+                      />
+                    );
+                  })
+                ) : (
+                  <p
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={(e) => updateBlockText(0, e.currentTarget.textContent || "")}
+                    className="text-xs italic text-[#8B9188] p-2 border border-dashed border-[#D9D4C6] cursor-text"
+                  >
+                    Click to start writing content body...
+                  </p>
+                )}
+              </div>
+
+              {/* Author Credentials & Attachments Bar */}
               {(() => {
                 const rawSocialHandle = localStory.socialHandle || creator?.socialHandle || "";
                 if (!rawSocialHandle && !isFilteredOrgLink && !localStory.document && !localStory.documentUrl) {
@@ -816,14 +1187,10 @@ export default function EditStoryModal({
                 }
 
                 return (
-                  <div className="mt-8 pt-4 border-t border-slate-100">
-                    <div className="mb-3 flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#C22055]" />
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#1B3A5C]">
-                        Author Social Links &amp; Credentials
-                      </h4>
-                    </div>
-
+                  <div className="pt-6 border-t border-[#EDEAE0] space-y-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#8B9188]" style={monoFont}>
+                      Attached Credentials &amp; External Documents
+                    </p>
                     <div className="flex flex-wrap items-center gap-5">
                       {rawSocialHandle.length > 0 &&
                         rawSocialHandle.split(' | ').map((handleEntry: string, idx: number) => {
@@ -941,4 +1308,90 @@ export default function EditStoryModal({
       )}
     </div>
   );
+}
+
+// Convert markdown-style links [label](url) into editor spans for contentEditable editing
+function markdownToHtml(text: string): string {
+  const src = text || "";
+  const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let result = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  const escapeHtml = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  while ((match = regex.exec(src))) {
+    result += escapeHtml(src.slice(lastIndex, match.index));
+    const label = escapeHtml(match[1]);
+    const href = escapeHtml(match[2]);
+    result += `<span class="editor-link" data-href="${href}">${label}</span>`;
+    lastIndex = regex.lastIndex;
+  }
+  result += escapeHtml(src.slice(lastIndex));
+  return result;
+}
+
+function serializeNode(node: Node): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || "";
+  }
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    const el = node as HTMLElement;
+
+    if (el.tagName === "BR") return "\n";
+
+    if (el.classList.contains("editor-link")) {
+      const href = el.getAttribute("data-href") || "";
+      const inner = Array.from(el.childNodes).map(serializeNode).join("");
+      return `[${inner}](${href})`;
+    }
+
+    if (el.tagName === "A") {
+      const href = el.getAttribute("href") || "";
+      const inner = Array.from(el.childNodes).map(serializeNode).join("");
+      return `[${inner}](${href})`;
+    }
+
+    if (el.tagName === "DIV" || el.tagName === "P") {
+      return Array.from(el.childNodes).map(serializeNode).join("") + "\n";
+    }
+
+    return Array.from(el.childNodes).map(serializeNode).join("");
+  }
+  return "";
+}
+
+function serializeContainer(container: HTMLElement): string {
+  return Array.from(container.childNodes)
+    .map(serializeNode)
+    .join("")
+    .replace(/\n+$/g, "");
+}
+
+function renderHtmlForEditor(text: string) {
+  if (!text) return "";
+  // If the stored text already contains HTML tags (older format), render it
+  // through formatPublishedLinks so existing <span class="editor-link"> or <a>
+  // elements are converted and displayed correctly. Otherwise convert
+  // markdown links to editor spans.
+  if (/[<>]/.test(text)) {
+    return formatPublishedLinks(text);
+  }
+  return markdownToHtml(text);
+}
+
+// Convert arbitrary HTML (anchors / editor spans) into markdown for storage
+function htmlToMarkdown(html: string) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const body = doc.body;
+    const md = Array.from(body.childNodes).map(serializeNode).join("");
+    return md.replace(/\n+$/g, "");
+  } catch (err) {
+    console.error("Failed to convert HTML to markdown:", err);
+    // fallback: strip tags crudely
+    return html.replace(/<[^>]+>/g, "");
+  }
 }

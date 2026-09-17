@@ -24,6 +24,7 @@ import {
   Bell,
   MessageSquare,
   User,
+  Image as ImageIcon,
 } from "lucide-react";
 
 const fraunces = Fraunces({
@@ -70,6 +71,7 @@ export default function Sidebar() {
       { label: "Overview", href: "/admin", icon: LayoutDashboard },
       { label: "All Stories", href: "/admin/stories", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
+      { label: "Media Gallery", href: "/admin/gallery", icon: ImageIcon },
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },
@@ -81,6 +83,7 @@ export default function Sidebar() {
       { label: "Review Queue", href: "/editor/review", icon: CheckSquare, badge: "Review" },
       { label: "All Stories", href: "/editor/manage", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
+      { label: "Media Gallery", href: "/editor/gallery", icon: ImageIcon },
       { label: "New Story", href: "/creator/my-stories/new", icon: PlusSquare },
       { label: "Profile", href: "/creator/profile", icon: User },
     ];
@@ -303,7 +306,7 @@ export default function Sidebar() {
               isCollapsed && !isMobileOpen ? "px-0" : ""
             }`}
             style={monoFont}
-          >   
+          >
             <LogOut size={13} />
             {(!isCollapsed || isMobileOpen) && <span>Sign Out</span>}
           </button>
