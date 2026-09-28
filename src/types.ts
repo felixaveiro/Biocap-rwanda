@@ -381,6 +381,9 @@ export interface GalleryItem {
   videoUrl?: string;
   thumbnailUrl?: string;
   images?: GalleryImage[];
+  isPublished?: boolean;
+  status?: 'draft' | 'published';
+  publishedAt?: string;
   createdBy: {
     _id: string;
     username: string;

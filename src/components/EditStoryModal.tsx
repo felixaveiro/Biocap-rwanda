@@ -1,6 +1,12 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+} from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
@@ -30,6 +36,8 @@ import {
   Edit3,
   Eye,
   Link as LinkIcon,
+  Bold as BoldIcon,
+  Highlighter,
 } from "lucide-react";
 
 // ── Editorial Type & Styling System ──────────────────────────────────────────
@@ -52,6 +60,8 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// Helper to convert Markdown and HTML links into interactive publication elements.
+// NOTE: this function is idempotent — running it on its own output changes nothing.
 function formatPublishedLinks(text: string): string {
   if (!text) return '';
 
@@ -81,14 +91,70 @@ function formatPublishedLinks(text: string): string {
 
   formatted = formatted.replace(
     /<a\s+(?:[^>]*?\s+)?href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/gi,
-    (_, url, restAttrs, label) => {
+    (match, url, _restAttrs, label) => {
+      // Already normalised → leave it alone. Without this, every pass re-added
+      // target/rel/title/class, so the string changed on every call.
+      if (match.includes('published-article-link')) return match;
+
       const cleanUrl = normalizeUrl(url);
       const cleanLabel = label.replace(/^🔗\s*/, '');
-      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link"${restAttrs}>${cleanLabel}</a>`;
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${cleanLabel}</a>`;
     }
   );
 
   return formatted;
+}
+
+// Finds the editable paragraph (rendered by EditableParagraph) that contains a node
+function findParagraph(node: Node | null): HTMLElement | null {
+  const el = node instanceof Element ? node : (node?.parentElement ?? null);
+  return (el?.closest('[data-block-idx]') as HTMLElement | null) ?? null;
+}
+
+// ── EditableParagraph ────────────────────────────────────────────────────────
+// A contentEditable paragraph that the BROWSER owns while the user edits.
+//
+// Why not dangerouslySetInnerHTML? React rewrites innerHTML whenever the string
+// changes, which destroys every text node and collapses any live Selection/Range
+// to the start of the paragraph (→ duplicated words at the start). Here we only
+// write to the DOM when it is genuinely out of date (first load, a block being
+// removed/reordered), never when it already matches — so selection and caret
+// survive formatting actions.
+
+// useLayoutEffect on the client, useEffect during SSR (avoids the SSR warning)
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+// Browsers leave a lone <br> in an emptied contentEditable; treat it as empty.
+const readHtml = (el: HTMLElement) => (el.innerHTML === "<br>" ? "" : el.innerHTML);
+
+interface EditableParagraphProps {
+  index: number;
+  html: string;
+  onCommit: (index: number, html: string) => void;
+}
+
+function EditableParagraph({ index, html, onCommit }: EditableParagraphProps) {
+  const ref = useRef<HTMLParagraphElement>(null);
+
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    if (el && readHtml(el) !== html) {
+      el.innerHTML = html;
+    }
+  }, [html]);
+
+  return (
+    <p
+      ref={ref}
+      data-block-idx={index}
+      data-placeholder="Click to write paragraph content..."
+      contentEditable
+      suppressContentEditableWarning
+      onBlur={(e) => onCommit(index, readHtml(e.currentTarget))}
+      title="Highlight text to open format toolbar (Link, Bold, Highlight)"
+      className="text-xs sm:text-sm text-[#3A4239] leading-relaxed text-justify p-2 border border-transparent hover:border-dashed hover:border-[#3F6B4F] focus:border-solid focus:border-[#3F6B4F] focus:bg-[#FAF9F5] focus:outline-none rounded transition-all cursor-text mb-3"
+    />
+  );
 }
 
 const renderSocialPlatformIcon = (platformName: string) => {
@@ -147,20 +213,10 @@ export default function EditStoryModal({
 
   const [isEditingContent, setIsEditingContent] = useState(false);
 
-  // Floating Link Toolbar State
+  // Floating Selection Action Bar & Selection Range State
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
-  const [selectedText, setSelectedText] = useState<string>('');
-
-  // Link popover (for contentEditable paragraphs)
-  const editableRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const linkPopoverRef = useRef<HTMLDivElement | null>(null);
-  const linkUrlInputRef = useRef<HTMLInputElement | null>(null);
-  const [linkPopover, setLinkPopover] = useState<{ idx: number; top: number; left: number } | null>(null);
-  const [linkUrlValue, setLinkUrlValue] = useState("");
-  const activeSelectionRef = useRef<{ idx: number; range: Range } | null>(null);
-
-  // Refs for paragraph textareas to support markdown link insertion
-  const paraRefs = useRef<Map<number, HTMLTextAreaElement>>(new Map());
+  const savedRangeRef = useRef<Range | null>(null);
+  const activeParagraphElRef = useRef<HTMLElement | null>(null);
 
   // Manuscript Engine Blocks State
   const [editedBlocks, setEditedBlocks] = useState<BlogBlock[]>([]);
@@ -197,11 +253,18 @@ export default function EditStoryModal({
           setArticleTag(fullData.tag || "General");
           setArticleExcerpt(fullData.excerpt || "");
           setCurrentCoverUrl(fullData.img || "");
-          const incomingBlocks = fullData.blocks && fullData.blocks.length > 0
-            ? fullData.blocks.map((b: BlogBlock) => ({ ...b, text: htmlToMarkdown(b.text || '') }))
-            : [{ type: 'p', text: htmlToMarkdown((fullData as any).content || fullData.bodyHtml || '') }];
 
-          setEditedBlocks(incomingBlocks as BlogBlock[]);
+          const rawBlocks: BlogBlock[] =
+            fullData.blocks && fullData.blocks.length > 0
+              ? fullData.blocks
+              : [{ type: "p", text: (fullData as any).content || fullData.bodyHtml || "" }];
+
+          // Normalise links ONCE at load time so the DOM and state never disagree later
+          setEditedBlocks(
+            rawBlocks.map((b) =>
+              b.type === "image" ? b : { ...b, text: formatPublishedLinks(b.text || "") }
+            )
+          );
         }
       } catch (err) {
         console.error("Failed to load full author story payload:", err);
@@ -216,145 +279,132 @@ export default function EditStoryModal({
     };
   }, [initialStory._id, currentUserRole]);
 
-  // Selection detection for text highlight hyperlink tool
-  const handleSelectionCheck = () => {
+  // ── Floating format toolbar ────────────────────────────────────────────────
+  const hideToolbar = useCallback(() => {
+    setToolbarPos(null);
+    savedRangeRef.current = null;
+    activeParagraphElRef.current = null;
+  }, []);
+
+  const syncToolbarWithSelection = useCallback(() => {
     const selection = window.getSelection();
-    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-      setToolbarPos(null);
-      setSelectedText('');
-      setLinkPopover(null);
-      activeSelectionRef.current = null;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      hideToolbar();
       return;
     }
 
     const range = selection.getRangeAt(0);
-    // detect which editable paragraph contains the selection
-    let foundIdx: number | null = null;
-    for (const [idx, el] of editableRefs.current.entries()) {
-      if (el.contains(selection.anchorNode)) {
-        foundIdx = idx;
-        break;
-      }
+    const startP = findParagraph(range.startContainer);
+    const endP = findParagraph(range.endContainer);
+
+    // Only allow formatting when the whole selection sits inside ONE paragraph
+    if (!startP || startP !== endP || !range.toString().trim()) {
+      hideToolbar();
+      return;
     }
+
+    savedRangeRef.current = range.cloneRange();
+    activeParagraphElRef.current = startP;
 
     const rect = range.getBoundingClientRect();
+    setToolbarPos({
+      top: Math.max(8, rect.top - 52),
+      left: Math.min(Math.max(8, rect.left + rect.width / 2 - 80), window.innerWidth - 180),
+    });
+  }, [hideToolbar]);
 
-    setToolbarPos({ top: rect.top - 45, left: rect.left + rect.width / 2 - 60 });
-    setSelectedText(selection.toString());
+  // Listen to real selection changes instead of mouseup/keyup on each <p>
+  useEffect(() => {
+    if (isEditingContent || isLoadingFullStory) return;
 
-    if (foundIdx !== null) {
-      activeSelectionRef.current = { idx: foundIdx, range: range.cloneRange() };
-      setLinkPopover({ idx: foundIdx, top: rect.top, left: rect.left + rect.width / 2 });
-      requestAnimationFrame(() => linkUrlInputRef.current?.focus());
-    } else {
-      setLinkPopover(null);
-      activeSelectionRef.current = null;
-    }
-  };
+    document.addEventListener('selectionchange', syncToolbarWithSelection);
+    window.addEventListener('scroll', syncToolbarWithSelection, true);
+    window.addEventListener('resize', syncToolbarWithSelection);
+    return () => {
+      document.removeEventListener('selectionchange', syncToolbarWithSelection);
+      window.removeEventListener('scroll', syncToolbarWithSelection, true);
+      window.removeEventListener('resize', syncToolbarWithSelection);
+      hideToolbar();
+    };
+  }, [isEditingContent, isLoadingFullStory, syncToolbarWithSelection, hideToolbar]);
 
-  const closeLinkPopover = () => {
-    setLinkPopover(null);
-    setLinkUrlValue("");
-    activeSelectionRef.current = null;
-  };
+  // 🟢 APPLY FORMATTING IN PLACE — no duplication, no jumping to the start
+  const applyTextAction = (type: 'link' | 'bold' | 'highlight') => {
+    const range = savedRangeRef.current;
+    const paragraph = activeParagraphElRef.current;
+    if (!range || !paragraph || !paragraph.isConnected) return;
 
-  const insertLinkOnSelection = () => {
-    // If we don't have an active editable selection, ask the user to highlight
-    // text inside a paragraph. Avoid using `document.execCommand` which inserts
-    // raw <a> tags and breaks serialization; only use our popover-based flow.
-    if (!linkPopover || !activeSelectionRef.current) {
-      alert("Please highlight the text you want to link inside the paragraph, then click Insert Link.");
-      setToolbarPos(null);
-      setSelectedText("");
-      return;
-    }
+    let wrapper: HTMLElement;
 
-    // otherwise open the popover input (already opened by handleSelectionCheck)
-    requestAnimationFrame(() => linkUrlInputRef.current?.focus());
-  };
+    if (type === 'link') {
+      const url = window.prompt("Enter destination URL for selected text:", "https://");
+      if (!url || !url.trim() || url.trim() === 'https://') return;
+      const trimmed = url.trim();
+      const formattedUrl = /^(https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
-  const applyLinkToSelection = () => {
-    const active = activeSelectionRef.current;
-    if (!active) return;
-    let url = linkUrlValue.trim();
-    if (!url) return;
-    if (!/^https?:\/\//i.test(url) && !/^mailto:/i.test(url)) {
-      url = `https://${url}`;
-    }
+      // The prompt can steal focus — make sure the saved range is still valid
+      if (!paragraph.isConnected || !paragraph.contains(range.commonAncestorContainer)) return;
 
-    const { idx, range } = active;
-    const el = editableRefs.current.get(idx);
-    if (!el) return;
-    el.focus();
-    const sel = window.getSelection();
-    if (sel) {
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
-
-    const span = document.createElement("span");
-    span.className = "editor-link";
-    span.setAttribute("data-href", url);
-
-    try {
-      const contents = range.extractContents();
-      span.appendChild(contents);
-      range.insertNode(span);
-    } catch (err) {
-      console.error("Failed to insert link element:", err);
-      closeLinkPopover();
-      return;
-    }
-
-    const spacer = document.createTextNode("\u200B");
-    if (span.parentNode) {
-      if (span.nextSibling) {
-        span.parentNode.insertBefore(spacer, span.nextSibling);
-      } else {
-        span.parentNode.appendChild(spacer);
+      // Selection already lives inside a link → just change that link's URL
+      const container = range.commonAncestorContainer;
+      const existingLink = (container instanceof Element ? container : container.parentElement)
+        ?.closest('a') as HTMLAnchorElement | null;
+      if (existingLink && paragraph.contains(existingLink)) {
+        existingLink.href = formattedUrl;
+        existingLink.title = formattedUrl;
+        const linkIdx = Number(paragraph.dataset.blockIdx);
+        if (!Number.isNaN(linkIdx)) updateBlockText(linkIdx, paragraph.innerHTML);
+        hideToolbar();
+        return;
       }
+
+      const link = document.createElement('a');
+      link.href = formattedUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = formattedUrl;
+      link.className = 'published-article-link';
+      wrapper = link;
+    } else if (type === 'bold') {
+      const strong = document.createElement('strong');
+      strong.style.fontWeight = 'bold';
+      wrapper = strong;
+    } else {
+      const mark = document.createElement('mark');
+      mark.style.backgroundColor = '#FEF08A';
+      mark.style.color = '#1E2620';
+      mark.style.padding = '0 3px';
+      mark.style.borderRadius = '2px';
+      wrapper = mark;
     }
 
-    if (sel) {
-      const newRange = document.createRange();
-      newRange.setStart(spacer, spacer.length);
-      newRange.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
+    // MOVE the selected nodes into the wrapper (keeps any existing formatting),
+    // then drop the wrapper back exactly where the selection was.
+    const fragment = range.extractContents();
+    if (type === 'link') {
+      // <a> inside <a> is invalid HTML and gets split by the parser
+      fragment.querySelectorAll('a').forEach((a) => a.replaceWith(...Array.from(a.childNodes)));
+    }
+    wrapper.appendChild(fragment);
+    range.insertNode(wrapper);
+    paragraph.normalize();
+
+    // Sync React state FROM the DOM. Because EditableParagraph only writes to the
+    // DOM when it differs from state, nothing gets rewritten and nothing moves.
+    const idx = Number(paragraph.dataset.blockIdx);
+    if (!Number.isNaN(idx)) updateBlockText(idx, paragraph.innerHTML);
+
+    // Put the caret right after the formatted text
+    const selection = window.getSelection();
+    if (selection) {
+      const caret = document.createRange();
+      caret.setStartAfter(wrapper);
+      caret.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(caret);
     }
 
-    // update block state from DOM (serialize to markdown)
-    updateBlockText(idx, serializeContainer(el));
-    closeLinkPopover();
-  };
-
-  // Insert markdown-style link into a paragraph textarea at the current selection
-  const insertMarkdownLinkInParagraph = (idx: number) => {
-    const el = paraRefs.current.get(idx);
-    if (!el) {
-      // fallback to existing selection-based link for contentEditable areas
-      insertLinkOnSelection();
-      return;
-    }
-
-    const start = typeof el.selectionStart === 'number' ? el.selectionStart : 0;
-    const end = typeof el.selectionEnd === 'number' ? el.selectionEnd : 0;
-    const selected = el.value.substring(start, end) || '';
-    const url = prompt('Enter link URL:', 'https://');
-    if (!url) return;
-    const final = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
-    const label = selected || final;
-    const linkMarkdown = `[${label}](${final})`;
-
-    const newVal = el.value.substring(0, start) + linkMarkdown + el.value.substring(end);
-    updateBlockText(idx, newVal);
-
-    // restore focus and place cursor after inserted link
-    setTimeout(() => {
-      el.focus();
-      const pos = start + linkMarkdown.length;
-      el.setSelectionRange(pos, pos);
-    }, 0);
+    hideToolbar();
   };
 
   const creator = localStory.originalAuthor || localStory.author;
@@ -574,7 +624,7 @@ export default function EditStoryModal({
       style={bodyFont}
     >
       <style>{`
-        /* Standard Hyperlink Display Styling */
+        /* Hyperlink Display Styling */
         .published-article-link,
         .published-article-link *,
         a.published-article-link,
@@ -592,58 +642,50 @@ export default function EditStoryModal({
           color: #003DB8 !important;
           text-decoration-color: #003DB8 !important;
         }
-        /* Editor inline link styling so inserted spans look like real links */
-        .editor-link,
-        .editor-link * {
-          color: #0057FF !important;
-          text-decoration: underline !important;
-          text-decoration-color: #0057FF !important;
-          text-underline-offset: 2px !important;
-          font-weight: 600 !important;
-          cursor: pointer !important;
-          display: inline !important;
-        }
-        .editor-link:hover,
-        .editor-link *:hover {
-          color: #003DB8 !important;
-          text-decoration-color: #003DB8 !important;
+
+        /* Placeholder for empty editable paragraphs (kept out of the real content) */
+        [data-block-idx]:empty::before {
+          content: attr(data-placeholder);
+          color: #8B9188;
+          font-style: italic;
+          pointer-events: none;
         }
       `}</style>
 
-      {/* Floating Tooltip Button on Text Selection */}
+      {/* Floating Formatting Bubble Toolbar on Selection */}
       {toolbarPos && (
         <div
           style={{ top: toolbarPos.top, left: toolbarPos.left }}
-          className="fixed z-[100000] flex items-center gap-1 bg-[#1E2620] text-white p-1 rounded shadow-xl animate-in fade-in duration-100"
+          // Keeps the text selected while the toolbar is clicked
+          onMouseDown={(e) => e.preventDefault()}
+          className="fixed z-[100000] flex items-center gap-1 bg-[#1E2620] text-white p-1.5 rounded-lg shadow-2xl animate-in fade-in duration-100 border border-white/20"
         >
           <button
             type="button"
-            onClick={insertLinkOnSelection}
-            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer"
+            onClick={() => applyTextAction('link')}
+            title="Insert Hyperlink"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
           >
-            <LinkIcon size={12} /> Insert Link
+            <LinkIcon size={12} /> Link
           </button>
-        </div>
-      )}
-
-      {/* Link Popover for contentEditable paragraphs */}
-      {linkPopover && (
-        <div
-          ref={linkPopoverRef}
-          style={{ top: linkPopover.top - 50, left: linkPopover.left - 120 }}
-          className="fixed z-[100001] w-[240px] bg-white border border-[#D9D4C6] p-2 rounded shadow-xl"
-        >
-          <input
-            ref={linkUrlInputRef}
-            value={linkUrlValue}
-            onChange={(e) => setLinkUrlValue(e.target.value)}
-            placeholder="https://example.com"
-            className="w-full border border-[#EDEAE0] px-2 py-1 text-xs rounded"
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button type="button" onClick={closeLinkPopover} className="text-xs text-[#5A6259]">Cancel</button>
-            <button type="button" onClick={applyLinkToSelection} className="text-xs font-semibold text-white bg-[#3F6B4F] px-2 py-1 rounded">Apply</button>
-          </div>
+          <div className="w-[1px] h-3 bg-white/20" />
+          <button
+            type="button"
+            onClick={() => applyTextAction('bold')}
+            title="Make Text Bold"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
+          >
+            <BoldIcon size={12} /> Bold
+          </button>
+          <div className="w-[1px] h-3 bg-white/20" />
+          <button
+            type="button"
+            onClick={() => applyTextAction('highlight')}
+            title="Highlight Text"
+            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
+          >
+            <Highlighter size={12} /> Highlight
+          </button>
         </div>
       )}
 
@@ -682,7 +724,7 @@ export default function EditStoryModal({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 space-y-6 overflow-y-auto p-6 sm:p-8 bg-white" onMouseUp={handleSelectionCheck}>
+        <div className="flex-1 space-y-6 overflow-y-auto p-6 sm:p-8 bg-white">
           
           {/* Metadata Header Bar */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EDEAE0] pb-3">
@@ -987,43 +1029,23 @@ export default function EditStoryModal({
                       </div>
 
                       {block.type === "p" || !block.type ? (
-                        <div>
-                          <textarea
-                            rows={4}
-                            ref={(el) => {
-                              if (el) paraRefs.current.set(idx, el);
-                              else paraRefs.current.delete(idx);
-                            }}
-                            value={block.text || ""}
-                            onChange={(e) => updateBlockText(idx, e.target.value)}
-                            className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded text-justify text-justify-inter-word leading-relaxed"
-                            placeholder="Paragraph body text..."
-                          />
-                          <div className="mt-2 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={() => insertMarkdownLinkInParagraph(idx)}
-                              className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-white px-2 py-1 text-[11px] font-semibold text-[#3F6B4F] hover:bg-[#F1F5F1] cursor-pointer rounded"
-                            >
-                              <LinkIcon size={13} /> Insert Link
-                            </button>
-                          </div>
-                        </div>
+                        <textarea
+                          rows={4}
+                          value={block.text || ""}
+                          onChange={(e) => updateBlockText(idx, e.target.value)}
+                          className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#3F6B4F] focus:outline-none rounded text-justify text-justify-inter-word leading-relaxed"
+                          placeholder="Paragraph body text..."
+                        />
                       ) : (
                         <div className="space-y-3">
                           {block.src || block.url ? (
-                            <>
-                              <div className="relative max-h-[400px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg flex items-center justify-center">
-                                <img
-                                  src={block.src || block.url}
-                                  alt={block.caption || `Section ${idx + 1}`}
-                                  className="max-h-[400px] w-full object-contain rounded-lg"
-                                />
-                              </div>
-                              {block.caption ? (
-                                <p className="text-xs text-[#8B9188] mt-2">{block.caption}</p>
-                              ) : null}
-                            </>
+                            <div className="relative max-h-[400px] w-full overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-lg flex items-center justify-center">
+                              <img
+                                src={block.src || block.url}
+                                alt={block.caption || `Section ${idx + 1}`}
+                                className="max-h-[400px] w-full object-contain rounded-lg"
+                              />
+                            </div>
                           ) : (
                             <div className="border-2 border-dashed border-[#D9D4C6] bg-white p-4 text-center rounded-lg">
                               <p className="text-xs text-[#8B9188]">No image selected for this block yet</p>
@@ -1127,7 +1149,7 @@ export default function EditStoryModal({
                 {articleExcerpt || "Click here to add an article summary..."}
               </div>
 
-              {/* Click-to-Edit Paragraph Blocks with Inline Hyperlink Parsing */}
+              {/* Click-to-Edit Paragraph Blocks with Formatting Bubble Bar */}
               <div className="space-y-6 pt-2">
                 {editedBlocks && editedBlocks.length > 0 ? (
                   editedBlocks.map((block: BlogBlock, idx: number) => {
@@ -1141,29 +1163,16 @@ export default function EditStoryModal({
                               className="w-full max-h-[480px] object-contain rounded-xl"
                             />
                           </div>
-                          {block.caption ? (
-                            <figcaption className="text-xs text-[#8B9188] mt-2">{block.caption}</figcaption>
-                          ) : null}
                         </figure>
                       );
                     }
 
                     return (
-                      <p
+                      <EditableParagraph
                         key={idx}
-                        ref={(el) => {
-                          if (el) editableRefs.current.set(idx, el);
-                          else editableRefs.current.delete(idx);
-                        }}
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={(e) => updateBlockText(idx, serializeContainer(e.currentTarget) || "")}
-                        onMouseUp={handleSelectionCheck}
-                        dangerouslySetInnerHTML={{
-                          __html: renderHtmlForEditor(block.text || "Click to write paragraph content..."),
-                        }}
-                        className="text-xs sm:text-sm text-[#3A4239] leading-relaxed text-justify p-2 border border-transparent hover:border-dashed hover:border-[#3F6B4F] focus:border-solid focus:border-[#3F6B4F] focus:bg-[#FAF9F5] focus:outline-none rounded transition-all cursor-text mb-3"
-                        title="Highlight text to add a link, or click to edit text"
+                        index={idx}
+                        html={block.text || ""}
+                        onCommit={updateBlockText}
                       />
                     );
                   })
@@ -1308,90 +1317,4 @@ export default function EditStoryModal({
       )}
     </div>
   );
-}
-
-// Convert markdown-style links [label](url) into editor spans for contentEditable editing
-function markdownToHtml(text: string): string {
-  const src = text || "";
-  const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-  let result = "";
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  const escapeHtml = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-  while ((match = regex.exec(src))) {
-    result += escapeHtml(src.slice(lastIndex, match.index));
-    const label = escapeHtml(match[1]);
-    const href = escapeHtml(match[2]);
-    result += `<span class="editor-link" data-href="${href}">${label}</span>`;
-    lastIndex = regex.lastIndex;
-  }
-  result += escapeHtml(src.slice(lastIndex));
-  return result;
-}
-
-function serializeNode(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent || "";
-  }
-  if (node.nodeType === Node.ELEMENT_NODE) {
-    const el = node as HTMLElement;
-
-    if (el.tagName === "BR") return "\n";
-
-    if (el.classList.contains("editor-link")) {
-      const href = el.getAttribute("data-href") || "";
-      const inner = Array.from(el.childNodes).map(serializeNode).join("");
-      return `[${inner}](${href})`;
-    }
-
-    if (el.tagName === "A") {
-      const href = el.getAttribute("href") || "";
-      const inner = Array.from(el.childNodes).map(serializeNode).join("");
-      return `[${inner}](${href})`;
-    }
-
-    if (el.tagName === "DIV" || el.tagName === "P") {
-      return Array.from(el.childNodes).map(serializeNode).join("") + "\n";
-    }
-
-    return Array.from(el.childNodes).map(serializeNode).join("");
-  }
-  return "";
-}
-
-function serializeContainer(container: HTMLElement): string {
-  return Array.from(container.childNodes)
-    .map(serializeNode)
-    .join("")
-    .replace(/\n+$/g, "");
-}
-
-function renderHtmlForEditor(text: string) {
-  if (!text) return "";
-  // If the stored text already contains HTML tags (older format), render it
-  // through formatPublishedLinks so existing <span class="editor-link"> or <a>
-  // elements are converted and displayed correctly. Otherwise convert
-  // markdown links to editor spans.
-  if (/[<>]/.test(text)) {
-    return formatPublishedLinks(text);
-  }
-  return markdownToHtml(text);
-}
-
-// Convert arbitrary HTML (anchors / editor spans) into markdown for storage
-function htmlToMarkdown(html: string) {
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, "text/html");
-    const body = doc.body;
-    const md = Array.from(body.childNodes).map(serializeNode).join("");
-    return md.replace(/\n+$/g, "");
-  } catch (err) {
-    console.error("Failed to convert HTML to markdown:", err);
-    // fallback: strip tags crudely
-    return html.replace(/<[^>]+>/g, "");
-  }
 }

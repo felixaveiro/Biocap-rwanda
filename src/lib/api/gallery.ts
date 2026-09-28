@@ -57,6 +57,20 @@ export const galleryApi = {
     });
   },
 
+  async publishItem(id: string): Promise<{ success: boolean; data: GalleryItem }> {
+    const formData = new FormData();
+    formData.append('isPublished', 'true');
+    formData.append('status', 'published');
+    return this.updateItem(id, formData);
+  },
+
+  async unpublishItem(id: string): Promise<{ success: boolean; data: GalleryItem }> {
+    const formData = new FormData();
+    formData.append('isPublished', 'false');
+    formData.append('status', 'draft');
+    return this.updateItem(id, formData);
+  },
+
   /**
    * Admin & Editor Only: Delete item and purge Cloudinary storage
    */

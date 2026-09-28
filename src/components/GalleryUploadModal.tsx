@@ -1,9 +1,9 @@
-// app/components/GalleryUploadModal.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { createPortal } from 'react-dom';
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Poppins } from 'next/font/google';
 import { galleryApi } from '@/lib/api/gallery';
 import {
   X,
@@ -16,25 +16,18 @@ import {
   Film,
   FolderUp,
   FileImage,
+  ArrowLeft,
+  Eye,
+  CheckCircle2,
+  Tag,
+  Star,
 } from 'lucide-react';
 
-const fraunces = Fraunces({
+const poppins = Poppins({
   subsets: ['latin'],
-  weight: ['500', '600'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-body',
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['500'],
-  variable: '--font-mono',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
 });
 
 interface Props {
@@ -44,6 +37,9 @@ interface Props {
 }
 
 export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props) {
+  // Step 1 = Details & File Upload Form | Step 2 = Live Preview Display
+  const [step, setStep] = useState<1 | 2>(1);
+
   const [mediaType, setMediaType] = useState<'folder' | 'video'>('folder');
   const [imageSelectionMode, setImageSelectionMode] = useState<'files' | 'directory'>('files');
   const [title, setTitle] = useState('');
@@ -53,36 +49,119 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
   const [images, setImages] = useState<File[]>([]);
   const [video, setVideo] = useState<File | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
+
+  // Index (within `images`) of the image the user explicitly chose as cover.
+  // null = nothing chosen yet (no default is applied)
+  const [coverIndex, setCoverIndex] = useState<number | null>(null);
+
+  // Local object URLs generated for instant Step 2 preview
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
 
+  // Clean up Object URLs when files change or component unmounts to prevent memory leaks
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    return () => {
+      imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+      if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl);
+      if (thumbnailPreviewUrl) URL.revokeObjectURL(thumbnailPreviewUrl);
+    };
+  }, [imagePreviews, videoPreviewUrl, thumbnailPreviewUrl]);
 
-  if (!isOpen || !isMounted) return null;
+  if (!isOpen) return null;
 
-  // Handles both multiple individual files and entire directory selections
+  // Clears the selected images and resets the cover choice
+  const resetImages = () => {
+    setImages([]);
+    setImagePreviews([]);
+    setCoverIndex(null);
+  };
+
+  // Handle image files and directory selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const selectedFiles = Array.from(e.target.files);
-    
-    // Filter strictly for image mime types
     const validImages = selectedFiles.filter((file) => file.type.startsWith('image/'));
-    
+
     if (validImages.length === 0) {
       setModalError('No valid image files found in your selection.');
-      setImages([]);
+      resetImages();
       return;
     }
 
     setModalError(null);
     setImages(validImages);
+    setCoverIndex(null); // user must pick the cover themselves
+
+    // Create instant browser preview URLs for step 2
+    const previewUrls = validImages.map((file) => URL.createObjectURL(file));
+    setImagePreviews(previewUrls);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setVideo(file);
+    if (file) {
+      setVideoPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setVideoPreviewUrl(null);
+    }
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setThumbnail(file);
+    if (file) {
+      setThumbnailPreviewUrl(URL.createObjectURL(file));
+    } else {
+      setThumbnailPreviewUrl(null);
+    }
+  };
+
+  // Validate form fields before switching to Step 2 Live Preview
+  const handleProceedToPreview = (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(null);
+
+    if (!title.trim()) {
+      setModalError('Please enter an archive entry title.');
+      return;
+    }
+
+    if (!caption.trim()) {
+      setModalError('Please enter a caption or archival description.');
+      return;
+    }
+
+    if (mediaType === 'folder' && images.length === 0) {
+      setModalError('Please select at least one image file or folder.');
+      return;
+    }
+
+    if (mediaType === 'folder' && coverIndex === null) {
+      setModalError('Please click one of your images to choose the collection cover.');
+      return;
+    }
+
+    if (mediaType === 'video') {
+      if (!video) {
+        setModalError('Please attach an MP4/MOV video file.');
+        return;
+      }
+      if (!thumbnail) {
+        setModalError('Please attach a video cover thumbnail image.');
+        return;
+      }
+    }
+
+    setStep(2);
+  };
+
+  // Submit form data to backend API
+  const handleSubmit = async () => {
     setModalError(null);
     setIsSubmitting(true);
 
@@ -94,51 +173,92 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
       formData.append('caption', caption);
 
       if (mediaType === 'folder') {
-        if (!images || images.length === 0) {
-          throw new Error('Please select at least one image file or folder.');
-        }
         images.forEach((img) => formData.append('images', img));
+        // Tells the backend which uploaded image (0-based) is the collection cover
+        if (coverIndex !== null) formData.append('coverIndex', String(coverIndex));
       } else if (mediaType === 'video') {
-        if (!video) throw new Error('Please attach an MP4/MOV video file.');
-        if (!thumbnail) throw new Error('Please attach a video cover thumbnail image.');
-        formData.append('video', video);
-        formData.append('thumbnail', thumbnail);
+        if (video) formData.append('video', video);
+        if (thumbnail) formData.append('thumbnail', thumbnail);
       }
 
       await galleryApi.createItem(formData);
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to submit gallery upload modal:', err);
-      setModalError(err?.message || 'Failed to upload media files.');
+      const message = err instanceof Error ? err.message : 'Failed to upload media files.';
+      setModalError(message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
-  const bodyFont: React.CSSProperties = { fontFamily: 'var(--font-body)' };
-  const displayFont: React.CSSProperties = { fontFamily: 'var(--font-display)' };
-  const monoFont: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
+  // Reusable clickable grid: click any image to make it the cover
+  const renderCoverPicker = (maxHeightClass: string) => (
+    <div
+      className={`grid grid-cols-3 sm:grid-cols-4 gap-2.5 ${maxHeightClass} overflow-y-auto p-2 border border-[#00A859]/20 bg-white`}
+    >
+      {imagePreviews.map((src, index) => {
+        const isCover = index === coverIndex;
+        return (
+          <button
+            type="button"
+            key={index}
+            onClick={() => setCoverIndex(index)}
+            aria-pressed={isCover}
+            aria-label={isCover ? `Image ${index + 1} (current cover)` : `Set image ${index + 1} as cover`}
+            className={`relative aspect-square overflow-hidden group cursor-pointer bg-[#0C1E12] transition-all ${
+              isCover
+                ? 'border-2 border-[#E5B800] ring-2 ring-[#E5B800]/40'
+                : 'border border-[#00A859]/20 hover:border-[#00A859]'
+            }`}
+          >
+            <Image
+              src={src}
+              alt={`Upload preview ${index + 1}`}
+              width={800}
+              height={800}
+              unoptimized
+              className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                isCover ? 'brightness-100' : 'brightness-90'
+              }`}
+            />
+            {isCover ? (
+              <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 bg-[#E5B800] text-[#0C1E12] text-[8px] font-mono font-bold uppercase px-1.5 py-0.5">
+                <Star size={9} fill="currentColor" /> Cover
+              </span>
+            ) : (
+              <span className="absolute inset-0 flex items-center justify-center bg-[#0C1E12]/60 text-white text-[9px] font-mono font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+                Set as cover
+              </span>
+            )}
+            <span className="absolute bottom-1 right-1 bg-[#0C1E12]/80 text-white text-[8px] font-mono px-1 py-0.5">
+              #{index + 1}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return createPortal(
     <div
-      className={`${fontVars} fixed inset-0 z-[9999] flex items-center justify-center bg-[#1E2620]/50 p-4 backdrop-blur-md animate-in fade-in duration-150`}
-      style={bodyFont}
+      className={`${poppins.className} fixed inset-0 z-[9999] flex items-center justify-center bg-[#0C1E12]/80 p-4 backdrop-blur-xs animate-in fade-in duration-150 selection:bg-[#E5B800] selection:text-[#0C1E12]`}
     >
-      <div className="flex max-h-[95vh] w-full max-w-2xl flex-col overflow-hidden border border-[#D9D4C6] bg-[#FDFCFA] text-[#1E2620] shadow-2xl rounded-sm">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[#D9D4C6] bg-[#F3F2ED] px-6 py-4 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="border border-[#D9D4C6] bg-white p-1.5 text-[#3F6B4F]">
-              <UploadCloud size={16} />
+      <div className="flex max-h-[95vh] w-full max-w-2xl flex-col overflow-hidden border border-[#00A859]/30 bg-white text-[#0C1E12] shadow-2xl rounded-sm">
+        
+        {/* Modal Top Header */}
+        <div className="flex items-center justify-between border-b border-[#00A859]/20 bg-[#FAF9F6] px-6 py-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="border border-[#00A859]/30 bg-white p-2 text-[#00A859] rounded-xs">
+              <UploadCloud size={18} />
             </div>
             <div>
-              <p className="text-[9px] uppercase tracking-[0.16em] text-[#8B9188]" style={monoFont}>
-                BioCap Archive Publisher
+              <p className="text-[9px] font-mono font-bold uppercase tracking-[0.18em] text-[#E5B800]">
+                BIOCAP COLLECTION PORTAL
               </p>
-              <h3 className="text-[15px] italic leading-tight text-[#1E2620]" style={displayFont}>
-                Upload New Image Collection or HD Video
+              <h3 className="text-base sm:text-lg font-semibold text-[#0C1E12]">
+                {step === 1 ? 'Upload BioCap Collection or Video' : 'Collection Preview Before Publish'}
               </h3>
             </div>
           </div>
@@ -146,250 +266,423 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
           <button
             type="button"
             onClick={onClose}
-            className="border border-transparent p-1.5 text-[#8B9188] transition-colors hover:border-[#D9D4C6] hover:text-[#1E2620] cursor-pointer"
+            aria-label="Close modal"
+            className="border border-[#00A859]/30 bg-white p-1.5 text-[#0C1E12] hover:bg-[#00A859] hover:text-white transition-colors cursor-pointer rounded-xs"
           >
             <X size={18} />
           </button>
         </div>
 
+        {/* Step Indicator Bar */}
+        <div className="flex items-center border-b border-[#00A859]/15 bg-white text-xs font-mono">
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            className={`flex-1 py-2 px-4 text-center border-r border-[#00A859]/15 font-bold transition-colors cursor-pointer ${
+              step === 1 ? 'bg-[#00A859]/10 text-[#00A859]' : 'text-[#5A6259]'
+            }`}
+          >
+            1. Collection Details
+          </button>
+          <div
+            className={`flex-1 py-2 px-4 text-center font-bold transition-colors ${
+              step === 2 ? 'bg-[#00A859]/10 text-[#00A859]' : 'text-[#5A6259]'
+            }`}
+          >
+            2. Preview &amp; Publish
+          </div>
+        </div>
+
         {/* Modal Error Banner */}
         {modalError && (
-          <div className="flex items-center gap-3 border-b border-[#B65C4B] bg-[#FBEEEC] px-6 py-3 shrink-0">
-            <AlertCircle size={16} className="shrink-0 text-[#B65C4B]" />
-            <p className="text-xs font-semibold text-[#7A362A]">{modalError}</p>
+          <div className="flex items-center gap-3 border-b border-red-500 bg-red-50 px-6 py-3 shrink-0">
+            <AlertCircle size={16} className="shrink-0 text-red-600" />
+            <p className="text-xs font-semibold text-red-950">{modalError}</p>
           </div>
         )}
 
-        {/* Scrollable Form Area */}
-        <form id="gallery-upload-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
-          {/* Content Type Switcher */}
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-              Select Content Type *
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setMediaType('folder');
-                  setVideo(null);
-                  setThumbnail(null);
-                }}
-                className={`flex items-center gap-3 p-3 border text-left transition-all cursor-pointer ${
-                  mediaType === 'folder'
-                    ? 'border-[#3F6B4F] bg-[#3F6B4F]/10 text-[#1E2620] font-semibold'
-                    : 'border-[#D9D4C6] bg-white text-[#5A6259] hover:bg-[#FAF9F5]'
-                }`}
-              >
-                <FolderPlus size={18} className={mediaType === 'folder' ? 'text-[#3F6B4F]' : 'text-[#8B9188]'} />
-                <div>
-                  <p className="text-xs font-bold">Image Collection</p>
-                  <p className="text-[10px] text-[#8B9188]">Upload image files or an entire folder</p>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setMediaType('video');
-                  setImages([]);
-                }}
-                className={`flex items-center gap-3 p-3 border text-left transition-all cursor-pointer ${
-                  mediaType === 'video'
-                    ? 'border-[#C22055] bg-[#C22055]/10 text-[#1E2620] font-semibold'
-                    : 'border-[#D9D4C6] bg-white text-[#5A6259] hover:bg-[#FAF9F5]'
-                }`}
-              >
-                <Video size={18} className={mediaType === 'video' ? 'text-[#C22055]' : 'text-[#8B9188]'} />
-                <div>
-                  <p className="text-xs font-bold">HD Video Entry</p>
-                  <p className="text-[10px] text-[#8B9188]">Attach MP4/MOV video with thumbnail</p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Title Input */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-              Archive Entry Title *
-            </label>
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] placeholder-[#8B9188] focus:border-[#1E2620] focus:outline-none rounded-xs"
-              placeholder="e.g. RAB Rubona Cassava Field Trials"
-            />
-          </div>
-
-          {/* Category Selector */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-              Target Category *
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as 'activities' | 'events' | 'team')}
-              className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] focus:border-[#1E2620] focus:outline-none rounded-xs cursor-pointer"
-            >
-              <option value="activities">Activities</option>
-              <option value="events">Events</option>
-              <option value="team">Team</option>
-            </select>
-          </div>
-
-          {/* Caption / Description */}
-          <div className="space-y-1.5">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#5A6259]" style={monoFont}>
-              Caption &amp; Archival Description *
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              className="w-full border border-[#D9D4C6] bg-white p-2.5 text-xs text-[#1E2620] placeholder-[#8B9188] focus:border-[#1E2620] focus:outline-none rounded-xs"
-              placeholder="Detailed description providing research or event context..."
-            />
-          </div>
-
-          {/* Flexible Image Upload (Individual Files OR Whole Directory) */}
-          {mediaType === 'folder' ? (
-            <div className="space-y-3 border border-dashed border-[#D9D4C6] bg-[#FAF9F5] p-5 rounded-xs">
-              {/* Selection Mode Toggle */}
-              <div className="flex items-center justify-between border-b border-[#E2DDCF] pb-3">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[#3F6B4F]" style={monoFont}>
-                  Select Images *
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+          
+          {/* ── STEP 1: FORM INPUTS ────────────────────────────────────────── */}
+          {step === 1 && (
+            <form id="gallery-upload-form" onSubmit={handleProceedToPreview} className="space-y-6">
+              
+              {/* Content Type Switcher */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">
+                  Select Content Type *
                 </label>
-
-                <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => {
-                      setImageSelectionMode('files');
-                      setImages([]);
+                      setMediaType('folder');
+                      setVideo(null);
+                      setThumbnail(null);
+                      setVideoPreviewUrl(null);
+                      setThumbnailPreviewUrl(null);
                     }}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border cursor-pointer ${
-                      imageSelectionMode === 'files'
-                        ? 'border-[#1E2620] bg-[#1E2620] text-white'
-                        : 'border-[#D9D4C6] bg-white text-[#5A6259]'
+                    className={`flex items-center gap-3 p-3 border transition-all cursor-pointer text-left ${
+                      mediaType === 'folder'
+                        ? 'border-[#00A859] bg-[#00A859]/10 text-[#0C1E12] font-semibold'
+                        : 'border-[#00A859]/20 bg-white text-[#5A6259] hover:bg-[#FAF9F6]'
                     }`}
-                    style={monoFont}
                   >
-                    <FileImage size={11} /> Individual Files
+                    <FolderPlus size={18} className={mediaType === 'folder' ? 'text-[#00A859]' : 'text-[#5A6259]'} />
+                    <div>
+                      <p className="text-xs font-semibold">Image Collection</p>
+                      <p className="text-[10px] text-[#5A6259]">Multiple images or folder</p>
+                    </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => {
-                      setImageSelectionMode('directory');
-                      setImages([]);
+                      setMediaType('video');
+                      resetImages();
                     }}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider border cursor-pointer ${
-                      imageSelectionMode === 'directory'
-                        ? 'border-[#1E2620] bg-[#1E2620] text-white'
-                        : 'border-[#D9D4C6] bg-white text-[#5A6259]'
+                    className={`flex items-center gap-3 p-3 border transition-all cursor-pointer text-left ${
+                      mediaType === 'video'
+                        ? 'border-[#E5B800] bg-[#E5B800]/15 text-[#0C1E12] font-semibold'
+                        : 'border-[#00A859]/20 bg-white text-[#5A6259] hover:bg-[#FAF9F6]'
                     }`}
-                    style={monoFont}
                   >
-                    <FolderUp size={11} /> Entire Folder
+                    <Video size={18} className={mediaType === 'video' ? 'text-[#E5B800]' : 'text-[#5A6259]'} />
+                    <div>
+                      <p className="text-xs font-semibold">HD Video Entry</p>
+                      <p className="text-[10px] text-[#5A6259]">MP4/MOV with cover image</p>
+                    </div>
                   </button>
                 </div>
               </div>
 
-              {/* Conditional File Input based on mode */}
-              {imageSelectionMode === 'files' ? (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] text-[#8B9188]">
-                    Hold <kbd className="px-1 border bg-white text-[10px]">Ctrl</kbd> or <kbd className="px-1 border bg-white text-[10px]">Cmd</kbd> to pick multiple image files.
-                  </p>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    required
-                    onChange={handleImageSelect}
-                    className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#D9D4C6] file:text-xs file:font-semibold file:bg-white file:text-[#1E2620] hover:file:bg-[#EFECE6] cursor-pointer"
-                  />
+              {/* Title Input */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">
+                  Archive Entry Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full border border-[#00A859]/30 bg-white p-2.5 text-xs text-[#0C1E12] placeholder-[#5A6259]/50 focus:border-[#00A859] focus:outline-none rounded-xs"
+                  placeholder="e.g. Rubona station workshop"
+                />
+              </div>
+
+              {/* Category Selector */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">
+                  Target Category *
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as 'activities' | 'events' | 'team')}
+                  className="w-full border border-[#00A859]/30 bg-white p-2.5 text-xs text-[#0C1E12] focus:border-[#00A859] focus:outline-none rounded-xs cursor-pointer font-medium"
+                >
+                  <option value="activities">Activities (Workshop)</option>
+                  <option value="events">Events (Visits &amp; Training)</option>
+                  <option value="team">Team (Staff &amp; Outgrowers)</option>
+                </select>
+              </div>
+
+              {/* Caption / Description */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">
+                  Caption &amp; Archival Description *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                  className="w-full border border-[#00A859]/30 bg-white p-2.5 text-xs text-[#0C1E12] placeholder-[#5A6259]/50 focus:border-[#00A859] focus:outline-none rounded-xs text-justify"
+                  placeholder="Detailed description providing field or event context..."
+                />
+              </div>
+
+              {/* Image Selection Area */}
+              {mediaType === 'folder' ? (
+                <div className="space-y-3 border border-dashed border-[#00A859]/30 bg-[#FAF9F6] p-4 rounded-xs">
+                  <div className="flex items-center justify-between border-b border-[#00A859]/15 pb-2.5">
+                    <label className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00A859]">
+                      Select Images *
+                    </label>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageSelectionMode('files');
+                          resetImages();
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer ${
+                          imageSelectionMode === 'files'
+                            ? 'border-[#0C1E12] bg-[#0C1E12] text-white'
+                            : 'border-[#00A859]/20 bg-white text-[#5A6259]'
+                        }`}
+                      >
+                        <FileImage size={11} /> Individual Files
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageSelectionMode('directory');
+                          resetImages();
+                        }}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 text-[9px] font-mono font-bold uppercase tracking-wider border cursor-pointer ${
+                          imageSelectionMode === 'directory'
+                            ? 'border-[#0C1E12] bg-[#0C1E12] text-white'
+                            : 'border-[#00A859]/20 bg-white text-[#5A6259]'
+                        }`}
+                      >
+                        <FolderUp size={11} /> Entire Folder
+                      </button>
+                    </div>
+                  </div>
+
+                  {imageSelectionMode === 'files' ? (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[11px] text-[#5A6259]">
+                        Hold <kbd className="px-1 border bg-white text-[10px] font-mono">Ctrl</kbd> or <kbd className="px-1 border bg-white text-[10px] font-mono">Cmd</kbd> to choose multiple image files.
+                      </p>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        required
+                        onChange={handleImageSelect}
+                        className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#00A859]/30 file:text-xs file:font-mono file:font-bold file:uppercase file:bg-white file:text-[#0C1E12] hover:file:bg-[#00A859] hover:file:text-white cursor-pointer"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-[11px] text-[#5A6259]">
+                        Select a directory from your system. Non-image files will be automatically filtered out.
+                      </p>
+                      <input
+                        type="file"
+                        // @ts-expect-error - webkitdirectory is a Chromium browser API
+                        webkitdirectory=""
+                        directory=""
+                        multiple
+                        required
+                        onChange={handleImageSelect}
+                        className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#00A859]/30 file:text-xs file:font-mono file:font-bold file:uppercase file:bg-white file:text-[#0C1E12] hover:file:bg-[#00A859] hover:file:text-white cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {images.length > 0 && (
+                    <p className="text-[10px] font-mono font-bold text-[#00A859] pt-1">
+                      ✓ Selected {images.length} image file{images.length > 1 ? 's' : ''}
+                    </p>
+                  )}
+
+                  {/* Cover image picker */}
+                  {imagePreviews.length > 0 && (
+                    <div className="space-y-2 pt-3 border-t border-[#00A859]/15">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#E5B800]">
+                          <Star size={12} fill="currentColor" /> Choose Collection Cover
+                        </span>
+                        <span
+                          className={`text-[9px] font-mono font-bold ${
+                            coverIndex === null ? 'text-red-600' : 'text-[#00A859]'
+                          }`}
+                        >
+                          {coverIndex === null ? 'No cover selected' : `Cover: #${coverIndex + 1}`}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[#5A6259]">
+                        Click the image you want to show as the cover of this collection (required).
+                      </p>
+                      {renderCoverPicker('max-h-48')}
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="space-y-1.5 pt-1">
-                  <p className="text-[11px] text-[#8B9188]">
-                    Select a directory from your system. Non-image files will be automatically filtered out.
-                  </p>
-                  <input
-                    type="file"
-                    //@ts-ignore - webkitdirectory browser API standard
-                    webkitdirectory=""
-                    directory=""
-                    multiple
-                    required
-                    onChange={handleImageSelect}
-                    className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#D9D4C6] file:text-xs file:font-semibold file:bg-white file:text-[#1E2620] hover:file:bg-[#EFECE6] cursor-pointer"
-                  />
+                <div className="space-y-4 border border-dashed border-[#00A859]/30 bg-[#FAF9F6] p-4 rounded-xs">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#00A859]">
+                      <Film size={13} /> Upload MP4/MOV Video File *
+                    </label>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/quicktime,video/webm"
+                      required
+                      onChange={handleVideoSelect}
+                      className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#00A859]/30 file:text-xs file:font-mono file:font-bold file:uppercase file:bg-white file:text-[#0C1E12] hover:file:bg-[#00A859] hover:file:text-white cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-[#00A859]/15">
+                    <label className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#E5B800]">
+                      <ImageIcon size={13} /> Upload Video Cover Thumbnail *
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      required
+                      onChange={handleThumbnailSelect}
+                      className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#00A859]/30 file:text-xs file:font-mono file:font-bold file:uppercase file:bg-white file:text-[#0C1E12] hover:file:bg-[#00A859] hover:file:text-white cursor-pointer"
+                    />
+                  </div>
+                </div>
+              )}
+            </form>
+          )}
+
+          {/* ── STEP 2: EXACT PREVIEW DISPLAY ───────────────────────────── */}
+          {step === 2 && (
+            <div className="space-y-5">
+              
+              <div className="border border-[#00A859]/30 bg-[#FAF9F6] p-5 space-y-3 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-[#00A859]/15 pb-2">
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#E5B800]">
+                    HOW IT WILL APPEAR IN GALLERY
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-[#00A859] text-white px-2 py-0.5">
+                    <Tag size={10} /> {category}
+                  </span>
+                </div>
+
+                {/* Cover image preview */}
+                {mediaType === 'folder' && coverIndex !== null && imagePreviews[coverIndex] && (
+                  <div className="relative aspect-video border border-[#E5B800]/60 bg-[#0C1E12] overflow-hidden">
+                    <Image
+                      src={imagePreviews[coverIndex]}
+                      alt="Collection cover preview"
+                      width={1200}
+                      height={675}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 inline-flex items-center gap-1 bg-[#E5B800] text-[#0C1E12] text-[9px] font-mono font-bold uppercase px-2 py-0.5">
+                      <Star size={10} fill="currentColor" /> Cover
+                    </span>
+                  </div>
+                )}
+
+                <h2 className="text-base sm:text-lg font-semibold text-[#0C1E12]">
+                  {title}
+                </h2>
+
+                <p className="text-xs text-[#3A4239] leading-relaxed text-justify font-normal">
+                  {caption}
+                </p>
+              </div>
+
+              {/* Image Collection Grid Preview */}
+              {mediaType === 'folder' && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">
+                      Attached Images ({images.length} File{images.length > 1 ? 's' : ''})
+                    </span>
+                    <span className="text-[9px] font-mono text-[#5A6259]">
+                      Click an image to change the cover
+                    </span>
+                  </div>
+
+                  {renderCoverPicker('max-h-60')}
                 </div>
               )}
 
-              {images.length > 0 && (
-                <p className="text-[11px] font-semibold text-[#3F6B4F] pt-2" style={monoFont}>
-                  ✓ Selected {images.length} image file{images.length > 1 ? 's' : ''}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4 border border-dashed border-[#D9D4C6] bg-[#FAF9F5] p-4 rounded-xs">
-              <div className="space-y-1.5">
-                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#C22055]" style={monoFont}>
-                  <Film size={14} /> Upload MP4/MOV Video File *
-                </label>
-                <input
-                  type="file"
-                  accept="video/mp4,video/quicktime,video/webm"
-                  required
-                  onChange={(e) => setVideo(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#D9D4C6] file:text-xs file:font-semibold file:bg-white file:text-[#1E2620] hover:file:bg-[#EFECE6] cursor-pointer"
-                />
-              </div>
+              {/* Video & Thumbnail Stream Preview */}
+              {mediaType === 'video' && (
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {/* Video Player Stream */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#00A859] block">
+                      Video Stream Player
+                    </span>
+                    {videoPreviewUrl ? (
+                      <div className="aspect-video bg-black border border-[#00A859]/30 overflow-hidden flex items-center justify-center">
+                        <video src={videoPreviewUrl} controls className="h-full w-full object-contain" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video bg-[#FAF9F6] border border-dashed border-[#00A859]/30 flex items-center justify-center text-xs text-[#5A6259]">
+                        No video attached
+                      </div>
+                    )}
+                  </div>
 
-              <div className="space-y-1.5 pt-2 border-t border-[#EDEAE0]">
-                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#A9812F]" style={monoFont}>
-                  <ImageIcon size={14} /> Upload Video Cover Thumbnail *
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  required
-                  onChange={(e) => setThumbnail(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-[#5A6259] file:mr-4 file:py-1.5 file:px-3 file:border file:border-[#D9D4C6] file:text-xs file:font-semibold file:bg-white file:text-[#1E2620] hover:file:bg-[#EFECE6] cursor-pointer"
-                />
-              </div>
+                  {/* Thumbnail Image Display */}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#E5B800] block">
+                      Cover Thumbnail Display
+                    </span>
+                    {thumbnailPreviewUrl ? (
+                      <div className="aspect-video bg-[#0C1E12] border border-[#00A859]/30 overflow-hidden relative">
+                        <Image src={thumbnailPreviewUrl} alt="Thumbnail preview" width={1200} height={900} unoptimized className="h-full w-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video bg-[#FAF9F6] border border-dashed border-[#00A859]/30 flex items-center justify-center text-xs text-[#5A6259]">
+                        No thumbnail attached
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
-        </form>
+
+        </div>
 
         {/* Modal Actions Footer */}
-        <div className="flex items-center justify-between border-t border-[#D9D4C6] px-6 py-4 bg-[#FAF9F5] shrink-0">
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={onClose}
-            className="border border-[#D9D4C6] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620] transition cursor-pointer"
-          >
-            Cancel
-          </button>
+        <div className="flex items-center justify-between border-t border-[#00A859]/20 px-6 py-4 bg-[#FAF9F6] shrink-0">
+          
+          {step === 1 ? (
+            <>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={onClose}
+                className="border border-[#00A859]/30 bg-white px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#0C1E12] hover:border-[#00A859] hover:bg-white transition cursor-pointer"
+              >
+                Cancel
+              </button>
 
-          <button
-            type="submit"
-            form="gallery-upload-form"
-            disabled={isSubmitting}
-            className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
-          >
-            {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-            {isSubmitting ? 'Publishing...' : 'Publish Media'}
-          </button>
+              <button
+                type="submit"
+                form="gallery-upload-form"
+                className="inline-flex items-center gap-1.5 border border-[#00A859] bg-[#00A859] px-5 py-2 text-xs font-mono font-bold uppercase tracking-wider text-white hover:bg-[#008A47] transition-colors cursor-pointer"
+              >
+                <Eye size={13} />
+                <span>Preview</span>
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => setStep(1)}
+                className="inline-flex items-center gap-1.5 border border-[#00A859]/30 bg-white px-4 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#0C1E12] hover:border-[#00A859] hover:bg-white transition cursor-pointer"
+              >
+                <ArrowLeft size={13} />
+                <span>Back to Edit</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleSubmit}
+                className="inline-flex items-center gap-1.5 border border-[#E5B800] bg-[#E5B800] px-5 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#0C1E12] hover:bg-[#c9a000] transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
+              >
+                {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                <span>{isSubmitting ? 'Submitting...' : 'Submit'}</span>
+              </button>
+            </>
+          )}
+
         </div>
+
       </div>
     </div>,
     document.body

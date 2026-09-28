@@ -56,6 +56,7 @@ export default function GalleryManager({
   const [search, setSearch] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [publishingId, setPublishingId] = useState<string | null>(null);
 
   const loadGallery = useCallback(async () => {
     try {
@@ -85,10 +86,30 @@ export default function GalleryManager({
     try {
       await galleryApi.deleteItem(id);
       loadGallery();
-    } catch (err: any) {
-      alert(err?.message || 'Failed to delete gallery item.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete gallery item.';
+      alert(message);
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleTogglePublish = async (item: GalleryItem) => {
+    const nextPublished = !(item.isPublished || item.status === 'published');
+    setPublishingId(item._id);
+
+    try {
+      if (nextPublished) {
+        await galleryApi.publishItem(item._id);
+      } else {
+        await galleryApi.unpublishItem(item._id);
+      }
+      await loadGallery();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update website publishing status.';
+      alert(message);
+    } finally {
+      setPublishingId(null);
     }
   };
 
@@ -258,22 +279,60 @@ export default function GalleryManager({
                       </span>
                     </td>
 
-                    {/* Delete Action */}
+                    {/* Publish / Delete Actions */}
                     <td className="p-4 text-right">
-                      <button
-                        type="button"
-                        disabled={deletingId === item._id}
-                        onClick={() => handleDelete(item._id)}
-                        className="inline-flex items-center gap-1 border border-[#B65C4B]/40 bg-[#FBEEEC] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8B4136] transition-colors hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] disabled:opacity-50 cursor-pointer"
-                        style={monoFont}
-                      >
-                        {deletingId === item._id ? (
-                          <Loader2 size={12} className="animate-spin" />
-                        ) : (
-                          <Trash2 size={12} />
-                        )}
-                        Delete
-                      </button>
+                      <div className="flex flex-col items-end gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                            item.isPublished || item.status === 'published'
+                              ? 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39]'
+                              : 'border-[#D9D4C6] bg-[#FAF9F5] text-[#6B7268]'
+                          }`}
+                          style={monoFont}
+                        >
+                          {item.isPublished || item.status === 'published' ? 'Published' : 'Draft'}
+                        </span>
+
+                        <button
+                          type="button"
+                          disabled={publishingId === item._id || deletingId === item._id}
+                          onClick={() => handleTogglePublish(item)}
+                          className={`inline-flex items-center gap-1 border px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer ${
+                            item.isPublished || item.status === 'published'
+                              ? 'border-[#8B4136] bg-[#FBEEEC] text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]'
+                              : 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39] hover:bg-[#3F6B4F] hover:text-[#FAF9F5]'
+                          }`}
+                          style={monoFont}
+                        >
+                          {publishingId === item._id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : item.isPublished || item.status === 'published' ? (
+                            <Eye size={12} />
+                          ) : (
+                            <Plus size={12} />
+                          )}
+                          {publishingId === item._id
+                            ? 'Updating...'
+                            : item.isPublished || item.status === 'published'
+                              ? 'Unpublish'
+                              : 'Publish to Website'}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={deletingId === item._id}
+                          onClick={() => handleDelete(item._id)}
+                          className="inline-flex items-center gap-1 border border-[#B65C4B]/40 bg-[#FBEEEC] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8B4136] transition-colors hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] disabled:opacity-50 cursor-pointer"
+                          style={monoFont}
+                        >
+                          {deletingId === item._id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
