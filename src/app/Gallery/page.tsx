@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   ExternalLink,
   Search,
@@ -16,11 +17,13 @@ import {
   Dna,
 } from 'lucide-react';
 import Footer from '@/components/Footer';
+import { galleryApi } from '@/lib/api/gallery';
+import type { GalleryCategory, GalleryItem as GalleryRecord } from '@/types';
 
-type Category = 'all' | 'field' | 'lab' | 'community' | 'crops' | 'workshop' | 'conference' | 'outreach' | 'dna';
+type Category = 'all' | 'field' | 'lab' | 'community' | 'crops' | 'workshop' | 'conference' | 'outreach' | 'dna' | GalleryCategory;
 
-interface GalleryItem {
-  id: number;
+interface GalleryCardItem {
+  id: number | string;
   src: string;
   alt: string;
   title: string;
@@ -30,9 +33,10 @@ interface GalleryItem {
   itemCount: number;
   date: string;
   tall?: boolean;
+  galleryId?: string;
 }
 
-const GALLERY_ITEMS: GalleryItem[] = [
+const GALLERY_ITEMS: GalleryCardItem[] = [
   {
     id: 1,
     src: '/image/DSC_5973.JPG',
@@ -126,6 +130,9 @@ const CATEGORIES: { key: Category; label: string; Icon: React.ElementType }[] = 
   { key: 'dna',        label: 'Molecular Biology & DNA Week',       Icon: Dna           },
   { key: 'community',  label: 'Farmer Extension & Stakeholder Consultation', Icon: Users },
   { key: 'crops',      label: 'Biotech Crop Pipeline',              Icon: FlaskConical  },
+  { key: 'activities', label: 'Activities',                          Icon: Leaf          },
+  { key: 'events',     label: 'Events',                              Icon: Presentation  },
+  { key: 'team',       label: 'Team',                                Icon: Users         },
 ];
 
 // Maps each category key to its technical label, reused for the pill badge on each card
@@ -133,14 +140,14 @@ const CATEGORY_LABELS: Record<Category, string> = CATEGORIES.reduce(
   (acc, c) => ({ ...acc, [c.key]: c.label }),
   {} as Record<Category, string>
 );
-function CollectionCard({ item }: { item: GalleryItem }) {
+function CollectionCard({ item }: { item: GalleryCardItem }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <a
-      href={item.href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      href={item.galleryId ? `/Gallery/${item.galleryId}` : item.href}
+      target={item.galleryId ? undefined : '_blank'}
+      rel={item.galleryId ? undefined : 'noopener noreferrer'}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -283,7 +290,7 @@ function CollectionCard({ item }: { item: GalleryItem }) {
       }}>
         {CATEGORY_LABELS[item.category]}
       </div>
-    </a>
+    </Link>
   );
 }
 
@@ -291,8 +298,60 @@ function CollectionCard({ item }: { item: GalleryItem }) {
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploadedItems, setUploadedItems] = useState<GalleryCardItem[]>([]);
 
-  const filtered = GALLERY_ITEMS.filter((item) => {
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadPublishedItems = async () => {
+      try {
+        const firstPage = await galleryApi.getItems({ page: 1, limit: 100 });
+        const pages = await Promise.all(
+          Array.from({ length: Math.max(0, firstPage.pagination.pages - 1) }, (_, index) =>
+            galleryApi.getItems({ page: index + 2, limit: 100 })
+          )
+        );
+        const records = [firstPage, ...pages].flatMap((response) => response.data);
+
+        if (isCurrent) {
+          setUploadedItems(
+            records
+              .map((item: GalleryRecord) => {
+                const cover = item.images?.find((image) => image.isCover) || item.images?.[0];
+                return {
+                  id: item._id,
+                  galleryId: item._id,
+                  src: item.mediaType === 'video' ? item.thumbnailUrl || '/image/IMG_101.jpg' : cover?.url || '/image/IMG_101.jpg',
+                  alt: item.title,
+                  title: item.title,
+                  caption: item.caption,
+                  category: item.category,
+                  href: `/Gallery/${item._id}`,
+                  itemCount: item.mediaType === 'video' ? 1 : item.images?.length || 0,
+                  date: new Date(item.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: '2-digit',
+                  }),
+                  tall: true,
+                };
+              })
+          );
+        }
+      } catch (error) {
+        console.error('Failed to load published gallery collections:', error);
+      }
+    };
+
+    void loadPublishedItems();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const allGalleryItems = [...uploadedItems, ...GALLERY_ITEMS];
+
+  const filtered = allGalleryItems.filter((item) => {
     const matchCat = activeCategory === 'all' || item.category === activeCategory;
     const q = searchQuery.toLowerCase();
     const matchSearch = !q || item.title.toLowerCase().includes(q) || item.caption.toLowerCase().includes(q);
@@ -491,10 +550,13 @@ export default function GalleryPage() {
        {/* ── HERO — identical structure to Resource/DNA Week page ── */}
 <section className="relative min-h-[420px] flex items-center px-6 lg:px-12 overflow-hidden">
   <div className="absolute inset-0 z-0">
-    <img
+      <Image
       src="/image/IMG_101.jpg"
       alt="BioCap Rwanda photo collections"
-      className="w-full h-full object-cover"
+        fill
+        unoptimized
+        sizes="100vw"
+        className="object-cover"
     />
     <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
   </div>
@@ -510,10 +572,10 @@ export default function GalleryPage() {
       Photo <span className="text-[#E8185A]">Collections</span>
     </h1>
     <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-      Documenting Rwanda's biotech agriculture journey, from laboratory to the field and communities.
+      Documenting Rwanda&apos;s biotech agriculture journey, from laboratory to the field and communities.
     </p>
     <div className="inline-flex items-center gap-2 mt-6 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-white/80 text-xs font-bold uppercase tracking-wider">
-      <Images size={13} /> {GALLERY_ITEMS.length} collections
+      <Images size={13} /> {allGalleryItems.length} collections
     </div>
   </div>
 
@@ -556,7 +618,7 @@ export default function GalleryPage() {
         {/* Grid */}
         <div className="gallery-grid-wrap">
           <p className="results-meta">
-            Showing <span>{filtered.length}</span> of {GALLERY_ITEMS.length} collections
+            Showing <span>{filtered.length}</span> of {allGalleryItems.length} collections
           </p>
           <div className="gallery-grid">
             {filtered.length === 0 ? (

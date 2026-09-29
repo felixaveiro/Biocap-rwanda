@@ -23,7 +23,7 @@ export const galleryApi = {
     const queryString = searchParams.toString();
     const path = `/api/gallery${queryString ? `?${queryString}` : ''}`;
 
-    return apiRequest<GalleryResponse>(path, { method: 'GET' });
+    return apiRequest<GalleryResponse>(path, { method: 'GET', cache: 'no-store' });
   },
 
   /**
@@ -32,6 +32,7 @@ export const galleryApi = {
   async getItemById(id: string): Promise<{ success: boolean; data: GalleryItem }> {
     return apiRequest<{ success: boolean; data: GalleryItem }>(`/api/gallery/${id}`, {
       method: 'GET',
+      cache: 'no-store',
     });
   },
 

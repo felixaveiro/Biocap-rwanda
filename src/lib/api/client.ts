@@ -22,6 +22,7 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
+  cache?: RequestCache;
   /** Set true for endpoints that require the Bearer token */
   auth?: boolean;
 }
@@ -109,7 +110,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { method = "GET", body, auth = false } = options;
+  const { method = "GET", body, auth = false, cache } = options;
 
   // Check if this is an explicitly public route
   const isPublicRoute = path.includes("/public");
@@ -135,6 +136,7 @@ export async function apiRequest<T>(
       method,
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache,
     });
   } catch {
     throw new ApiError(
@@ -159,6 +161,7 @@ export async function apiRequest<T>(
           method,
           headers,
           body: body !== undefined ? JSON.stringify(body) : undefined,
+          cache,
         });
       } catch {
         throw new ApiError(

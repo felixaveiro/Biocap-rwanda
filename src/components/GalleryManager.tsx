@@ -45,6 +45,14 @@ interface Props {
   portalDescription?: string;
 }
 
+// Picks the image to show as a folder collection's thumbnail: the one
+// explicitly marked isCover, falling back to the first image for older
+// records that predate the cover-selection feature.
+function getCoverImage(item: GalleryItem) {
+  if (!item.images || item.images.length === 0) return undefined;
+  return item.images.find((img) => img.isCover) || item.images[0];
+}
+
 export default function GalleryManager({
   portalTitle = 'Gallery Management',
   portalDescription = 'Upload, filter, and manage public media collections and HD videos.',
@@ -99,12 +107,24 @@ export default function GalleryManager({
     setPublishingId(item._id);
 
     try {
+      let updatedItem: GalleryItem;
       if (nextPublished) {
-        await galleryApi.publishItem(item._id);
+        updatedItem = (await galleryApi.publishItem(item._id)).data;
       } else {
-        await galleryApi.unpublishItem(item._id);
+        updatedItem = (await galleryApi.unpublishItem(item._id)).data;
       }
-      await loadGallery();
+      setItems((currentItems) =>
+        currentItems.map((currentItem) =>
+          currentItem._id === item._id
+            ? {
+                ...currentItem,
+                ...updatedItem,
+                isPublished: nextPublished,
+                status: nextPublished ? 'published' : 'draft',
+              }
+            : currentItem
+        )
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to update website publishing status.';
       alert(message);
@@ -221,13 +241,16 @@ export default function GalleryManager({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EDEAE0]">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const coverImage = getCoverImage(item);
+
+                  return (
                   <tr key={item._id} className="hover:bg-[#FAF9F5] transition-colors">
                     {/* Media Thumbnail */}
                     <td className="p-4">
                       <div className="relative h-12 w-20 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xs group">
                         <img
-                          src={item.mediaType === 'video' ? item.thumbnailUrl : item.images?.[0]?.url}
+                          src={item.mediaType === 'video' ? item.thumbnailUrl : coverImage?.url}
                           alt={item.title}
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                         />
@@ -245,6 +268,11 @@ export default function GalleryManager({
                       <div className="text-[#6B7268] text-[11px] line-clamp-1 mt-0.5 italic">
                         "{item.caption}"
                       </div>
+                      {item.mediaType === 'folder' && coverImage?.caption && (
+                        <div className="text-[#8B9188] text-[10px] line-clamp-1 mt-0.5">
+                          Cover caption: "{coverImage.caption}"
+                        </div>
+                      )}
                     </td>
 
                     {/* Category */}
@@ -315,7 +343,7 @@ export default function GalleryManager({
                             ? 'Updating...'
                             : item.isPublished || item.status === 'published'
                               ? 'Unpublish'
-                              : 'Publish to Website'}
+                              : 'Publish'}
                         </button>
 
                         <button
@@ -335,7 +363,8 @@ export default function GalleryManager({
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

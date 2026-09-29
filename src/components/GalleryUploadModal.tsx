@@ -6,6 +6,11 @@ import { createPortal } from 'react-dom';
 import { Poppins } from 'next/font/google';
 import { galleryApi } from '@/lib/api/gallery';
 import {
+  getBioCapFilename,
+  generateImageReferenceId,
+  triggerBrowserDownload,
+} from '@/lib/utils/Biocapfilename';
+import {
   X,
   UploadCloud,
   FolderPlus,
@@ -21,6 +26,8 @@ import {
   CheckCircle2,
   Tag,
   Star,
+  Download,
+  MessageSquareText,
 } from 'lucide-react';
 
 const poppins = Poppins({
@@ -54,6 +61,14 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
   // null = nothing chosen yet (no default is applied)
   const [coverIndex, setCoverIndex] = useState<number | null>(null);
 
+  // Per-image, OPTIONAL caption — parallel array to `images` (same index).
+  const [imageCaptions, setImageCaptions] = useState<string[]>([]);
+  // Per-image stable reference id — also parallel to `images`. Generated
+  // client-side the moment a file is selected, used both for the
+  // download filename below and sent to the backend on submit so the
+  // same id can be reused later (e.g. by the public gallery page).
+  const [imageRefIds, setImageRefIds] = useState<string[]>([]);
+
   // Local object URLs generated for instant Step 2 preview
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -73,11 +88,13 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
 
   if (!isOpen) return null;
 
-  // Clears the selected images and resets the cover choice
+  // Clears the selected images and resets the cover choice, captions & ids
   const resetImages = () => {
     setImages([]);
     setImagePreviews([]);
     setCoverIndex(null);
+    setImageCaptions([]);
+    setImageRefIds([]);
   };
 
   // Handle image files and directory selection
@@ -99,6 +116,36 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
     // Create instant browser preview URLs for step 2
     const previewUrls = validImages.map((file) => URL.createObjectURL(file));
     setImagePreviews(previewUrls);
+
+    // Fresh, empty (optional) captions and a stable reference id per image
+    setImageCaptions(validImages.map(() => ''));
+    setImageRefIds(validImages.map(() => generateImageReferenceId()));
+  };
+
+  // Update a single image's optional caption without touching the others
+  const handleCaptionChange = (index: number, value: string) => {
+    setImageCaptions((prev) => {
+      const next = [...prev];
+      next[index] = value;
+      return next;
+    });
+  };
+
+  // Downloads one image using the BioCap naming rule:
+  //   has caption -> BioCap-<slug-of-caption>-<referenceId>.<ext>
+  //   no caption  -> BioCap-image-<referenceId>.<ext>
+  const handleDownloadImage = (index: number) => {
+    const url = imagePreviews[index];
+    const file = images[index];
+    if (!url || !file) return;
+
+    const filename = getBioCapFilename({
+      caption: imageCaptions[index],
+      referenceId: imageRefIds[index],
+      originalFileName: file.name,
+    });
+
+    triggerBrowserDownload(url, filename);
   };
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,6 +223,11 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
         images.forEach((img) => formData.append('images', img));
         // Tells the backend which uploaded image (0-based) is the collection cover
         if (coverIndex !== null) formData.append('coverIndex', String(coverIndex));
+        // Per-image optional captions and stable reference ids, in the
+        // same order as the `images` files above, so the backend can
+        // zip them back together (index i <-> images[i]).
+        formData.append('imageCaptions', JSON.stringify(imageCaptions));
+        formData.append('imageReferenceIds', JSON.stringify(imageRefIds));
       } else if (mediaType === 'video') {
         if (video) formData.append('video', video);
         if (thumbnail) formData.append('thumbnail', thumbnail);
@@ -193,49 +245,86 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
     }
   };
 
-  // Reusable clickable grid: click any image to make it the cover
-  const renderCoverPicker = (maxHeightClass: string) => (
+  // Reusable clickable grid: click an image to make it the cover, type an
+  // optional caption for it, and (in Step 2) download it under its final
+  // BioCap-formatted filename.
+  const renderCoverPicker = (maxHeightClass: string, allowDownload: boolean) => (
     <div
-      className={`grid grid-cols-3 sm:grid-cols-4 gap-2.5 ${maxHeightClass} overflow-y-auto p-2 border border-[#00A859]/20 bg-white`}
+      className={`grid grid-cols-2 sm:grid-cols-3 gap-3 ${maxHeightClass} overflow-y-auto p-2 border border-[#00A859]/20 bg-white`}
     >
       {imagePreviews.map((src, index) => {
         const isCover = index === coverIndex;
         return (
-          <button
-            type="button"
+          <div
             key={index}
-            onClick={() => setCoverIndex(index)}
-            aria-pressed={isCover}
-            aria-label={isCover ? `Image ${index + 1} (current cover)` : `Set image ${index + 1} as cover`}
-            className={`relative aspect-square overflow-hidden group cursor-pointer bg-[#0C1E12] transition-all ${
+            className={`flex flex-col overflow-hidden bg-[#0C1E12] transition-all ${
               isCover
                 ? 'border-2 border-[#E5B800] ring-2 ring-[#E5B800]/40'
                 : 'border border-[#00A859]/20 hover:border-[#00A859]'
             }`}
           >
-            <Image
-              src={src}
-              alt={`Upload preview ${index + 1}`}
-              width={800}
-              height={800}
-              unoptimized
-              className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                isCover ? 'brightness-100' : 'brightness-90'
-              }`}
-            />
-            {isCover ? (
-              <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 bg-[#E5B800] text-[#0C1E12] text-[8px] font-mono font-bold uppercase px-1.5 py-0.5">
-                <Star size={9} fill="currentColor" /> Cover
+            {/* Click the image itself to set it as the cover */}
+            <button
+              type="button"
+              onClick={() => setCoverIndex(index)}
+              aria-pressed={isCover}
+              aria-label={isCover ? `Image ${index + 1} (current cover)` : `Set image ${index + 1} as cover`}
+              className="relative aspect-square w-full overflow-hidden group cursor-pointer"
+            >
+              <Image
+                src={src}
+                alt={`Upload preview ${index + 1}`}
+                width={800}
+                height={800}
+                unoptimized
+                className={`h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                  isCover ? 'brightness-100' : 'brightness-90'
+                }`}
+              />
+              {isCover ? (
+                <span className="absolute top-1 left-1 inline-flex items-center gap-0.5 bg-[#E5B800] text-[#0C1E12] text-[8px] font-mono font-bold uppercase px-1.5 py-0.5">
+                  <Star size={9} fill="currentColor" /> Cover
+                </span>
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center bg-[#0C1E12]/60 text-white text-[9px] font-mono font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
+                  Set as cover
+                </span>
+              )}
+              <span className="absolute bottom-1 right-1 bg-[#0C1E12]/80 text-white text-[8px] font-mono px-1 py-0.5">
+                #{index + 1}
               </span>
-            ) : (
-              <span className="absolute inset-0 flex items-center justify-center bg-[#0C1E12]/60 text-white text-[9px] font-mono font-bold uppercase opacity-0 group-hover:opacity-100 transition-opacity">
-                Set as cover
+            </button>
+
+            {/* Optional per-image caption */}
+            <div className="flex items-center gap-1 bg-white px-1.5 py-1 border-t border-[#00A859]/15">
+              <MessageSquareText size={11} className="shrink-0 text-[#5A6259]" />
+              <input
+                type="text"
+                value={imageCaptions[index] ?? ''}
+                onChange={(e) => handleCaptionChange(index, e.target.value)}
+                placeholder="Optional caption"
+                className="w-full min-w-0 text-[10px] text-[#0C1E12] placeholder-[#5A6259]/50 focus:outline-none"
+              />
+            </div>
+
+            {/* Reference id + optional download (Step 2 only) */}
+            <div className="flex items-center justify-between gap-1 bg-[#FAF9F6] px-1.5 py-1 border-t border-[#00A859]/10">
+              <span className="truncate text-[8px] font-mono text-[#5A6259]" title={imageRefIds[index]}>
+                ID: {imageRefIds[index]}
               </span>
-            )}
-            <span className="absolute bottom-1 right-1 bg-[#0C1E12]/80 text-white text-[8px] font-mono px-1 py-0.5">
-              #{index + 1}
-            </span>
-          </button>
+              {allowDownload && (
+                <button
+                  type="button"
+                  onClick={() => handleDownloadImage(index)}
+                  aria-label={`Download image ${index + 1}`}
+                  title="Download with BioCap filename"
+                  className="shrink-0 text-[#00A859] hover:text-[#008A47] cursor-pointer"
+                >
+                  <Download size={12} />
+                </button>
+              )}
+            </div>
+          </div>
         );
       })}
     </div>
@@ -482,12 +571,12 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                     </p>
                   )}
 
-                  {/* Cover image picker */}
+                  {/* Cover image + optional per-image caption picker */}
                   {imagePreviews.length > 0 && (
                     <div className="space-y-2 pt-3 border-t border-[#00A859]/15">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#E5B800]">
-                          <Star size={12} fill="currentColor" /> Choose Collection Cover
+                          <Star size={12} fill="currentColor" /> Choose Cover &amp; Captions
                         </span>
                         <span
                           className={`text-[9px] font-mono font-bold ${
@@ -498,9 +587,11 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                         </span>
                       </div>
                       <p className="text-[11px] text-[#5A6259]">
-                        Click the image you want to show as the cover of this collection (required).
+                        Click an image to set it as the cover (required). Adding a caption to a photo
+                        is optional — it&apos;s only used to label that photo and to name its file when
+                        someone downloads it from the site later.
                       </p>
-                      {renderCoverPicker('max-h-48')}
+                      {renderCoverPicker('max-h-72', false)}
                     </div>
                   )}
                 </div>
@@ -584,11 +675,11 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                       Attached Images ({images.length} File{images.length > 1 ? 's' : ''})
                     </span>
                     <span className="text-[9px] font-mono text-[#5A6259]">
-                      Click an image to change the cover
+                      Click to change cover · edit captions · test download
                     </span>
                   </div>
 
-                  {renderCoverPicker('max-h-60')}
+                  {renderCoverPicker('max-h-80', true)}
                 </div>
               )}
 

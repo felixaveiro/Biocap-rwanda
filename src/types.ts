@@ -370,6 +370,16 @@ export interface GalleryImage {
   url: string;
   publicId: string;
   _id?: string;
+  // OPTIONAL caption the uploader typed for this specific photo.
+  caption?: string | null;
+  // Stable per-image reference id (client-generated on upload, or
+  // server-generated as a fallback). Used to build the
+  // "BioCap-<caption>-<referenceId>" download filename and to address
+  // one specific image later (e.g. re-assigning the collection cover).
+  referenceId?: string;
+  // True for exactly one image per folder collection — the one shown
+  // as the collection's cover/thumbnail in gallery listings.
+  isCover?: boolean;
 }
 
 export interface GalleryItem {
