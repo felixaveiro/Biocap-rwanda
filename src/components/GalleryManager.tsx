@@ -1,4 +1,3 @@
-// app/components/GalleryManager.tsx
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -17,6 +16,7 @@ import {
   Loader2,
   AlertCircle,
   Eye,
+  EyeOff,
   User,
   Calendar,
 } from 'lucide-react';
@@ -45,12 +45,23 @@ interface Props {
   portalDescription?: string;
 }
 
-// Picks the image to show as a folder collection's thumbnail: the one
-// explicitly marked isCover, falling back to the first image for older
-// records that predate the cover-selection feature.
+// Picks the cover thumbnail image for folder items
 function getCoverImage(item: GalleryItem) {
   if (!item.images || item.images.length === 0) return undefined;
   return item.images.find((img) => img.isCover) || item.images[0];
+}
+
+// 🟢 Evaluates publication state. The backend now stores `isPublished` in MongoDB.
+// Only an explicit false / 'draft' means unpublished; legacy items with no value
+// are treated as published, exactly like the backend does.
+function checkIsPublished(item: GalleryItem): boolean {
+  if (typeof item.isPublished === 'boolean') {
+    return item.isPublished;
+  }
+  if (item.status) {
+    return item.status === 'published';
+  }
+  return true;
 }
 
 export default function GalleryManager({
@@ -66,17 +77,24 @@ export default function GalleryManager({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
 
-  const loadGallery = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await galleryApi.getItems({ category, mediaType, search });
-      setItems(res.data);
-    } catch (err) {
-      console.error('Failed to fetch gallery items:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [category, mediaType, search]);
+  // silent = true -> refetch without showing the full-page spinner
+  const loadGallery = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        // 🟢 Admin endpoint: returns published items AND drafts.
+        // (The public getItems() returns published only, so unpublished
+        // items would vanish from the dashboard and could not be re-published.)
+        const res = await galleryApi.getAdminItems({ category, mediaType, search });
+        setItems(res.data);
+      } catch (err) {
+        console.error('Failed to fetch gallery items:', err);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [category, mediaType, search]
+  );
 
   useEffect(() => {
     loadGallery();
@@ -93,7 +111,7 @@ export default function GalleryManager({
     setDeletingId(id);
     try {
       await galleryApi.deleteItem(id);
-      loadGallery();
+      await loadGallery(true);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to delete gallery item.';
       alert(message);
@@ -102,25 +120,33 @@ export default function GalleryManager({
     }
   };
 
+  // 🟢 Toggles between Published and Draft. The backend saves the state in MongoDB,
+  // so it survives a page refresh and controls visibility on the public website.
   const handleTogglePublish = async (item: GalleryItem) => {
-    const nextPublished = !(item.isPublished || item.status === 'published');
+    const isCurrentlyPublished = checkIsPublished(item);
+    const nextPublished = !isCurrentlyPublished;
     setPublishingId(item._id);
 
     try {
-      let updatedItem: GalleryItem;
+      let res;
       if (nextPublished) {
-        updatedItem = (await galleryApi.publishItem(item._id)).data;
+        res = await galleryApi.publishItem(item._id);
       } else {
-        updatedItem = (await galleryApi.unpublishItem(item._id)).data;
+        res = await galleryApi.unpublishItem(item._id);
       }
-      setItems((currentItems) =>
-        currentItems.map((currentItem) =>
+
+      // 🟢 Use the value the server actually saved (fallback: the requested value)
+      const savedPublished =
+        typeof res?.data?.isPublished === 'boolean' ? res.data.isPublished : nextPublished;
+
+      setItems((prevItems) =>
+        prevItems.map((currentItem) =>
           currentItem._id === item._id
             ? {
                 ...currentItem,
-                ...updatedItem,
-                isPublished: nextPublished,
-                status: nextPublished ? 'published' : 'draft',
+                ...(res?.data || {}),
+                isPublished: savedPublished,
+                status: savedPublished ? 'published' : 'draft',
               }
             : currentItem
         )
@@ -243,126 +269,127 @@ export default function GalleryManager({
               <tbody className="divide-y divide-[#EDEAE0]">
                 {items.map((item) => {
                   const coverImage = getCoverImage(item);
+                  const isPublished = checkIsPublished(item);
 
                   return (
-                  <tr key={item._id} className="hover:bg-[#FAF9F5] transition-colors">
-                    {/* Media Thumbnail */}
-                    <td className="p-4">
-                      <div className="relative h-12 w-20 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xs group">
-                        <img
-                          src={item.mediaType === 'video' ? item.thumbnailUrl : coverImage?.url}
-                          alt={item.title}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                        <span
-                          className="absolute bottom-1 right-1 border border-white/20 bg-[#1E2620]/80 p-0.5 text-white backdrop-blur-xs rounded-xs"
-                        >
-                          {item.mediaType === 'video' ? <Video size={10} /> : <Folder size={10} />}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Content Details */}
-                    <td className="p-4">
-                      <div className="font-bold text-[#1E2620] leading-snug">{item.title}</div>
-                      <div className="text-[#6B7268] text-[11px] line-clamp-1 mt-0.5 italic">
-                        "{item.caption}"
-                      </div>
-                      {item.mediaType === 'folder' && coverImage?.caption && (
-                        <div className="text-[#8B9188] text-[10px] line-clamp-1 mt-0.5">
-                          Cover caption: "{coverImage.caption}"
+                    <tr key={item._id} className="hover:bg-[#FAF9F5] transition-colors">
+                      {/* Media Thumbnail */}
+                      <td className="p-4">
+                        <div className="relative h-12 w-20 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xs group">
+                          <img
+                            src={item.mediaType === 'video' ? item.thumbnailUrl : coverImage?.url}
+                            alt={item.title}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <span
+                            className="absolute bottom-1 right-1 border border-white/20 bg-[#1E2620]/80 p-0.5 text-white backdrop-blur-xs rounded-xs"
+                          >
+                            {item.mediaType === 'video' ? <Video size={10} /> : <Folder size={10} />}
+                          </span>
                         </div>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Category */}
-                    <td className="p-4">
-                      <span className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#FAF9F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#A9812F]" style={monoFont}>
-                        {item.category}
-                      </span>
-                    </td>
-
-                    {/* Media Type */}
-                    <td className="p-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1E2620]">
-                        {item.mediaType === 'folder' ? (
-                          <>
-                            <Folder size={13} className="text-[#3F6B4F]" />
-                            Folder ({item.images?.length || 0})
-                          </>
-                        ) : (
-                          <>
-                            <Video size={13} className="text-[#C22055]" />
-                            HD Video
-                          </>
+                      {/* Content Details */}
+                      <td className="p-4">
+                        <div className="font-bold text-[#1E2620] leading-snug">{item.title}</div>
+                        <div className="text-[#6B7268] text-[11px] line-clamp-1 mt-0.5 italic">
+                          "{item.caption}"
+                        </div>
+                        {item.mediaType === 'folder' && coverImage?.caption && (
+                          <div className="text-[#8B9188] text-[10px] line-clamp-1 mt-0.5">
+                            Cover caption: "{coverImage.caption}"
+                          </div>
                         )}
-                      </span>
-                    </td>
+                      </td>
 
-                    {/* Creator */}
-                    <td className="p-4 text-[11px] text-[#6B7268]">
-                      <span className="inline-flex items-center gap-1">
-                        <User size={12} className="text-[#8B9188]" />
-                        {item.createdBy?.username || 'System User'}
-                      </span>
-                    </td>
-
-                    {/* Publish / Delete Actions */}
-                    <td className="p-4 text-right">
-                      <div className="flex flex-col items-end gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
-                            item.isPublished || item.status === 'published'
-                              ? 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39]'
-                              : 'border-[#D9D4C6] bg-[#FAF9F5] text-[#6B7268]'
-                          }`}
-                          style={monoFont}
-                        >
-                          {item.isPublished || item.status === 'published' ? 'Published' : 'Draft'}
+                      {/* Category */}
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#FAF9F5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#A9812F]" style={monoFont}>
+                          {item.category}
                         </span>
+                      </td>
 
-                        <button
-                          type="button"
-                          disabled={publishingId === item._id || deletingId === item._id}
-                          onClick={() => handleTogglePublish(item)}
-                          className={`inline-flex items-center gap-1 border px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer ${
-                            item.isPublished || item.status === 'published'
-                              ? 'border-[#8B4136] bg-[#FBEEEC] text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]'
-                              : 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39] hover:bg-[#3F6B4F] hover:text-[#FAF9F5]'
-                          }`}
-                          style={monoFont}
-                        >
-                          {publishingId === item._id ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : item.isPublished || item.status === 'published' ? (
-                            <Eye size={12} />
+                      {/* Media Type */}
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#1E2620]">
+                          {item.mediaType === 'folder' ? (
+                            <>
+                              <Folder size={13} className="text-[#3F6B4F]" />
+                              Folder ({item.images?.length || 0})
+                            </>
                           ) : (
-                            <Plus size={12} />
+                            <>
+                              <Video size={13} className="text-[#C22055]" />
+                              HD Video
+                            </>
                           )}
-                          {publishingId === item._id
-                            ? 'Updating...'
-                            : item.isPublished || item.status === 'published'
+                        </span>
+                      </td>
+
+                      {/* Creator */}
+                      <td className="p-4 text-[11px] text-[#6B7268]">
+                        <span className="inline-flex items-center gap-1">
+                          <User size={12} className="text-[#8B9188]" />
+                          {item.createdBy?.username || 'System User'}
+                        </span>
+                      </td>
+
+                      {/* Publish / Unpublish Actions */}
+                      <td className="p-4 text-right">
+                        <div className="flex flex-col items-end gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${
+                              isPublished
+                                ? 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39]'
+                                : 'border-[#D9D4C6] bg-[#FAF9F5] text-[#6B7268]'
+                            }`}
+                            style={monoFont}
+                          >
+                            {isPublished ? 'Published' : 'Draft'}
+                          </span>
+
+                          <button
+                            type="button"
+                            disabled={publishingId === item._id || deletingId === item._id}
+                            onClick={() => handleTogglePublish(item)}
+                            className={`inline-flex items-center gap-1 border px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 cursor-pointer ${
+                              isPublished
+                                ? 'border-[#8B4136] bg-[#FBEEEC] text-[#8B4136] hover:bg-[#8B4136] hover:text-[#FAF9F5]'
+                                : 'border-[#3F6B4F] bg-[#EAF5EE] text-[#1F4D39] hover:bg-[#3F6B4F] hover:text-[#FAF9F5]'
+                            }`}
+                            style={monoFont}
+                          >
+                            {publishingId === item._id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : isPublished ? (
+                              <EyeOff size={12} />
+                            ) : (
+                              <Eye size={12} />
+                            )}
+                            {publishingId === item._id
+                              ? 'Updating...'
+                              : isPublished
                               ? 'Unpublish'
                               : 'Publish'}
-                        </button>
+                          </button>
 
-                        <button
-                          type="button"
-                          disabled={deletingId === item._id}
-                          onClick={() => handleDelete(item._id)}
-                          className="inline-flex items-center gap-1 border border-[#B65C4B]/40 bg-[#FBEEEC] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8B4136] transition-colors hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] disabled:opacity-50 cursor-pointer"
-                          style={monoFont}
-                        >
-                          {deletingId === item._id ? (
-                            <Loader2 size={12} className="animate-spin" />
-                          ) : (
-                            <Trash2 size={12} />
-                          )}
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          <button
+                            type="button"
+                            disabled={deletingId === item._id}
+                            onClick={() => handleDelete(item._id)}
+                            className="inline-flex items-center gap-1 border border-[#B65C4B]/40 bg-[#FBEEEC] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-[#8B4136] transition-colors hover:bg-[#8B4136] hover:text-[#FAF9F5] hover:border-[#8B4136] disabled:opacity-50 cursor-pointer"
+                            style={monoFont}
+                          >
+                            {deletingId === item._id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={12} />
+                            )}
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
               </tbody>
@@ -376,7 +403,7 @@ export default function GalleryManager({
         <GalleryUploadModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onSuccess={loadGallery}
+          onSuccess={() => loadGallery(true)}
         />
       )}
     </div>

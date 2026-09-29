@@ -391,9 +391,12 @@ export interface GalleryItem {
   videoUrl?: string;
   thumbnailUrl?: string;
   images?: GalleryImage[];
+  // Website visibility, stored in MongoDB by the backend.
+  // true = visible on the public gallery, false = hidden (draft).
   isPublished?: boolean;
   status?: 'draft' | 'published';
-  publishedAt?: string;
+  // null when the item is unpublished
+  publishedAt?: string | null;
   createdBy: {
     _id: string;
     username: string;
