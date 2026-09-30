@@ -33,39 +33,77 @@ function getOptimizedImageUrl(url?: string, width = 1200): string {
   return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
 }
 
+// Same idempotent version used by the editor, so both sides always agree.
 function formatPublishedLinks(text: string): string {
   if (!text) return '';
 
   const normalizeUrl = (url: string) => {
-    let trimmed = url.trim();
+    const trimmed = url.trim();
     if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
       return `https://${trimmed}`;
     }
     return trimmed;
   };
 
-  // Convert Markdown links [label](url) -> styled <a>
+  // Markdown links [label](url)
   let formatted = text.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    (_, label, url) =>
-      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+    (_, label, url) => {
+      const cleanUrl = normalizeUrl(url);
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${label}</a>`;
+    }
   );
 
-  // Convert rich text editor data-href spans
+  // Rich text editor data-href spans
   formatted = formatted.replace(
     /<span class="editor-link" data-href="([^"]+)">([^<]+)<\/span>/g,
-    (_, url, label) =>
-      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link">${label}</a>`
+    (_, url, label) => {
+      const cleanUrl = normalizeUrl(url);
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${label}</a>`;
+    }
   );
 
-  // Convert standard HTML <a> tags
+  // Standard HTML <a> tags (skip the ones that are already normalised)
   formatted = formatted.replace(
     /<a\s+(?:[^>]*?\s+)?href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/gi,
-    (_, url, restAttrs, label) =>
-      `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link"${restAttrs}>${label}</a>`
+    (match, url, _restAttrs, label) => {
+      if (match.includes('published-article-link')) return match;
+      const cleanUrl = normalizeUrl(url);
+      const cleanLabel = label.replace(/^🔗\s*/, '');
+      return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" title="${cleanUrl}" class="published-article-link">${cleanLabel}</a>`;
+    }
   );
 
   return formatted;
+}
+
+// True when the saved text already contains HTML from the editor (bold, underline, spans, links...)
+const hasHtmlMarkup = (text: string): boolean => /<\/?[a-z][\s\S]*?>/i.test(text);
+
+// Renders a text block from the editor.
+// - HTML content is rendered as ONE <div> (never split on newlines, never wrapped in <p>),
+//   so tags like <b>...</b> are not cut in half and <div style="text-align:..."> is valid.
+// - Plain text keeps the old behaviour: one <p> per line.
+function renderRichText(text: string, keyPrefix: string | number, pClassName: string) {
+  const source = text || '';
+
+  if (hasHtmlMarkup(source)) {
+    return (
+      <div
+        key={keyPrefix}
+        className={`art-rich ${pClassName}`}
+        dangerouslySetInnerHTML={{ __html: formatPublishedLinks(source.trim()) }}
+      />
+    );
+  }
+
+  return source.split(/\n+/).map((paragraphText, pIdx) => (
+    <p
+      key={`${keyPrefix}-${pIdx}`}
+      className={`art-rich ${pClassName}`}
+      dangerouslySetInnerHTML={{ __html: formatPublishedLinks(paragraphText.trim()) }}
+    />
+  ));
 }
 
 const renderSocialPlatformIcon = (platformName: string) => {
@@ -108,11 +146,13 @@ export default function StewardshipArticlePage() {
   
   const { user } = useSession();
 
-  // INSTANT PERSISTENT CACHE PIPELINE
-  const [cachedStory, setCachedStory] = useState<BlogPost | null>(() => {
+  const cacheKey = `biocap_art_${slug}`;
+
+  // Session cache: used ONLY to paint instantly. Fresh data always replaces it.
+  const [cachedStory] = useState<BlogPost | null>(() => {
     if (typeof window === 'undefined' || !slug) return null;
     try {
-      const stored = sessionStorage.getItem(`biocap_art_${slug}`);
+      const stored = sessionStorage.getItem(cacheKey);
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -125,7 +165,7 @@ export default function StewardshipArticlePage() {
       const fresh = await blogsApi.getPublicBlogBySlug(slug);
       if (fresh && typeof window !== 'undefined') {
         try {
-          sessionStorage.setItem(`biocap_art_${slug}`, JSON.stringify(fresh));
+          sessionStorage.setItem(cacheKey, JSON.stringify(fresh));
         } catch (e) {
           console.warn('Session cache quota exceeded', e);
         }
@@ -134,9 +174,14 @@ export default function StewardshipArticlePage() {
     },
     {
       fallbackData: cachedStory || undefined,
+      // FIX: always fetch the latest published version on mount.
+      // Before, revalidateIfStale:false + fallbackData meant it NEVER fetched,
+      // so an old cached copy (without your bold/underline/links) kept showing.
+      revalidateOnMount: true,
+      revalidateIfStale: true,
       revalidateOnFocus: false,
-      revalidateIfStale: false,
-      dedupingInterval: 300000,
+      revalidateOnReconnect: true,
+      dedupingInterval: 5000, // was 300000 (5 min)
     }
   );
 
@@ -149,7 +194,7 @@ export default function StewardshipArticlePage() {
     () => blogsApi.getPublicBlogs({ page: 1, limit: 9 }),
     {
       revalidateOnFocus: false,
-      dedupingInterval: 300000,
+      dedupingInterval: 60000,
     }
   );
 
@@ -278,6 +323,15 @@ export default function StewardshipArticlePage() {
         .art-page { font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif; color: #334155; }
         .art-serif { font-family: 'DM Serif Display', Georgia, serif; }
 
+        /* Formatting saved by the editor (bold, italic, underline, strike, sub, sup) */
+        .art-rich b, .art-rich strong { font-weight: 700; }
+        .art-rich i, .art-rich em { font-style: italic; }
+        .art-rich u { text-decoration: underline; }
+        .art-rich s, .art-rich strike, .art-rich del { text-decoration: line-through; }
+        .art-rich sub { vertical-align: sub; font-size: 0.75em; }
+        .art-rich sup { vertical-align: super; font-size: 0.75em; }
+        .art-rich mark { background-color: #FEF08A; }
+
         .published-article-link, .published-article-link * {
           color: #0057FF !important;
           text-decoration: underline !important;
@@ -363,10 +417,15 @@ export default function StewardshipArticlePage() {
                 {story.blocks && story.blocks.length > 0 ? (
                   story.blocks.map((block: BlogBlock, idx: number) => {
                     if (block.type === 'h2') {
+                      // FIX: h2 can contain editor HTML (bold, colour, links...), so render it as HTML
                       return (
-                        <h2 key={idx} className="text-xl sm:text-2xl font-bold text-[#1B3A5C] mt-8 mb-1">
-                          {block.text}
-                        </h2>
+                        <h2
+                          key={idx}
+                          className="art-rich text-xl sm:text-2xl font-bold text-[#1B3A5C] mt-8 mb-1"
+                          dangerouslySetInnerHTML={{
+                            __html: formatPublishedLinks(block.text || ''),
+                          }}
+                        />
                       );
                     }
 
@@ -378,6 +437,7 @@ export default function StewardshipArticlePage() {
                           style={{ borderColor: '#C22055' }}
                         >
                           <span
+                            className="art-rich"
                             dangerouslySetInnerHTML={{
                               __html: formatPublishedLinks(block.text || ''),
                             }}
@@ -395,7 +455,6 @@ export default function StewardshipArticlePage() {
                       const sectionImgUrl = getOptimizedImageUrl(block.src || block.url, 1200);
                       return (
                         <figure key={idx} className="my-8 space-y-2">
-                          {/* 🟢 DYNAMIC IMAGE CONTAINER: Scales naturally without rigid fixed height */}
                           <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 flex items-center justify-center max-h-[650px] w-full">
                             <img
                               src={sectionImgUrl}
@@ -412,35 +471,24 @@ export default function StewardshipArticlePage() {
                       );
                     }
 
+                    // FIX: paragraphs with editor HTML render as ONE <div> (no newline split, no <p> wrapper)
                     return (
                       <React.Fragment key={idx}>
-                        {(block.text || '')
-                          .split(/\n+/)
-                          .map((paragraphText, pIdx) => (
-                            <p
-                              key={pIdx}
-                              className="text-sm sm:text-base text-slate-700 leading-relaxed text-justify mb-4"
-                              dangerouslySetInnerHTML={{
-                                __html: formatPublishedLinks(paragraphText.trim()),
-                              }}
-                            />
-                          ))}
+                        {renderRichText(
+                          block.text || '',
+                          idx,
+                          'text-sm sm:text-base text-slate-700 leading-relaxed text-justify mb-4'
+                        )}
                       </React.Fragment>
                     );
                   })
                 ) : (
                   <React.Fragment>
-                    {(story.excerpt || '')
-                      .split(/\n+/)
-                      .map((paragraphText, pIdx) => (
-                        <p
-                          key={pIdx}
-                          className="text-sm text-slate-600 text-justify mb-4"
-                          dangerouslySetInnerHTML={{
-                            __html: formatPublishedLinks(paragraphText.trim()),
-                          }}
-                        />
-                      ))}
+                    {renderRichText(
+                      story.excerpt || '',
+                      'excerpt',
+                      'text-sm text-slate-600 text-justify mb-4'
+                    )}
                   </React.Fragment>
                 )}
 
