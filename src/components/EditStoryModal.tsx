@@ -30,14 +30,24 @@ import {
   ImageIcon,
   Tag,
   Calendar,
-  AtSign,
   Globe,
   MessageCircle,
   Edit3,
   Eye,
   Link as LinkIcon,
   Bold as BoldIcon,
+  Italic as ItalicIcon,
+  Underline as UnderlineIcon,
   Highlighter,
+  Strikethrough,
+  Subscript,
+  Superscript,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Unlink,
+  ChevronDown,
 } from "lucide-react";
 
 // ── Editorial Type & Styling System ──────────────────────────────────────────
@@ -111,6 +121,366 @@ function findParagraph(node: Node | null): HTMLElement | null {
   return (el?.closest('[data-block-idx]') as HTMLElement | null) ?? null;
 }
 
+// ── Text formatting helpers (Word-style mini toolbar) ────────────────────────
+type TextAction =
+  | 'bold' | 'italic' | 'underline' | 'strike' | 'sub' | 'sup'
+  | 'align-left' | 'align-center' | 'align-right' | 'align-justify'
+  | 'unlink' | 'clear';
+type Align = 'left' | 'center' | 'right' | 'justify';
+type MenuName = 'size' | 'color' | 'highlight';
+type FormatState = {
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  strike: boolean;
+  sub: boolean;
+  sup: boolean;
+  highlight: boolean;
+  color: boolean;
+  link: boolean;
+  align: Align;
+  fontSize: string;
+};
+
+const DEFAULT_TEXT_COLOR = '#3A4239';
+const DEFAULT_HIGHLIGHT = '#FEF08A';
+const TOOLBAR_W = 408;
+const TOOLBAR_H = 96;
+
+const NO_FORMATS: FormatState = {
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  sub: false,
+  sup: false,
+  highlight: false,
+  color: false,
+  link: false,
+  align: 'justify',
+  fontSize: '14',
+};
+
+const FONT_SIZES = [10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36];
+
+const TEXT_COLORS = [
+  '#000000', '#434343', '#7F7F7F', '#B7B7B7', '#C22055', '#E03131', '#F76707', '#F59F00', '#FFD43B', '#94D82D',
+  '#2F8F5B', '#0CA678', '#15AABF', '#0057FF', '#1B3A5C', '#4C6EF5', '#7048E8', '#AE3EC9', '#A9812F', '#8B5E3C',
+];
+
+const HIGHLIGHT_COLORS = [
+  '#FEF08A', '#FFE066', '#FFD8A8', '#FFC078', '#FFC9C9', '#FFA8A8', '#FCC2D7', '#F783AC', '#E599F7', '#D0BFFF',
+  '#BAC8FF', '#91A7FF', '#A5D8FF', '#74C0FC', '#99E9F2', '#96F2D7', '#B2F2BB', '#8CE99A', '#D8F5A2', '#DEE2E6',
+];
+
+const EXEC_COMMANDS: Record<Exclude<TextAction, 'clear' | 'unlink'>, string> = {
+  bold: 'bold',
+  italic: 'italic',
+  underline: 'underline',
+  strike: 'strikeThrough',
+  sub: 'subscript',
+  sup: 'superscript',
+  'align-left': 'justifyLeft',
+  'align-center': 'justifyCenter',
+  'align-right': 'justifyRight',
+  'align-justify': 'justifyFull',
+};
+
+// Detect formatting from the DOM (not queryCommandState) because the
+// .published-article-link CSS forces bold + underline on links, which would
+// make the browser report every link as bold/underlined.
+type ElementTest = (el: HTMLElement) => boolean;
+
+function hasFormatAncestor(
+  node: Node,
+  paragraph: HTMLElement,
+  test: ElementTest
+): boolean {
+  let el: HTMLElement | null =
+    node instanceof HTMLElement ? node : node.parentElement;
+  while (el && el !== paragraph) {
+    if (test(el)) return true;
+    el = el.parentElement;
+  }
+  return false;
+}
+
+const isBoldEl: ElementTest = (el) => {
+  const weight = el.style.fontWeight;
+  return el.matches('b, strong') || weight === 'bold' || Number(weight) >= 600;
+};
+
+const isItalicEl: ElementTest = (el) =>
+  el.matches('i, em') || el.style.fontStyle === 'italic';
+
+const decorationOf = (el: HTMLElement): string =>
+  `${el.style.getPropertyValue('text-decoration')} ${el.style.getPropertyValue('text-decoration-line')}`;
+
+const isUnderlineEl: ElementTest = (el) =>
+  el.matches('u') || decorationOf(el).includes('underline');
+
+const isStrikeEl: ElementTest = (el) =>
+  el.matches('s, strike, del') || decorationOf(el).includes('line-through');
+
+const isSubEl: ElementTest = (el) => el.matches('sub');
+const isSupEl: ElementTest = (el) => el.matches('sup');
+
+const isHighlightEl: ElementTest = (el) => {
+  const bg = el.style.backgroundColor;
+  return el.matches('mark') || (bg !== '' && bg !== 'transparent');
+};
+
+const DEFAULT_TEXT_RGB = 'rgb(58,66,57)'; // DEFAULT_TEXT_COLOR (#3A4239) as the browser reports it
+
+const isColorEl: ElementTest = (el) => {
+  if (el.matches('a')) return false;
+  if (el.matches('font[color]')) return true;
+  const c = el.style.color.replace(/\s/g, '').toLowerCase();
+  return c !== '' && c !== DEFAULT_TEXT_RGB && c !== DEFAULT_TEXT_COLOR.toLowerCase();
+};
+
+const isLinkEl: ElementTest = (el) => el.matches('a');
+
+// For each toggle button: the state key it controls and the tags that carry it
+const TOGGLE_FORMATS: Partial<
+  Record<TextAction, { key: 'bold' | 'italic' | 'underline' | 'strike' | 'sub' | 'sup'; selector: string }>
+> = {
+  bold: { key: 'bold', selector: 'b, strong' },
+  italic: { key: 'italic', selector: 'i, em' },
+  underline: { key: 'underline', selector: 'u' },
+  strike: { key: 'strike', selector: 's, strike, del' },
+  sub: { key: 'sub', selector: 'sub' },
+  sup: { key: 'sup', selector: 'sup' },
+};
+
+// Manually removes tags (keeping their text) that touch the current selection,
+// then re-selects the same text. Used as a safety net when the browser fails to toggle off.
+function unwrapIntersecting(paragraph: HTMLElement, selector: string) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+
+  const targets = Array.from(paragraph.querySelectorAll<HTMLElement>(selector)).filter((el) =>
+    range.intersectsNode(el)
+  );
+
+  let first: Node | null = null;
+  let last: Node | null = null;
+  for (const el of targets) {
+    const kids = Array.from(el.childNodes);
+    if (kids.length === 0) {
+      el.remove();
+      continue;
+    }
+    if (!first) first = kids[0];
+    last = kids[kids.length - 1];
+    el.replaceWith(...kids);
+  }
+
+  if (first && last && first.parentNode && last.parentNode) {
+    // Select FIRST, normalize AFTER: normalize() merges text nodes, which would
+    // detach `first`/`last` (no parent → setStartBefore throws). A live range
+    // is adjusted automatically by normalize(), so the selection survives.
+    const r = document.createRange();
+    r.setStartBefore(first);
+    r.setEndAfter(last);
+    selection.removeAllRanges();
+    selection.addRange(r);
+  }
+  paragraph.normalize();
+}
+
+function getAlign(node: Node, paragraph: HTMLElement): Align {
+  let el: HTMLElement | null =
+    node instanceof HTMLElement ? node : node.parentElement;
+  while (el && el !== paragraph) {
+    const a = (el.style.textAlign || el.getAttribute('align') || '').toLowerCase();
+    if (a === 'left' || a === 'center' || a === 'right' || a === 'justify') return a;
+    el = el.parentElement;
+  }
+  return 'justify'; // paragraphs are justified by default (see EditableParagraph)
+}
+
+// When a range starts at (element, offset), the text it actually covers is the child at
+// that offset. Without this, a selection like "before <span>" reports the paragraph's own
+// styles (e.g. size 14) instead of the selected span's (e.g. size 20).
+function getStartNode(range: Range): Node {
+  const { startContainer, startOffset } = range;
+  if (startContainer.nodeType === Node.ELEMENT_NODE) {
+    const child = startContainer.childNodes[startOffset];
+    if (child) return child;
+  }
+  return startContainer;
+}
+
+function getFormatState(range: Range, paragraph: HTMLElement): FormatState {
+  const node = getStartNode(range);
+  const el = node instanceof HTMLElement ? node : node.parentElement;
+  const size = el ? Math.round(parseFloat(window.getComputedStyle(el).fontSize)) : NaN;
+
+  return {
+    bold: hasFormatAncestor(node, paragraph, isBoldEl),
+    italic: hasFormatAncestor(node, paragraph, isItalicEl),
+    underline: hasFormatAncestor(node, paragraph, isUnderlineEl),
+    strike: hasFormatAncestor(node, paragraph, isStrikeEl),
+    sub: hasFormatAncestor(node, paragraph, isSubEl),
+    sup: hasFormatAncestor(node, paragraph, isSupEl),
+    highlight: hasFormatAncestor(node, paragraph, isHighlightEl),
+    color: hasFormatAncestor(node, paragraph, isColorEl),
+    link: hasFormatAncestor(node, paragraph, isLinkEl),
+    align: getAlign(node, paragraph),
+    fontSize: Number.isNaN(size) ? '14' : String(size),
+  };
+}
+
+// Older saved stories used <mark> for highlight. Browsers' removeFormat / hiliteColor
+// don't handle <mark>, so convert them to styled spans before those commands run.
+function convertLegacyMarks(paragraph: HTMLElement) {
+  paragraph.querySelectorAll('mark').forEach((m) => {
+    const span = document.createElement('span');
+    span.style.backgroundColor = DEFAULT_HIGHLIGHT;
+    while (m.firstChild) span.appendChild(m.firstChild);
+    m.replaceWith(span);
+  });
+}
+
+// ── Toolbar UI pieces ────────────────────────────────────────────────────────
+interface ToolbarBtnProps {
+  title: string;          // "Bold (Ctrl+B)" → label "Bold" + shortcut "Ctrl+B"
+  hint?: string;          // optional one-line explanation for less familiar icons
+  onClick: () => void;
+  active?: boolean;
+  variant?: 'icon' | 'chevron';
+  tooltip?: boolean;      // turn off while this button's dropdown is open
+  className?: string;
+  children: React.ReactNode;
+}
+
+function ToolbarBtn({
+  title, hint, onClick, active, variant = 'icon', tooltip = true, className = '', children,
+}: ToolbarBtnProps) {
+  const size = variant === 'chevron' ? 'w-5 px-0' : 'min-w-[2rem] px-1.5';
+  const state = active
+    ? 'bg-[#DCEBE1] text-[#2F5A40] shadow-[inset_0_0_0_1px_rgba(63,107,79,0.45)]'
+    : 'text-[#1E2620] hover:bg-[#F1F0EA]';
+  const match = title.match(/^(.*?)\s*\((.+)\)$/);
+  const label = match ? match[1] : title;
+  const shortcut = match ? match[2] : '';
+
+  return (
+    <button
+      type="button"
+      aria-label={title}
+      aria-pressed={active}
+      onClick={onClick}
+      className={`group relative flex h-8 items-center justify-center rounded-md transition-colors cursor-pointer ${size} ${state} ${className}`}
+    >
+      {children}
+      {tooltip && (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-[210px] -translate-x-1/2 rounded-md bg-[#1E2620] px-2.5 py-1.5 text-left text-[11px] leading-snug text-white opacity-0 shadow-lg transition-opacity duration-100 group-hover:opacity-100 group-hover:delay-300 group-focus-visible:opacity-100"
+        >
+          <span className="block font-semibold">
+            {label}
+            {shortcut && <span className="ml-1.5 font-normal text-white/60">{shortcut}</span>}
+          </span>
+          {hint && <span className="mt-0.5 block font-normal text-white/70">{hint}</span>}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// Word's "Clear All Formatting" icon: a letter A with a pink eraser
+function ClearFormattingIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {/* letter A */}
+      <path
+        d="M2.5 19.5 8.2 4.5 13.9 19.5M4.6 14.6h7.2"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* eraser */}
+      <g transform="rotate(-42 17.2 16.6)">
+        <rect x="11.6" y="13.4" width="11.2" height="6.4" rx="1.4" fill="#C026D3" />
+        <rect x="11.6" y="13.4" width="4.6" height="6.4" rx="1.4" fill="#F0ABFC" />
+      </g>
+    </svg>
+  );
+}
+
+const ToolbarDivider = () => <span className="mx-1 h-5 w-px shrink-0 bg-[#E2DDCF]" />;
+
+interface ColorMenuProps {
+  title: string;
+  hint?: string;
+  icon: React.ReactNode;
+  barColor: string;
+  active?: boolean;
+  open: boolean;
+  onToggle: () => void;
+  onMainClick: () => void;
+  palette: string[];
+  selected: string;
+  onPick: (color: string) => void;
+  resetLabel: string;
+  onReset: () => void;
+}
+
+// Word-style split button: main click applies the last colour, chevron opens the palette
+function ColorMenu({
+  title, hint, icon, barColor, active, open, onToggle, onMainClick,
+  palette, selected, onPick, resetLabel, onReset,
+}: ColorMenuProps) {
+  return (
+    <div className="relative flex items-center">
+      <ToolbarBtn title={title} hint={hint} tooltip={!open} active={active} onClick={onMainClick} className="rounded-r-none">
+        <span className="flex flex-col items-center leading-none">
+          {icon}
+          <span className="mt-[3px] h-[3px] w-4 rounded-sm" style={{ backgroundColor: barColor }} />
+        </span>
+      </ToolbarBtn>
+      <ToolbarBtn title={`${title} options`} hint="Open the color palette" tooltip={!open} active={open} onClick={onToggle} variant="chevron" className="rounded-l-none">
+        <ChevronDown size={12} />
+      </ToolbarBtn>
+
+      {open && (
+        <div className="absolute left-0 top-full z-10 mt-1.5 w-[248px] rounded-lg border border-[#D9D4C6] bg-white p-2.5 shadow-xl">
+          <button
+            type="button"
+            onClick={onReset}
+            className="mb-2 flex w-full items-center gap-2 rounded px-1.5 py-1 text-[11px] font-semibold text-[#1E2620] hover:bg-[#F1F0EA] cursor-pointer"
+          >
+            <span className="h-4 w-4 rounded-sm border border-[#D9D4C6] bg-[linear-gradient(135deg,#fff_44%,#E03131_44%,#E03131_56%,#fff_56%)]" />
+            {resetLabel}
+          </button>
+          <div className="grid grid-cols-10 gap-1">
+            {palette.map((c) => (
+              <button
+                key={c}
+                type="button"
+                title={c}
+                aria-label={c}
+                onClick={() => onPick(c)}
+                style={{ backgroundColor: c }}
+                className={`h-[19px] w-[19px] rounded-sm border cursor-pointer transition-transform hover:scale-125 ${
+                  selected.toLowerCase() === c.toLowerCase()
+                    ? 'border-[#1E2620] ring-2 ring-[#3F6B4F]/40'
+                    : 'border-black/10'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── EditableParagraph ────────────────────────────────────────────────────────
 // A contentEditable paragraph that the BROWSER owns while the user edits.
 //
@@ -151,7 +521,7 @@ function EditableParagraph({ index, html, onCommit }: EditableParagraphProps) {
       contentEditable
       suppressContentEditableWarning
       onBlur={(e) => onCommit(index, readHtml(e.currentTarget))}
-      title="Highlight text to open format toolbar (Link, Bold, Highlight)"
+      title="Select text to open the format toolbar (size, bold, italic, underline, colours, alignment, link, clear)"
       className="text-xs sm:text-sm text-[#3A4239] leading-relaxed text-justify p-2 border border-transparent hover:border-dashed hover:border-[#3F6B4F] focus:border-solid focus:border-[#3F6B4F] focus:bg-[#FAF9F5] focus:outline-none rounded transition-all cursor-text mb-3"
     />
   );
@@ -215,6 +585,10 @@ export default function EditStoryModal({
 
   // Floating Selection Action Bar & Selection Range State
   const [toolbarPos, setToolbarPos] = useState<{ top: number; left: number } | null>(null);
+  const [activeFormats, setActiveFormats] = useState<FormatState>(NO_FORMATS);
+  const [openMenu, setOpenMenu] = useState<MenuName | null>(null);
+  const [lastTextColor, setLastTextColor] = useState<string>('#C22055');
+  const [lastHighlightColor, setLastHighlightColor] = useState<string>(DEFAULT_HIGHLIGHT);
   const savedRangeRef = useRef<Range | null>(null);
   const activeParagraphElRef = useRef<HTMLElement | null>(null);
 
@@ -234,6 +608,11 @@ export default function EditStoryModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const editorFeedbackNote = localStory.lastRejectionNote || null;
+
+  // The API refuses "submit for review" once a story is approved or published
+  const cannotSubmitStory = ["published", "approved"].includes(
+    String(localStory.status || "").toLowerCase()
+  );
 
   // Revision Requests State
   const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
@@ -282,6 +661,8 @@ export default function EditStoryModal({
   // ── Floating format toolbar ────────────────────────────────────────────────
   const hideToolbar = useCallback(() => {
     setToolbarPos(null);
+    setActiveFormats(NO_FORMATS);
+    setOpenMenu(null);
     savedRangeRef.current = null;
     activeParagraphElRef.current = null;
   }, []);
@@ -305,11 +686,15 @@ export default function EditStoryModal({
 
     savedRangeRef.current = range.cloneRange();
     activeParagraphElRef.current = startP;
+    setActiveFormats(getFormatState(range, startP));
 
     const rect = range.getBoundingClientRect();
+    const width = Math.min(TOOLBAR_W, window.innerWidth - 16);
+    const above = rect.top - TOOLBAR_H - 8;
     setToolbarPos({
-      top: Math.max(8, rect.top - 52),
-      left: Math.min(Math.max(8, rect.left + rect.width / 2 - 80), window.innerWidth - 180),
+      // Sit above the selection; flip below it when there is no room at the top
+      top: above >= 8 ? above : rect.bottom + 8,
+      left: Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8),
     });
   }, [hideToolbar]);
 
@@ -328,77 +713,183 @@ export default function EditStoryModal({
     };
   }, [isEditingContent, isLoadingFullStory, syncToolbarWithSelection, hideToolbar]);
 
-  // 🟢 APPLY FORMATTING IN PLACE — no duplication, no jumping to the start
-  const applyTextAction = (type: 'link' | 'bold' | 'highlight') => {
+  // Push the paragraph's current DOM html into React state
+  const commitParagraph = (paragraph: HTMLElement) => {
+    const idx = Number(paragraph.dataset.blockIdx);
+    if (!Number.isNaN(idx)) updateBlockText(idx, readHtml(paragraph));
+  };
+
+  // Restores the saved selection, runs an editing command, then syncs state
+  const runEditCommand = (fn: (paragraph: HTMLElement) => void) => {
+    const range = savedRangeRef.current;
+    const paragraph = activeParagraphElRef.current;
+    if (!range || !paragraph || !paragraph.isConnected) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    paragraph.focus({ preventScroll: true });
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    fn(paragraph);
+
+    commitParagraph(paragraph);
+    // Selection stays in place (like Word), so refresh the active-button states
+    requestAnimationFrame(syncToolbarWithSelection);
+  };
+
+  // Bold / Italic / Underline / Strikethrough / Sub / Super / Align / Unlink / Clear
+  const applyTextAction = (type: TextAction) => {
+    setOpenMenu(null);
+    runEditCommand((paragraph) => {
+      switch (type) {
+        case 'clear':
+          // Word's "Clear All Formatting": removes bold/italic/underline/colour/highlight/size,
+          // but keeps the text and any hyperlinks.
+          convertLegacyMarks(paragraph);
+          document.execCommand('removeFormat');
+          break;
+        case 'unlink':
+          document.execCommand('unlink');
+          break;
+        case 'align-left':
+        case 'align-center':
+        case 'align-right':
+        case 'align-justify':
+          document.execCommand('styleWithCSS', false, 'true');
+          document.execCommand(EXEC_COMMANDS[type]);
+          document.execCommand('styleWithCSS', false, 'false');
+          break;
+        default: {
+          // Bold / Italic / Underline / Strikethrough / Sub / Super: click again = undo
+          const toggle = TOGGLE_FORMATS[type];
+          const sel = window.getSelection();
+          const wasOn =
+            toggle && sel && sel.rangeCount > 0
+              ? getFormatState(sel.getRangeAt(0), paragraph)[toggle.key]
+              : false;
+          const before = paragraph.innerHTML;
+
+          document.execCommand('styleWithCSS', false, 'false'); // use <b>, <i>, <u>, <strike>
+          document.execCommand(EXEC_COMMANDS[type]);           // toggles on/off like Word
+
+          // Safety net: the format was on, the browser changed nothing → remove it ourselves
+          if (toggle && wasOn && paragraph.innerHTML === before) {
+            unwrapIntersecting(paragraph, toggle.selector);
+          }
+        }
+      }
+    });
+  };
+
+  // Font colour / highlight colour. `null` = remove (Automatic / No Color)
+  const applyColor = (kind: 'text' | 'highlight', color: string | null) => {
+    if (color) {
+      if (kind === 'text') setLastTextColor(color);
+      else setLastHighlightColor(color);
+    }
+    setOpenMenu(null);
+    runEditCommand((paragraph) => {
+      convertLegacyMarks(paragraph);
+      document.execCommand('styleWithCSS', false, 'true');
+      if (kind === 'text') {
+        document.execCommand('foreColor', false, color ?? DEFAULT_TEXT_COLOR);
+      } else {
+        document.execCommand('hiliteColor', false, color ?? 'transparent');
+      }
+      document.execCommand('styleWithCSS', false, 'false');
+    });
+  };
+
+  // Font size in px. execCommand only knows 1–7, so mark with size 7 and swap in real px spans.
+  const applyFontSize = (px: number | null) => {
+    setOpenMenu(null);
+    runEditCommand((paragraph) => {
+      document.execCommand('styleWithCSS', false, 'false');
+      document.execCommand('fontSize', false, '7');
+
+      const spans: HTMLElement[] = [];
+      paragraph.querySelectorAll<HTMLElement>('font[size="7"]').forEach((f) => {
+        const span = document.createElement('span');
+        span.style.fontSize = `${px ?? Math.round(parseFloat(window.getComputedStyle(paragraph).fontSize))}px`;
+        while (f.firstChild) span.appendChild(f.firstChild);
+        // Inner spans with an older size would override the new one
+        span.querySelectorAll<HTMLElement>('[style*="font-size"]').forEach((d) => {
+          d.style.fontSize = '';
+        });
+        f.replaceWith(span);
+        spans.push(span);
+      });
+
+      // Re-select the resized text so the toolbar stays open
+      const selection = window.getSelection();
+      if (selection && spans.length > 0) {
+        const r = document.createRange();
+        r.setStartBefore(spans[0]);
+        r.setEndAfter(spans[spans.length - 1]);
+        selection.removeAllRanges();
+        selection.addRange(r);
+      }
+    });
+  };
+
+  // LINK (manual, because it needs a prompt)
+  const applyLink = () => {
     const range = savedRangeRef.current;
     const paragraph = activeParagraphElRef.current;
     if (!range || !paragraph || !paragraph.isConnected) return;
 
-    let wrapper: HTMLElement;
+    const startEl = range.commonAncestorContainer;
+    const currentLink = (startEl instanceof Element ? startEl : startEl.parentElement)
+      ?.closest('a') as HTMLAnchorElement | null;
+    const url = window.prompt(
+      "Enter destination URL for selected text:",
+      currentLink ? currentLink.href : "https://"
+    );
+    if (!url || !url.trim() || url.trim() === 'https://') return;
+    const trimmed = url.trim();
+    const formattedUrl = /^(https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
 
-    if (type === 'link') {
-      const url = window.prompt("Enter destination URL for selected text:", "https://");
-      if (!url || !url.trim() || url.trim() === 'https://') return;
-      const trimmed = url.trim();
-      const formattedUrl = /^(https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    // The prompt can steal focus — make sure the saved range is still valid
+    if (!paragraph.isConnected || !paragraph.contains(range.commonAncestorContainer)) return;
 
-      // The prompt can steal focus — make sure the saved range is still valid
-      if (!paragraph.isConnected || !paragraph.contains(range.commonAncestorContainer)) return;
-
-      // Selection already lives inside a link → just change that link's URL
-      const container = range.commonAncestorContainer;
-      const existingLink = (container instanceof Element ? container : container.parentElement)
-        ?.closest('a') as HTMLAnchorElement | null;
-      if (existingLink && paragraph.contains(existingLink)) {
-        existingLink.href = formattedUrl;
-        existingLink.title = formattedUrl;
-        const linkIdx = Number(paragraph.dataset.blockIdx);
-        if (!Number.isNaN(linkIdx)) updateBlockText(linkIdx, paragraph.innerHTML);
-        hideToolbar();
-        return;
-      }
-
-      const link = document.createElement('a');
-      link.href = formattedUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.title = formattedUrl;
-      link.className = 'published-article-link';
-      wrapper = link;
-    } else if (type === 'bold') {
-      const strong = document.createElement('strong');
-      strong.style.fontWeight = 'bold';
-      wrapper = strong;
-    } else {
-      const mark = document.createElement('mark');
-      mark.style.backgroundColor = '#FEF08A';
-      mark.style.color = '#1E2620';
-      mark.style.padding = '0 3px';
-      mark.style.borderRadius = '2px';
-      wrapper = mark;
+    // Selection already lives inside a link → just change that link's URL
+    const container = range.commonAncestorContainer;
+    const existingLink = (container instanceof Element ? container : container.parentElement)
+      ?.closest('a') as HTMLAnchorElement | null;
+    if (existingLink && paragraph.contains(existingLink)) {
+      existingLink.href = formattedUrl;
+      existingLink.title = formattedUrl;
+      commitParagraph(paragraph);
+      hideToolbar();
+      return;
     }
 
-    // MOVE the selected nodes into the wrapper (keeps any existing formatting),
-    // then drop the wrapper back exactly where the selection was.
+    const link = document.createElement('a');
+    link.href = formattedUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.title = formattedUrl;
+    link.className = 'published-article-link';
+
+    // MOVE the selected nodes into the link (keeps any existing formatting),
+    // then drop the link back exactly where the selection was.
     const fragment = range.extractContents();
-    if (type === 'link') {
-      // <a> inside <a> is invalid HTML and gets split by the parser
-      fragment.querySelectorAll('a').forEach((a) => a.replaceWith(...Array.from(a.childNodes)));
-    }
-    wrapper.appendChild(fragment);
-    range.insertNode(wrapper);
+    // <a> inside <a> is invalid HTML and gets split by the parser
+    fragment.querySelectorAll('a').forEach((a) => a.replaceWith(...Array.from(a.childNodes)));
+    link.appendChild(fragment);
+    range.insertNode(link);
     paragraph.normalize();
 
     // Sync React state FROM the DOM. Because EditableParagraph only writes to the
     // DOM when it differs from state, nothing gets rewritten and nothing moves.
-    const idx = Number(paragraph.dataset.blockIdx);
-    if (!Number.isNaN(idx)) updateBlockText(idx, paragraph.innerHTML);
+    commitParagraph(paragraph);
 
-    // Put the caret right after the formatted text
+    // Put the caret right after the link
     const selection = window.getSelection();
     if (selection) {
       const caret = document.createRange();
-      caret.setStartAfter(wrapper);
+      caret.setStartAfter(link);
       caret.collapse(true);
       selection.removeAllRanges();
       selection.addRange(caret);
@@ -535,8 +1026,16 @@ export default function EditStoryModal({
 
       await blogsApi.updateBlog(localStory._id, payload, currentUserRole);
 
-      if (submitForReview) {
-        await blogsApi.submitBlog(localStory._id, currentUserRole);
+      if (submitForReview && !cannotSubmitStory) {
+        try {
+          await blogsApi.submitBlog(localStory._id, currentUserRole);
+        } catch (submitErr) {
+          // The changes are already saved above. If the API only says this status
+          // can't be submitted, treat it as a normal save instead of an error.
+          const notSubmittable =
+            submitErr instanceof Error && /cannot submit a blog in/i.test(submitErr.message);
+          if (!notSubmittable) throw submitErr;
+        }
       }
 
       setIsSubmitting(false);
@@ -652,40 +1151,143 @@ export default function EditStoryModal({
         }
       `}</style>
 
-      {/* Floating Formatting Bubble Toolbar on Selection */}
+      {/* Floating Word-style Formatting Toolbar on Selection */}
       {toolbarPos && (
         <div
-          style={{ top: toolbarPos.top, left: toolbarPos.left }}
+          style={{ top: toolbarPos.top, left: toolbarPos.left, width: TOOLBAR_W }}
           // Keeps the text selected while the toolbar is clicked
           onMouseDown={(e) => e.preventDefault()}
-          className="fixed z-[100000] flex items-center gap-1 bg-[#1E2620] text-white p-1.5 rounded-lg shadow-2xl animate-in fade-in duration-100 border border-white/20"
+          className="fixed z-[100000] max-w-[calc(100vw-16px)] rounded-xl border border-[#D9D4C6] bg-white p-2 text-[#1E2620] shadow-[0_14px_36px_rgba(30,38,32,0.22)] animate-in fade-in duration-100"
         >
-          <button
-            type="button"
-            onClick={() => applyTextAction('link')}
-            title="Insert Hyperlink"
-            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
-          >
-            <LinkIcon size={12} /> Link
-          </button>
-          <div className="w-[1px] h-3 bg-white/20" />
-          <button
-            type="button"
-            onClick={() => applyTextAction('bold')}
-            title="Make Text Bold"
-            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
-          >
-            <BoldIcon size={12} /> Bold
-          </button>
-          <div className="w-[1px] h-3 bg-white/20" />
-          <button
-            type="button"
-            onClick={() => applyTextAction('highlight')}
-            title="Highlight Text"
-            className="flex items-center gap-1 px-2 py-1 text-[11px] font-semibold hover:bg-[#3F6B4F] rounded cursor-pointer transition-colors"
-          >
-            <Highlighter size={12} /> Highlight
-          </button>
+          {/* Row 1: size · B I U S · colours · clear */}
+          <div className="flex flex-wrap items-center gap-0.5">
+            <div className="relative">
+              <ToolbarBtn
+                title="Font Size"
+                hint="Change the size of the selected text"
+                tooltip={openMenu !== 'size'}
+                active={openMenu === 'size'}
+                onClick={() => setOpenMenu((m) => (m === 'size' ? null : 'size'))}
+                className="w-[58px] gap-0.5"
+              >
+                <span className="w-6 text-center text-xs font-semibold tabular-nums">{activeFormats.fontSize}</span>
+                <ChevronDown size={12} />
+              </ToolbarBtn>
+              {openMenu === 'size' && (
+                <div className="absolute left-0 top-full z-10 mt-1.5 max-h-56 w-20 overflow-y-auto rounded-lg border border-[#D9D4C6] bg-white p-1 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => applyFontSize(null)}
+                    className="mb-1 flex w-full items-center justify-center rounded border-b border-[#EDEAE0] px-2 py-1 text-[11px] font-semibold text-[#5A6259] hover:bg-[#F1F0EA] cursor-pointer"
+                  >
+                    Default
+                  </button>
+                  {FONT_SIZES.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => applyFontSize(s)}
+                      className={`flex w-full items-center justify-center rounded px-2 py-1 text-xs font-semibold tabular-nums cursor-pointer ${
+                        String(s) === activeFormats.fontSize
+                          ? 'bg-[#DCEBE1] text-[#2F5A40]'
+                          : 'hover:bg-[#F1F0EA]'
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <ToolbarDivider />
+
+            <ToolbarBtn title="Bold (Ctrl+B)" hint="Make the selected text bold. Click again to remove" active={activeFormats.bold} onClick={() => applyTextAction('bold')}>
+              <BoldIcon size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Italic (Ctrl+I)" hint="Slant the selected text. Click again to remove" active={activeFormats.italic} onClick={() => applyTextAction('italic')}>
+              <ItalicIcon size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Underline (Ctrl+U)" hint="Draw a line under the selected text. Click again to remove" active={activeFormats.underline} onClick={() => applyTextAction('underline')}>
+              <UnderlineIcon size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Strikethrough" hint="Draw a line through the selected text. Click again to remove" active={activeFormats.strike} onClick={() => applyTextAction('strike')}>
+              <Strikethrough size={16} />
+            </ToolbarBtn>
+
+            <ToolbarDivider />
+
+            <ColorMenu
+              title="Font Color"
+              hint="Change the text color. Click again to remove it, or use the arrow for more colors"
+              icon={<span className="text-[15px] font-bold leading-none">A</span>}
+              barColor={lastTextColor}
+              active={activeFormats.color}
+              open={openMenu === 'color'}
+              onToggle={() => setOpenMenu((m) => (m === 'color' ? null : 'color'))}
+              onMainClick={() => applyColor('text', activeFormats.color ? null : lastTextColor)}
+              palette={TEXT_COLORS}
+              selected={lastTextColor}
+              onPick={(c) => applyColor('text', c)}
+              resetLabel="Automatic"
+              onReset={() => applyColor('text', null)}
+            />
+            <ColorMenu
+              title="Text Highlight Color"
+              hint="Highlight text like a marker. Click again to remove"
+              icon={<Highlighter size={15} />}
+              barColor={lastHighlightColor}
+              active={activeFormats.highlight}
+              open={openMenu === 'highlight'}
+              onToggle={() => setOpenMenu((m) => (m === 'highlight' ? null : 'highlight'))}
+              onMainClick={() => applyColor('highlight', activeFormats.highlight ? null : lastHighlightColor)}
+              palette={HIGHLIGHT_COLORS}
+              selected={lastHighlightColor}
+              onPick={(c) => applyColor('highlight', c)}
+              resetLabel="No Color"
+              onReset={() => applyColor('highlight', null)}
+            />
+
+            <ToolbarDivider />
+
+            <ToolbarBtn title="Clear All Formatting" hint="Remove bold, italic, color, size and highlight. Links stay" onClick={() => applyTextAction('clear')}>
+              <ClearFormattingIcon size={19} />
+            </ToolbarBtn>
+          </div>
+
+          {/* Row 2: sub/super · alignment · links */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-0.5 border-t border-[#EDEAE0] pt-1.5">
+            <ToolbarBtn title="Subscript" hint="Small text below the line, like H₂O. Click again to remove" active={activeFormats.sub} onClick={() => applyTextAction('sub')}>
+              <Subscript size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Superscript" hint="Small text above the line, like x². Click again to remove" active={activeFormats.sup} onClick={() => applyTextAction('sup')}>
+              <Superscript size={16} />
+            </ToolbarBtn>
+
+            <ToolbarDivider />
+
+            <ToolbarBtn title="Align Left" hint="Line up the text with the left edge. Click again to undo" active={activeFormats.align === 'left'} onClick={() => applyTextAction(activeFormats.align === 'left' ? 'align-justify' : 'align-left')}>
+              <AlignLeft size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Center" hint="Center the text. Click again to undo" active={activeFormats.align === 'center'} onClick={() => applyTextAction(activeFormats.align === 'center' ? 'align-justify' : 'align-center')}>
+              <AlignCenter size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Align Right" hint="Line up the text with the right edge. Click again to undo" active={activeFormats.align === 'right'} onClick={() => applyTextAction(activeFormats.align === 'right' ? 'align-justify' : 'align-right')}>
+              <AlignRight size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Justify" hint="Align text to both left and right edges" active={activeFormats.align === 'justify'} onClick={() => applyTextAction('align-justify')}>
+              <AlignJustify size={16} />
+            </ToolbarBtn>
+
+            <ToolbarDivider />
+
+            <ToolbarBtn title="Insert Link" hint="Turn the selected text into a clickable link. On a link, edit its address" active={activeFormats.link} onClick={applyLink}>
+              <LinkIcon size={16} />
+            </ToolbarBtn>
+            <ToolbarBtn title="Remove Link" hint="Turn the link back into plain text" onClick={() => applyTextAction('unlink')}>
+              <Unlink size={16} />
+            </ToolbarBtn>
+          </div>
         </div>
       )}
 
@@ -1288,17 +1890,19 @@ export default function EditStoryModal({
             className={btnNeutral}
           >
             {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            {isSubmitting ? "Saving..." : "Save Draft"}
+            {isSubmitting ? "Saving..." : cannotSubmitStory ? "Save Changes" : "Save Draft"}
           </button>
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={(e) => handleUpdateStory(e, true)}
-            className={btnGold}
-          >
-            {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
-            {isSubmitting ? "Submitting..." : "Save & Submit"}
-          </button>
+          {!cannotSubmitStory && (
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={(e) => handleUpdateStory(e, true)}
+              className={btnGold}
+            >
+              {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+              {isSubmitting ? "Submitting..." : "Save & Submit"}
+            </button>
+          )}
         </div>
       </div>
 
