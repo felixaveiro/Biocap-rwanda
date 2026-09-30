@@ -70,7 +70,6 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   }, [isPlayingSlideshow, activeImageIndex, images.length]);
 
   // Dynamic Filename Builder: [Gallery Title]-[Caption OR 01, 02...]
-  // Updated type signature to accept string | null | undefined
   const getFileName = (index: number, caption?: string | null) => {
     const sanitize = (text: string) =>
       text
@@ -161,7 +160,9 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
     );
   }
 
-  const coverImage = item.thumbnailUrl || images[0]?.url || '';
+  // Pick cover explicitly based on isCover flag
+  const selectedCover = item.images?.find((image) => image.isCover)?.url;
+  const coverImage = selectedCover || item.thumbnailUrl || images[0]?.url || '';
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
@@ -198,7 +199,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         </div>
       </section>
 
-      {/* Main Gallery Section */}
+      {/* Main Gallery Grid Section */}
       <div id="gallery-section" className="mx-auto max-w-[1400px] px-4 py-8 sm:px-8">
         <div className="mb-8 flex flex-wrap items-center justify-between border-b border-gray-200 pb-4 text-xs font-medium tracking-wider text-gray-600 uppercase">
           <Link href="/Gallery" className="inline-flex items-center gap-2 hover:text-black">
@@ -290,12 +291,11 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         )}
       </div>
 
-      {/* --- Full-Screen Single Image Lightbox Modal --- */}
+      {/* Full-Screen Single Image Lightbox Modal */}
       {activeImageIndex !== null && images[activeImageIndex] && (
         <div className="fixed inset-0 z-50 flex flex-col bg-white text-gray-800">
           {/* Top Bar with Centered Filename Title & Far-Right Action Icons */}
           <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center justify-between border-b border-gray-100 bg-white px-6">
-            {/* Back Arrow Button */}
             <button
               onClick={() => {
                 setActiveImageIndex(null);
