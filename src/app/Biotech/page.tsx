@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Footer from '@/components/Footer';
 import {
   Leaf,
@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Clock,
   Microscope,
+  ChevronDown,
 } from 'lucide-react';
 
 type CropKey = 'cassava' | 'potato' | 'banana';
@@ -39,6 +40,10 @@ interface CropData {
   sections: { title: string; body: string; SectionIcon: React.ElementType }[];
   documents: CropDocument[];
 }
+
+// Hero background video (public/image/Biocap-workshop.mp4) and its still-image fallback
+const HERO_VIDEO = '/image/Biocap-workshop.mp4';
+const HERO_POSTER = '/image/LABDY3_1.jpg';
 
 const CROPS: CropData[] = [
   {
@@ -355,6 +360,18 @@ export default function BiotechCropsPage() {
   const [active, setActive] = useState<CropKey>('cassava');
   const activeCrop = CROPS.find((c) => c.key === active)!;
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoReady, setVideoReady] = useState(false);
+
+  // A cached video can be ready before React attaches onLoadedData
+  useEffect(() => {
+    if (videoRef.current && videoRef.current.readyState >= 2) setVideoReady(true);
+  }, []);
+
+  const scrollToCrops = () => {
+    document.getElementById('crops')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="bg-white min-h-screen font-sans">
       <style>{`
@@ -371,45 +388,96 @@ export default function BiotechCropsPage() {
           box-shadow: 0 12px 32px rgba(27,58,92,0.10);
         }
 
-        @media (max-width: 768px) {
-          .biotech-hero-bg { background-attachment: scroll !important; }
+        /* Hero text rises in softly, one line after another */
+        @keyframes bc-rise {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: none; }
+        }
+        .bc-rise   { animation: bc-rise 0.7s ease both; }
+        .bc-rise-2 { animation-delay: 0.12s; }
+        .bc-rise-3 { animation-delay: 0.24s; }
+        .bc-rise-4 { animation-delay: 0.36s; }
+
+        /* People who ask their device to reduce motion see the still image instead of the video */
+        @media (prefers-reduced-motion: reduce) {
+          .bc-hero-video { display: none; }
+          .bc-rise { animation: none; }
         }
       `}</style>
 
       <div className="bc-page">
-        <section className="relative overflow-hidden min-h-[420px] flex items-center px-6 lg:px-12">
-          <div className="absolute inset-0 z-0">
+        <section className="relative isolate flex min-h-[520px] items-center overflow-hidden px-6 lg:min-h-[640px] lg:px-12">
+          {/* Background: still image, video that fades in over it, then brand-colour overlays */}
+          <div className="absolute inset-0 z-0 bg-[#1B3A5C]">
             <div
-              className="biotech-hero-bg w-full h-full"
+              className="absolute inset-0 h-full w-full"
               style={{
-                backgroundImage: "url('/image/LABDY3_1.jpg')",
+                backgroundImage: `url('${HERO_POSTER}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
               }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
+
+            {/* Silent, looping, auto-playing (muted + playsInline are required for autoplay) */}
+            <video
+              ref={videoRef}
+              className={`bc-hero-video absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
+                videoReady ? 'opacity-100' : 'opacity-0'
+              }`}
+              src={HERO_VIDEO}
+              poster={HERO_POSTER}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              disablePictureInPicture
+              aria-hidden="true"
+              tabIndex={-1}
+              onLoadedData={() => setVideoReady(true)}
+            />
+
+            {/* Brand tint so the footage matches the page colours */}
+            <div className="absolute inset-0 bg-[#1B3A5C]/30 mix-blend-multiply" />
+            {/* Small screens: even, darker veil so the text is always readable */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#1B3A5C]/85 via-[#1B3A5C]/70 to-[#1B3A5C]/90 lg:hidden" />
+            {/* Large screens: strong on the text side, clear on the right so the video shows */}
+            <div className="absolute inset-0 hidden bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/80 to-[#1B3A5C]/10 lg:block" />
+            {/* Soft fade into the wave at the bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#1B3A5C]/60 to-transparent" />
           </div>
 
-          <div className="relative z-20 max-w-4xl py-10">
-            <p className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md">
+          <div className="relative z-20 max-w-4xl py-14 lg:py-20">
+            <p className="bc-rise mb-5 inline-flex items-center gap-3 text-[11px] font-bold uppercase tracking-[4px] text-white drop-shadow-md sm:text-xs">
+              <span className="h-[3px] w-10 rounded-full bg-[#E8185A]" aria-hidden="true" />
               Rwanda Biotech Capacity Building Project
             </p>
-            <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
+
+            <h1 className="bc-serif bc-rise bc-rise-2 mb-3 text-4xl italic leading-[1.1] text-white drop-shadow-lg sm:text-5xl lg:text-6xl">
               Three Crops, <span className="text-[#E8185A]">One Pipeline</span>
             </h1>
-            <h1 className="bc-serif text-5xl lg:text-5xl text-white leading-tight mb-4 italic drop-shadow-lg">
-              Under RAB's <span className="text-[#E8185A]">Center of <br /> Excellence in </span>Crop <br />Biotechnology
-            </h1>
-            <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
+            <h2 className="bc-serif bc-rise bc-rise-3 mb-6 max-w-2xl text-balance text-2xl italic leading-snug text-white/95 drop-shadow-lg sm:text-3xl lg:text-4xl">
+              Under RAB&apos;s <span className="text-[#E8185A]">Center of Excellence in</span> Crop Biotechnology
+            </h2>
+
+            <p className="bc-rise bc-rise-4 max-w-xl text-base font-medium leading-relaxed text-white/90 drop-shadow-md sm:text-lg">
               Starting with three main food-security crops: cassava, potato and banana;
-              RAB is advancing its national biotechnology pipeline for an accelerated development and 
+              RAB is advancing its national biotechnology pipeline for an accelerated development and
               deployment of climate-smart, and improved farmer-preferred varieties.
             </p>
+
+            <button
+              onClick={scrollToCrops}
+              className="bc-rise bc-rise-4 group mt-8 inline-flex items-center gap-2 rounded-full bg-[#E8185A] px-6 py-3 text-sm font-bold text-white shadow-lg shadow-[#E8185A]/30 transition hover:-translate-y-0.5 hover:bg-[#d0124f]"
+            >
+              Explore the crops
+              <ChevronDown size={16} className="transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
+            </button>
           </div>
 
-          <div className="absolute bottom-[-1px] left-0 w-full z-30 leading-[0]">
-            <svg className="relative block w-full h-[40px]" viewBox="0 0 1200 120" preserveAspectRatio="none">
+
+          <div className="absolute bottom-[-1px] left-0 z-30 w-full leading-[0]">
+            <svg className="relative block h-[40px] w-full" viewBox="0 0 1200 120" preserveAspectRatio="none">
               <path
                 d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5,73.84-4.36,147.54,16.88,218.2,35.26,69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-1.42,1200,34.75V0Z"
                 fill="#f7f6f4"
@@ -418,7 +486,7 @@ export default function BiotechCropsPage() {
           </div>
         </section>
 
-        <section className="bg-[#f7f6f4] pt-10 pb-14">
+        <section id="crops" className="scroll-mt-4 bg-[#f7f6f4] pt-10 pb-14">
           <div className="flex justify-center gap-3 px-4 flex-wrap mb-8">
             {CROPS.map((crop) => (
               <CropTab
