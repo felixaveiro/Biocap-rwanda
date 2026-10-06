@@ -6,13 +6,12 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
 const navLinks = [
-  { href: '/',                  label: 'Home'             },
-  { href: '/About',             label: 'About'            },
-  { href: '/Biotech',           label: 'Biotechnology'    },
-  // { href: '/Milestones',     label: 'Milestones'       },
-  { href: '/Stewardship-News',  label: 'Stewardship News' },
-  { href: '/Gallery',           label: 'Gallery'          },
-  { href: '/Resource',          label: 'Resource & Activities'         },
+  { href: '/',                  label: 'Home'                  },
+  { href: '/About',             label: 'About'                 },
+  { href: '/Biotech',           label: 'Biotechnology'         },
+  { href: '/Stewardship-News',  label: 'Stewardship News'      },
+  { href: '/Gallery',           label: 'Gallery'               },
+  { href: '/Resource',          label: 'Resource & Activities' },
 ];
 
 export default function Navbar() {
@@ -67,7 +66,7 @@ export default function Navbar() {
           max-width: 1200px;
           margin: 0 auto;
           padding: 0 2.5rem;
-          height: 70px;
+          height: 84px;
         }
 
         .bc-logo {
@@ -76,20 +75,24 @@ export default function Navbar() {
           align-items: center;
           gap: 10px;
         }
+
+        /* ── Logo (crisp) ──────────────────────────────── */
         .bc-logo-img-wrap {
           position: relative;
-          width: 60px;
-          height: 60px;
-          border-radius: 50px;
-          overflow: hidden;
+          width: 165px;
+          height: 100px;
+          border-radius: 0;
+          overflow: visible;
           flex-shrink: 0;
-          background: #f0f4fa;
-          border: 1.5px solid rgba(238,242,248,0.6);
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+          background: transparent;
+          border: none;
+          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .bc-logo-img-wrap img {
+          image-rendering: -webkit-optimize-contrast;
         }
         .bc-logo:hover .bc-logo-img-wrap {
-          transform: rotate(-6deg) scale(1.08);
-          box-shadow: 0 4px 16px rgba(233,30,99,0.20);
+          transform: scale(1.06);
         }
 
         /* ── Desktop links ─────────────────────────────── */
@@ -105,7 +108,7 @@ export default function Navbar() {
         .bc-link-item a {
           text-decoration: none;
           font-family: 'Syne', sans-serif;
-          font-size: 0.75rem;
+          font-size: 0.64rem;
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -172,7 +175,7 @@ export default function Navbar() {
         /* ── Mobile drawer ─────────────────────────────── */
         .bc-drawer {
           position: fixed;
-          top: 70px;
+          top: 84px;
           left: 0; right: 0;
           background: rgba(255,255,255,0.99);
           backdrop-filter: blur(16px);
@@ -226,12 +229,13 @@ export default function Navbar() {
           <Link href="/" className="bc-logo flex items-center gap-2">
             <div className="bc-logo-img-wrap">
               <Image
-                src="/image/rab-logo.png"
-                alt="BioCap Logo"
+                src="/image/Rab.png"
+                alt="RAB Logo"
                 fill
-                style={{ objectFit: 'contain' }}
-                sizes="35px"
+                quality={100}
                 priority
+                sizes="240px"
+                style={{ objectFit: 'contain' }}
               />
             </div>
             <span className="text-sm font-semibold text-gray-800 whitespace-nowrap">

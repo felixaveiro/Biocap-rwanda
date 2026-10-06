@@ -35,6 +35,7 @@ interface Partner {
   initials: string;
   accent: string;
   logo?: string;
+  logoSize?: string;
 }
 
 const objectives = [
@@ -170,7 +171,8 @@ export default function AboutPage() {
       url: 'https://www.rab.gov.rw',
       initials: 'RAB',
       accent: '#1E4D6B',
-      logo: '/image/rab-logo.png',
+      logo: '/image/Rab.png',
+      logoSize: 'w-48 h-32',
     },
     {
       name: 'IITA',
@@ -952,16 +954,16 @@ function PartnerCard({ p }: { p: Partner }) {
         style={{ background: `linear-gradient(90deg, ${p.accent}, ${p.accent}80)` }}
       />
 
-      {/* Logo circle */}
+      {/* Logo box */}
       <div
-        className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden"
+        className={`${p.logoSize ?? 'w-40 h-28'} rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-105 overflow-hidden`}
         style={{ background: `${p.accent}12`, border: `1.5px solid ${p.accent}25` }}
       >
         {p.logo ? (
           <img
             src={p.logo}
             alt={p.name}
-            className="w-full h-full object-contain p-2"
+            className="w-full h-full object-contain p-1"
           />
         ) : (
           <span
