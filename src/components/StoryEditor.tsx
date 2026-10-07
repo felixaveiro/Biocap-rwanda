@@ -38,7 +38,7 @@ interface Section {
 interface Props {
   excerpt: string;
   setExcerpt: (v: string) => void;
-  excerptError?: boolean; // 🟢 Prop for localized validation
+  excerptError?: boolean;
   initialSections?: Section[];
   onChange?: (blocks: any[], files: File[]) => void;
   controlsPosition?: "top" | "bottom";

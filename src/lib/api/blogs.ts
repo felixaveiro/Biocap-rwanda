@@ -122,7 +122,7 @@ export interface CloudinarySignatureResponse {
   signature: string;
   timestamp: number;
   apiKey: string;
-  cloudName: string;
+  cloudName?: string;
   folder: string;
 }
 
@@ -135,6 +135,11 @@ export interface CloudinarySignatureResponse {
 export async function uploadDirectToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
   // 1. Get cryptographic signature from backend
   const sig = await apiRequest<CloudinarySignatureResponse>("/api/upload/signature", { auth: true });
+  const cloudName = sig.cloudName?.trim() || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim();
+
+  if (!cloudName) {
+    throw new ApiError("Cloudinary cloud name is missing. Configure NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME for the frontend build.", 500);
+  }
 
   // 2. Prepare Direct Cloudinary FormData
   const formData = new FormData();
@@ -146,7 +151,7 @@ export async function uploadDirectToCloudinary(file: File): Promise<{ url: strin
 
   // 3. Upload directly to Cloudinary
   const cloudRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
     {
       method: "POST",
       body: formData,
