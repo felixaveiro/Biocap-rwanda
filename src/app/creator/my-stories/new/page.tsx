@@ -28,6 +28,8 @@ import {
   Dna,
   FileText,
   ShoppingBag,
+  Upload,
+  Trash2,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -72,6 +74,7 @@ export default function CreateNewStoryPage() {
   }>({});
 
   const coverRef = useRef<HTMLDivElement>(null);
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -125,6 +128,7 @@ export default function CreateNewStoryPage() {
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (file) {
       setCoverImageFile(file);
       setErrors((prev) => ({ ...prev, cover: false }));
@@ -320,19 +324,48 @@ export default function CreateNewStoryPage() {
               </div>
             </div>
 
+            <input
+              ref={coverFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageFileChange}
+              className="hidden"
+            />
+
             {croppedPreview ? (
               <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
                 <img src={croppedPreview} alt="Cover Preview" className="h-full w-full object-cover" />
-                <button
-                  type="button"
-                  onClick={() => setIsCropperOpen(true)}
-                  className="absolute top-3 right-3 inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3.5 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] rounded-[2px]"
-                >
-                  <Crop size={14} className="text-[#8FBF9F]" /> Adjust &amp; crop
-                </button>
+                <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCropperOpen(true)}
+                    className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] rounded-[2px]"
+                  >
+                    <Crop size={14} className="text-[#8FBF9F]" /> Adjust &amp; crop
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => coverFileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 border border-white/20 bg-[#1E2620]/85 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white backdrop-blur-md transition hover:bg-[#1E2620] rounded-[2px]"
+                  >
+                    <Upload size={14} /> Change image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRawImageSrc(null);
+                      setCroppedPreview(null);
+                      setCoverImageFile(null);
+                      setIsCropperOpen(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 border border-[#B65C4B] bg-[#8A3A2C]/90 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-white transition hover:bg-[#8A3A2C] rounded-[2px]"
+                  >
+                    <Trash2 size={14} /> Remove image
+                  </button>
+                </div>
               </div>
             ) : (
-              <label className={`group relative flex h-52 cursor-pointer flex-col items-center justify-center border-2 border-dashed transition duration-200 rounded-[2px] ${
+              <div className={`group relative flex h-52 flex-col items-center justify-center border-2 border-dashed transition duration-200 rounded-[2px] ${
                 errors.cover
                   ? "border-[#B65C4B] bg-[#FBEEEC]/40"
                   : "border-[#D9D4C6] bg-[#FAF9F5] hover:border-[#3B664B] hover:bg-[#F1F5F1]"
@@ -344,8 +377,14 @@ export default function CreateNewStoryPage() {
                   <span className="text-xs font-semibold text-[#3A4239] transition group-hover:text-[#3B664B]">Upload cover image</span>
                   <p className="mt-0.5 text-[11px] text-[#8B9188]">Drag and drop or click to browse (JPG, PNG, WEBP)</p>
                 </div>
-                <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
-              </label>
+                <span className="sr-only">Select a cover image</span>
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="absolute inset-0 cursor-pointer"
+                  aria-label="Upload cover image"
+                />
+              </div>
             )}
           </div>
 

@@ -43,6 +43,52 @@ interface Props {
   onSuccess: () => void;
 }
 
+const MAX_CLOUDINARY_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_COMPRESSED_IMAGE_BYTES = 9.5 * 1024 * 1024;
+const MAX_IMAGE_EDGE = 3840;
+const MAX_GALLERY_IMAGES = 20;
+
+const prepareImageForUpload = async (file: File): Promise<File> => {
+  if (file.size <= MAX_CLOUDINARY_IMAGE_BYTES) return file;
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    let scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+    const qualities = [0.9, 0.82, 0.75, 0.68, 0.6];
+
+    while (scale >= 0.1) {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('This browser could not prepare the image for upload.');
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+      for (const quality of qualities) {
+        const blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, 'image/webp', quality)
+        );
+        if (!blob || blob.type !== 'image/webp') {
+          throw new Error('This browser cannot convert oversized images to WebP.');
+        }
+        if (blob.size <= MAX_COMPRESSED_IMAGE_BYTES) {
+          const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
+          return new File([blob], `${baseName}.webp`, {
+            type: 'image/webp',
+            lastModified: file.lastModified,
+          });
+        }
+      }
+
+      scale *= 0.85;
+    }
+
+    throw new Error(`Could not reduce "${file.name}" below the 9.5 MiB target size.`);
+  } finally {
+    bitmap.close();
+  }
+};
+
 export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props) {
   // Step 1 = Details & File Upload Form | Step 2 = Live Preview Display
   const [step, setStep] = useState<1 | 2>(1);
@@ -75,6 +121,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Clean up Object URLs when files change or component unmounts to prevent memory leaks
@@ -106,6 +153,12 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
     if (validImages.length === 0) {
       setModalError('No valid image files found in your selection.');
       resetImages();
+      return;
+    }
+
+    if (validImages.length > MAX_GALLERY_IMAGES) {
+      e.target.value = '';
+      setModalError(`A gallery collection can contain at most ${MAX_GALLERY_IMAGES} images. You selected ${validImages.length}.`);
       return;
     }
 
@@ -211,6 +264,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
   const handleSubmit = async () => {
     setModalError(null);
     setIsSubmitting(true);
+    setSubmitStatus('Preparing images...');
 
     try {
       const formData = new FormData();
@@ -220,7 +274,10 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
       formData.append('caption', caption);
 
       if (mediaType === 'folder') {
-        images.forEach((img) => formData.append('images', img));
+        for (let index = 0; index < images.length; index += 1) {
+          setSubmitStatus(`Preparing image ${index + 1} of ${images.length}...`);
+          formData.append('images', await prepareImageForUpload(images[index]));
+        }
         // Tells the backend which uploaded image (0-based) is the collection cover
         if (coverIndex !== null) formData.append('coverIndex', String(coverIndex));
         // Per-image optional captions and stable reference ids, in the
@@ -230,9 +287,13 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
         formData.append('imageReferenceIds', JSON.stringify(imageRefIds));
       } else if (mediaType === 'video') {
         if (video) formData.append('video', video);
-        if (thumbnail) formData.append('thumbnail', thumbnail);
+        if (thumbnail) {
+          setSubmitStatus('Preparing thumbnail...');
+          formData.append('thumbnail', await prepareImageForUpload(thumbnail));
+        }
       }
 
+      setSubmitStatus('Uploading...');
       await galleryApi.createItem(formData);
       onSuccess();
       onClose();
@@ -242,6 +303,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
       setModalError(message);
     } finally {
       setIsSubmitting(false);
+      setSubmitStatus('');
     }
   };
 
@@ -767,7 +829,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                 className="inline-flex items-center gap-1.5 border border-[#E5B800] bg-[#E5B800] px-5 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#0C1E12] hover:bg-[#c9a000] transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                <span>{isSubmitting ? 'Submitting...' : 'Submit'}</span>
+                <span>{isSubmitting ? (submitStatus || 'Submitting...') : 'Submit'}</span>
               </button>
             </>
           )}

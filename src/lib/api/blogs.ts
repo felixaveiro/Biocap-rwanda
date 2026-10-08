@@ -36,7 +36,7 @@ export interface UpdateBlogPayload {
   modal?: BlogModalMetadata;
   socialHandle?: string;
   organizationLink?: string;
-  img?: File | string; // Allow File or hosted/base64 URL
+  img?: File | string | null; // null explicitly clears an existing cover image
   document?: File | string;
   images?: File[];
 }
@@ -240,8 +240,6 @@ export async function getPublicBlogBySlug(slug: string): Promise<BlogPost> {
     throw err;
   }
 }
-
-/** 🟢 Fetch public comments for a published article by slug */
 export async function getPublicComments(slug: string): Promise<Comment[]> {
   try {
     const blog = await getPublicBlogBySlug(slug);
@@ -251,7 +249,7 @@ export async function getPublicComments(slug: string): Promise<Comment[]> {
   }
 }
 
-/** 🟢 Public audience adds a comment to a published article */
+
 export async function addPublicComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
   return apiRequest<{ message: string; comment: Comment }>(`/api/blogs/public/${slug}/comments`, {
     method: "POST",
@@ -260,14 +258,12 @@ export async function addPublicComment(slug: string, payload: PublicCommentPaylo
   });
 }
 
-/** Alias function for backward compatibility */
+
 export async function addPublicBlogComment(slug: string, payload: PublicCommentPayload): Promise<{ message: string; comment: Comment }> {
   return addPublicComment(slug, payload);
 }
 
-// ─── 2. INTERNAL EDITORIAL REVISION NOTES (Pre-Publishing & Reviewer Discussions) 
 
-/** Post internal review notes/feedback on a story before publication */
 export async function addComment(
   blogId: string,
   commentData: { content: string; name?: string; email?: string }
@@ -597,7 +593,12 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?:
       ...(payload.modal && { modal: payload.modal }),
       ...(payload.socialHandle && { socialHandle: payload.socialHandle }),
       ...(payload.organizationLink && { organizationLink: payload.organizationLink }),
-      ...(coverImageUrl && { img: coverImageUrl, ...(coverImagePublicId && { imgPublicId: coverImagePublicId }) }),
+      ...(payload.img !== undefined && {
+        img: coverImageUrl || null,
+        ...(payload.img === null
+          ? { imgPublicId: null }
+          : coverImagePublicId && { imgPublicId: coverImagePublicId }),
+      }),
       ...(documentData && {
         documentUrl: documentData.url,
         ...(documentData.publicId && { documentPublicId: documentData.publicId }),

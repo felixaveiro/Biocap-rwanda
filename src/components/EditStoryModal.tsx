@@ -599,6 +599,7 @@ export default function EditStoryModal({
   // Cover Image States
   const [currentCoverUrl, setCurrentCoverUrl] = useState<string>(initialStory.img || "");
   const [croppedCoverFile, setCroppedCoverFile] = useState<File | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
   const [pendingCropSrc, setPendingCropImageSrc] = useState<string | null>(null);
 
@@ -931,6 +932,7 @@ export default function EditStoryModal({
     setCurrentCoverUrl(croppedBase64);
     const file = base64ToFile(croppedBase64, `cover-edited-${localStory._id}.jpg`);
     setCroppedCoverFile(file);
+    setCoverRemoved(false);
     setIsCropperOpen(false);
     setPendingCropImageSrc(null);
   };
@@ -982,6 +984,21 @@ export default function EditStoryModal({
     reader.readAsDataURL(file);
   };
 
+  const removeSectionImage = (index: number) => {
+    setEditedBlocks((prev) =>
+      prev.map((block, blockIndex) =>
+        blockIndex === index
+          ? { ...block, src: "", url: "", fileKey: undefined, source: undefined }
+          : block
+      )
+    );
+    setEditedSectionFiles((prev) => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
+  };
+
   const removeBlock = (index: number) => {
     setEditedBlocks((prev) => prev.filter((_, i) => i !== index));
     setEditedSectionFiles((prev) => {
@@ -1017,6 +1034,8 @@ export default function EditStoryModal({
 
       if (croppedCoverFile) {
         payload.img = croppedCoverFile;
+      } else if (coverRemoved) {
+        payload.img = null;
       }
 
       const newInlineFiles = Object.values(editedSectionFiles);
@@ -1530,6 +1549,17 @@ export default function EditStoryModal({
                       >
                         <Upload size={11} /> Change
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentCoverUrl("");
+                          setCroppedCoverFile(null);
+                          setCoverRemoved(true);
+                        }}
+                        className="inline-flex items-center gap-1 border border-[#B65C4B] bg-[#8A3A2C] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white transition hover:bg-[#753126] cursor-pointer rounded"
+                      >
+                        <Trash2 size={11} /> Remove
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -1656,14 +1686,28 @@ export default function EditStoryModal({
 
                           <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
                             <label className="inline-flex cursor-pointer items-center gap-1.5 border border-[#3F6B4F]/40 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#3F6B4F] transition hover:bg-[#F1F5F1] rounded">
-                              <Upload size={13} /> Choose Section Image
+                              <Upload size={13} /> {block.src || block.url ? "Change Image" : "Choose Section Image"}
                               <input
                                 type="file"
                                 accept="image/*"
-                                onChange={(e) => handleSectionImageChange(idx, e.target.files?.[0])}
+                                onChange={(e) => {
+                                  handleSectionImageChange(idx, e.target.files?.[0]);
+                                  e.currentTarget.value = "";
+                                }}
                                 className="hidden"
                               />
                             </label>
+
+                            {(block.src || block.url) && (
+                              <button
+                                type="button"
+                                onClick={() => removeSectionImage(idx)}
+                                aria-label={`Remove image from section ${idx + 1}`}
+                                className="inline-flex items-center gap-1.5 border border-[#B65C4B]/50 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#8A3A2C] transition hover:bg-[#FBEEEC] rounded"
+                              >
+                                <Trash2 size={13} /> Remove Image
+                              </button>
+                            )}
 
                             <div className="flex items-center gap-1 text-xs" style={monoFont}>
                               <span className="mr-1 text-[#8B9188]">Fit:</span>
@@ -1737,6 +1781,18 @@ export default function EditStoryModal({
                   >
                     Change Cover Image
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentCoverUrl("");
+                      setCroppedCoverFile(null);
+                      setCoverRemoved(true);
+                    }}
+                    aria-label="Remove cover image"
+                    className="absolute bottom-3 right-40 border border-[#B65C4B] bg-[#8A3A2C]/90 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#753126] cursor-pointer opacity-0 group-hover:opacity-100"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               )}
 
@@ -1755,15 +1811,43 @@ export default function EditStoryModal({
               <div className="space-y-6 pt-2">
                 {editedBlocks && editedBlocks.length > 0 ? (
                   editedBlocks.map((block: BlogBlock, idx: number) => {
-                    if (block.type === 'image' && (block.src || block.url)) {
+                    if (block.type === 'image') {
                       return (
                         <figure key={idx} className="my-6 space-y-2">
-                          <div className="overflow-hidden rounded-xl border border-[#D9D4C6] bg-[#1E2620] max-h-[480px] flex items-center justify-center">
-                            <img
-                              src={block.src || block.url}
-                              alt={block.caption || `Section ${idx + 1}`}
-                              className="w-full max-h-[480px] object-contain rounded-xl"
-                            />
+                          <div className="group relative min-h-36 overflow-hidden rounded-xl border border-[#D9D4C6] bg-[#1E2620] max-h-[480px] flex items-center justify-center">
+                            {block.src || block.url ? (
+                              <img
+                                src={block.src || block.url}
+                                alt={block.caption || `Section ${idx + 1}`}
+                                className="w-full max-h-[480px] object-contain rounded-xl"
+                              />
+                            ) : (
+                              <span className="text-xs text-white/70">No image selected for this section</span>
+                            )}
+                            <div className="absolute right-3 top-3 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                              <label className="inline-flex cursor-pointer items-center gap-1.5 border border-white/20 bg-[#1E2620]/90 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs hover:bg-[#1E2620] rounded">
+                                <Upload size={13} /> {block.src || block.url ? "Change" : "Add Image"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    handleSectionImageChange(idx, e.target.files?.[0]);
+                                    e.currentTarget.value = "";
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                              {(block.src || block.url) && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeSectionImage(idx)}
+                                  aria-label={`Remove image from section ${idx + 1}`}
+                                  className="inline-flex items-center gap-1.5 border border-[#B65C4B] bg-[#8A3A2C]/95 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-white hover:bg-[#753126] rounded"
+                                >
+                                  <Trash2 size={13} /> Remove
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </figure>
                       );

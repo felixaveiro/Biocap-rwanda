@@ -6,7 +6,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { authCookies } from "@/lib/auth/cookies";
 import { useSession } from "@/hooks/useSession";
-import { Fraunces, IBM_Plex_Mono } from "next/font/google";
 import {
   LayoutDashboard,
   FileText,
@@ -26,19 +25,6 @@ import {
   User,
   Image as ImageIcon,
 } from "lucide-react";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["500"],
-  variable: "--font-mono",
-});
 
 // Height of the public <Navbar /> (.bc-nav-inner { height: 70px }) that renders above this sidebar.
 const NAVBAR_HEIGHT = 70;
@@ -124,7 +110,6 @@ export default function Sidebar() {
       ? "/creator/profile"
       : "/creator/profile";
 
-  const fontVars = `${fraunces.variable} ${plexMono.variable}`;
   const displayFont: React.CSSProperties = { fontFamily: "var(--font-display)" };
   const monoFont: React.CSSProperties = { fontFamily: "var(--font-mono)" };
 
@@ -153,7 +138,7 @@ export default function Sidebar() {
       {/* Sidebar Container */}
       <aside
         style={{ top: NAVBAR_HEIGHT, height: `calc(100vh - ${NAVBAR_HEIGHT}px)` }}
-        className={`${fontVars} fixed left-0 z-30 bg-[#FAF9F5] text-[#1E2620] flex flex-col justify-between border-r border-[#E2DDCF] shadow-xs transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed left-0 z-30 bg-[#FAF9F5] text-[#1E2620] flex flex-col justify-between border-r border-[#E2DDCF] shadow-xs transition-all duration-300 ease-in-out lg:translate-x-0 ${
           isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full lg:translate-x-0"
         } ${isCollapsed ? "lg:w-20" : "lg:w-64"}`}
       >
