@@ -10,6 +10,30 @@ type GalleryListParams = {
   search?: string;
 };
 
+export interface WebsiteGalleryCollection {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  status?: string;
+  itemCount?: number;
+  coverUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+async function websiteGalleryRequest<T>(path: string): Promise<T> {
+  const response = await fetch(`/api/website-gallery/${path}`, { cache: 'no-store' });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = payload && typeof payload === 'object' && 'message' in payload
+      ? String(payload.message)
+      : 'Gallery request failed.';
+    throw new Error(message);
+  }
+  return payload as T;
+}
+
 const buildQueryString = (params?: GalleryListParams): string => {
   const searchParams = new URLSearchParams();
   if (params?.page) searchParams.append('page', String(params.page));
@@ -23,6 +47,18 @@ const buildQueryString = (params?: GalleryListParams): string => {
 };
 
 export const galleryApi = {
+  async getWebsiteCollections(): Promise<{ items: WebsiteGalleryCollection[] }> {
+    return websiteGalleryRequest<{ items: WebsiteGalleryCollection[] }>('collections');
+  },
+
+  async getWebsiteCollection(slug: string): Promise<unknown> {
+    return websiteGalleryRequest<unknown>(`collections/${encodeURIComponent(slug)}`);
+  },
+
+  async getWebsiteCollectionMedia(slug: string): Promise<unknown> {
+    return websiteGalleryRequest<unknown>(`collections/${encodeURIComponent(slug)}/media`);
+  },
+
   /**
    * Public: Fetch paginated live (PUBLISHED only) gallery items.
    * Use this on the public website.

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { galleryApi } from '@/lib/api/gallery';
+import type { WebsiteGalleryCollection } from '@/lib/api/gallery';
 import type { GalleryCategory, GalleryItem as GalleryRecord } from '@/types';
 
 type Category = 'all' | 'field' | 'lab' | 'community' | 'crops' | 'workshop' | 'conference' | 'outreach' | 'dna' | GalleryCategory;
@@ -183,6 +184,7 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
             transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
           }}
           sizes="(max-width: 768px) 100vw, 33vw"
+          unoptimized
         />
       </div>
 
@@ -299,9 +301,11 @@ export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState<Category>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [uploadedItems, setUploadedItems] = useState<GalleryCardItem[]>([]);
+  const [websiteItems, setWebsiteItems] = useState<GalleryCardItem[]>([]);
 
   useEffect(() => {
     let isCurrent = true;
+    let websiteRequestInFlight = false;
 
     const loadPublishedItems = async () => {
       try {
@@ -343,13 +347,58 @@ export default function GalleryPage() {
       }
     };
 
+    const loadWebsiteCollections = async () => {
+      if (websiteRequestInFlight) return;
+      websiteRequestInFlight = true;
+      try {
+        const response = await galleryApi.getWebsiteCollections();
+        if (!isCurrent) return;
+        setWebsiteItems(
+          (response.items || [])
+            .filter((collection: WebsiteGalleryCollection) => collection.status === 'published')
+            .map((collection) => ({
+              id: collection.id,
+              galleryId: collection.slug,
+              src: collection.coverUrl || '/image/IMG_101.jpg',
+              alt: collection.name,
+              title: collection.name,
+              caption: collection.description || '',
+              category: 'activities',
+              href: `/Gallery/${collection.slug}`,
+              itemCount: collection.itemCount || 0,
+              date: collection.updatedAt
+                ? new Date(collection.updatedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: '2-digit',
+                  })
+                : '',
+              tall: true,
+            }))
+        );
+      } catch (error) {
+        console.error('Failed to load website gallery collections:', error);
+      } finally {
+        websiteRequestInFlight = false;
+      }
+    };
+
+    const refreshVisibleCollections = () => {
+      if (document.visibilityState === 'visible') void loadWebsiteCollections();
+    };
+
     void loadPublishedItems();
+    void loadWebsiteCollections();
+    const refreshInterval = window.setInterval(refreshVisibleCollections, 5_000);
+    document.addEventListener('visibilitychange', refreshVisibleCollections);
     return () => {
       isCurrent = false;
+      window.clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', refreshVisibleCollections);
     };
   }, []);
 
-  const allGalleryItems = [...uploadedItems, ...GALLERY_ITEMS];
+  const allGalleryItems = [...websiteItems, ...uploadedItems, ...GALLERY_ITEMS];
 
   const filtered = allGalleryItems.filter((item) => {
     const matchCat = activeCategory === 'all' || item.category === activeCategory;

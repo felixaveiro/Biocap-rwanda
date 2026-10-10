@@ -76,6 +76,7 @@ export default function GalleryManager({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published'>('all');
 
   // silent = true -> refetch without showing the full-page spinner
   const loadGallery = useCallback(
@@ -164,6 +165,15 @@ export default function GalleryManager({
   const displayFont: React.CSSProperties = { fontFamily: 'var(--font-display)' };
   const monoFont: React.CSSProperties = { fontFamily: 'var(--font-mono)' };
 
+  // Client-side status filter applied on top of server-fetched items
+  const filteredItems =
+    statusFilter === 'all'
+      ? items
+      : items.filter((item) => {
+          const pub = checkIsPublished(item);
+          return statusFilter === 'published' ? pub : !pub;
+        });
+
   return (
     <div className={`${fontVars} space-y-6 text-[#1E2620]`} style={bodyFont}>
       {/* Portal Header */}
@@ -219,6 +229,20 @@ export default function GalleryManager({
             </select>
           </div>
 
+          {/* Status Filter */}
+          <div className="flex items-center gap-2 border border-[#D9D4C6] bg-white px-3 py-1.5 rounded-sm">
+            <Eye size={13} className="text-[#8B9188]" />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'draft' | 'published')}
+              className="bg-transparent text-xs font-medium text-[#1E2620] focus:outline-none cursor-pointer"
+            >
+              <option value="all">All Statuses</option>
+              <option value="draft">Draft Only</option>
+              <option value="published">Published Only</option>
+            </select>
+          </div>
+
           {/* Search Input */}
           <div className="flex items-center gap-2 border border-[#D9D4C6] bg-white px-3 py-1.5 rounded-sm w-full sm:w-56">
             <Search size={13} className="text-[#8B9188]" />
@@ -233,7 +257,7 @@ export default function GalleryManager({
         </div>
 
         <span className="text-[10px] font-semibold uppercase tracking-wider text-[#A9812F]" style={monoFont}>
-          Showing {items.length} records
+          Showing {filteredItems.length} of {items.length} records
         </span>
       </div>
 
@@ -263,11 +287,12 @@ export default function GalleryManager({
                   <th className="p-4 text-[10px]">Category</th>
                   <th className="p-4 text-[10px]">Media Type</th>
                   <th className="p-4 text-[10px]">Uploaded By</th>
+                  <th className="p-4 text-[10px]">Published</th>
                   <th className="p-4 text-[10px] text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EDEAE0]">
-                {items.map((item) => {
+                {filteredItems.map((item) => {
                   const coverImage = getCoverImage(item);
                   const isPublished = checkIsPublished(item);
 
@@ -332,6 +357,22 @@ export default function GalleryManager({
                           <User size={12} className="text-[#8B9188]" />
                           {item.createdBy?.username || 'System User'}
                         </span>
+                      </td>
+
+                      {/* Published Date */}
+                      <td className="p-4 text-[11px] text-[#6B7268]">
+                        {isPublished && item.publishedAt ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Calendar size={12} className="text-[#3F6B4F]" />
+                            {new Date(item.publishedAt).toLocaleDateString('en-GB', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-[#B0A99A] italic">— draft</span>
+                        )}
                       </td>
 
                       {/* Publish / Unpublish Actions */}

@@ -272,6 +272,9 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
       formData.append('title', title);
       formData.append('category', category);
       formData.append('caption', caption);
+      // Always submit as draft — an editor must explicitly publish from the Gallery Manager
+      formData.append('status', 'draft');
+      formData.append('isPublished', 'false');
 
       if (mediaType === 'folder') {
         for (let index = 0; index < images.length; index += 1) {
@@ -409,7 +412,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                 BIOCAP COLLECTION PORTAL
               </p>
               <h3 className="text-base sm:text-lg font-semibold text-[#0C1E12]">
-                {step === 1 ? 'Upload BioCap Collection or Video' : 'Collection Preview Before Publish'}
+                {step === 1 ? 'Upload BioCap Collection or Video' : 'Preview Before Saving as Draft'}
               </h3>
             </div>
           </div>
@@ -440,7 +443,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
               step === 2 ? 'bg-[#00A859]/10 text-[#00A859]' : 'text-[#5A6259]'
             }`}
           >
-            2. Preview &amp; Publish
+            2. Preview &amp; Save as Draft
           </div>
         </div>
 
@@ -693,10 +696,21 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
           {step === 2 && (
             <div className="space-y-5">
               
+              {/* Draft Notice Banner */}
+              <div className="flex items-start gap-3 border border-[#E5B800]/60 bg-[#FFFBEA] px-4 py-3 rounded-xs">
+                <span className="shrink-0 mt-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#E5B800] text-[#0C1E12]">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M5 1a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 5 1Zm0 7a.75.75 0 1 0 0-1.5A.75.75 0 0 0 5 8Z"/></svg>
+                </span>
+                <div>
+                  <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-[#0C1E12]">Saved as Draft — Not Yet Visible to the Public</p>
+                  <p className="text-[11px] text-[#5A6259] mt-0.5">After submitting, this gallery item will be saved as a <strong>Draft</strong>. An editor must open Gallery Management and click <strong>Publish</strong> to make it appear on the public website.</p>
+                </div>
+              </div>
+
               <div className="border border-[#00A859]/30 bg-[#FAF9F6] p-5 space-y-3 shadow-2xs">
                 <div className="flex items-center justify-between border-b border-[#00A859]/15 pb-2">
                   <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[#E5B800]">
-                    HOW IT WILL APPEAR IN GALLERY
+                    DRAFT PREVIEW — HOW IT WILL APPEAR WHEN PUBLISHED
                   </span>
                   <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-[#00A859] text-white px-2 py-0.5">
                     <Tag size={10} /> {category}
@@ -829,7 +843,7 @@ export default function GalleryUploadModal({ isOpen, onClose, onSuccess }: Props
                 className="inline-flex items-center gap-1.5 border border-[#E5B800] bg-[#E5B800] px-5 py-2 text-xs font-mono font-bold uppercase tracking-wider text-[#0C1E12] hover:bg-[#c9a000] transition-colors disabled:opacity-50 cursor-pointer shadow-2xs"
               >
                 {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-                <span>{isSubmitting ? (submitStatus || 'Submitting...') : 'Submit'}</span>
+                <span>{isSubmitting ? (submitStatus || 'Saving...') : 'Save as Draft'}</span>
               </button>
             </>
           )}

@@ -23,6 +23,67 @@ import type { GalleryItem } from '@/types';
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+
+const getMediaRecords = (value: unknown): unknown[] => {
+  if (Array.isArray(value)) return value;
+  const record = asRecord(value);
+  for (const key of ['items', 'media', 'data', 'results']) {
+    const candidate = record?.[key];
+    if (Array.isArray(candidate)) return candidate;
+  }
+  return [];
+};
+
+async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
+  const [collectionResponse, mediaResponse] = await Promise.all([
+    galleryApi.getWebsiteCollection(slug),
+    galleryApi.getWebsiteCollectionMedia(slug),
+  ]);
+  const collectionPayload = asRecord(collectionResponse);
+  const collection = asRecord(collectionPayload?.collection) ||
+    asRecord(collectionPayload?.item) ||
+    asRecord(collectionPayload?.data) || collectionPayload;
+  if (!collection) throw new Error('Collection was not found.');
+
+  const images = getMediaRecords(mediaResponse).flatMap((record, index) => {
+    const media = asRecord(record);
+    if (!media) return [];
+    const variants = asRecord(media.variants);
+    const urls = asRecord(media.urls);
+    const nestedMedia = asRecord(media.media);
+    const candidate = media.url || media.originalUrl || media.downloadUrl || media.fileUrl ||
+      media.mediaUrl || media.thumbnailUrl || variants?.original || urls?.preview ||
+      urls?.download || urls?.thumbnail || urls?.original || nestedMedia?.url;
+    const url = typeof candidate === 'string' ? candidate : asRecord(candidate)?.url;
+    if (typeof url !== 'string' || !url) return [];
+    const mediaId = String(media.id || media._id || media.mediaId || index);
+    return [{
+      _id: mediaId,
+      publicId: mediaId,
+      referenceId: mediaId,
+      url,
+      caption: typeof media.title === 'string' ? media.title :
+        typeof media.caption === 'string' ? media.caption : null,
+    }];
+  });
+
+  return {
+    _id: String(collection.id || slug),
+    mediaType: 'folder',
+    title: String(collection.name || collection.title || slug),
+    category: 'activities',
+    caption: String(collection.description || collection.caption || ''),
+    images,
+    createdBy: { _id: '', username: '', role: 'admin' },
+    createdAt: String(collection.createdAt || new Date().toISOString()),
+    updatedAt: String(collection.updatedAt || new Date().toISOString()),
+  };
+}
+
 export default function GalleryCollectionPage({ params }: { params: Promise<{ id: string }> }) {
   const [item, setItem] = useState<GalleryItem | null>(null);
   const [galleryId, setGalleryId] = useState('');
@@ -45,13 +106,43 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
 
   useEffect(() => {
     let isCurrent = true;
+    let websiteRequestInFlight = false;
+    let refreshInterval: number | undefined;
+    let websiteSlug: string | null = null;
+
+    const refreshWebsiteCollection = async () => {
+      if (!websiteSlug || websiteRequestInFlight) return;
+      websiteRequestInFlight = true;
+      try {
+        const refreshedItem = await getWebsiteGalleryItem(websiteSlug);
+        if (isCurrent) setItem(refreshedItem);
+      } catch (refreshError) {
+        console.error('Failed to refresh website gallery photos:', refreshError);
+      } finally {
+        websiteRequestInFlight = false;
+      }
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshWebsiteCollection();
+    };
 
     const loadItem = async () => {
       try {
         const { id } = await params;
         if (isCurrent) setGalleryId(id);
-        const response = await galleryApi.getItemById(id);
-        if (isCurrent) setItem(response.data);
+        if (/^[a-f\d]{24}$/i.test(id)) {
+          const response = await galleryApi.getItemById(id);
+          if (isCurrent) setItem(response.data);
+          return;
+        }
+        websiteSlug = id;
+        const websiteItem = await getWebsiteGalleryItem(id);
+        if (isCurrent) setItem(websiteItem);
+        if (isCurrent) {
+          refreshInterval = window.setInterval(refreshWebsiteCollection, 5_000);
+          document.addEventListener('visibilitychange', refreshWhenVisible);
+        }
       } catch {
         if (isCurrent) setError('This gallery could not be found or is no longer published.');
       } finally {
@@ -62,6 +153,8 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
     void loadItem();
     return () => {
       isCurrent = false;
+      if (refreshInterval !== undefined) window.clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [params]);
 
@@ -162,28 +255,22 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
       ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }, [activeImageIndex]);
 
-  // Dynamic Filename Builder: [Gallery Title]-[Caption OR 01, 02...].[real extension]
+  // Keep downloaded names descriptive while removing characters Windows forbids in filenames.
   const getFileName = (index: number, caption?: string | null, url?: string) => {
     const sanitize = (text: string) =>
       text
-        .toLowerCase()
         .trim()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+        .replace(/\s+/g, ' ')
+        .replace(/[. ]+$/g, '');
 
-    const urlExt = url ? url.split('?')[0].split('.').pop()?.toLowerCase() : undefined;
+    const sourceName = url ? decodeURIComponent(url.split('?')[0].split('/').pop() || '') : '';
+    const urlExt = sourceName.split('.').pop()?.toLowerCase();
     const ext = urlExt && IMAGE_EXTENSIONS.includes(urlExt) ? urlExt : 'jpg';
-
-    const galleryTitleSlug = item?.title ? sanitize(item.title) || 'gallery' : 'gallery';
-
-    if (caption && caption.trim()) {
-      const captionSlug = sanitize(caption);
-      if (captionSlug) return `${galleryTitleSlug}-${captionSlug}.${ext}`;
-    }
-
-    const formattedId = String(index + 1).padStart(2, '0');
-    return `${galleryTitleSlug}-${formattedId}.${ext}`;
+    const sourceTitle = sourceName.replace(/\.[^.]+$/, '');
+    const imageName = sanitize(caption || '') || sanitize(sourceTitle) || `Image ${String(index + 1).padStart(2, '0')}`;
+    const collectionName = sanitize(item?.title || 'Collection') || 'Collection';
+    return `BioCap Gallery - ${collectionName} - ${imageName}.${ext}`;
   };
 
   // Direct File Download Logic
