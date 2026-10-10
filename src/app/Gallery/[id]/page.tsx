@@ -390,7 +390,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   return (
     <main className="min-h-screen bg-white text-gray-900">
       {/* Cover Hero Header */}
-      <section className="relative isolate flex min-h-[70vh] w-full items-center justify-center overflow-hidden bg-gray-900 text-white">
+      <section className="relative isolate flex min-h-[58vh] w-full items-end justify-start overflow-hidden bg-gray-900 text-white">
         {coverImage && (
           <Image
             src={coverImage}
@@ -398,32 +398,35 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
             fill
             priority
             unoptimized
-            className="object-cover opacity-70"
+            className="object-cover opacity-100"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-black/10" />
 
-        <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
-          {item.category && (
-            <p className="mb-5 inline-block rounded-full border border-white/40 bg-white/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] text-white backdrop-blur-sm">
-              {item.category}
-            </p>
-          )}
-          <h1 className="text-balance text-3xl font-extrabold uppercase leading-tight tracking-wide drop-shadow sm:text-5xl lg:text-6xl">
+        {item.category && (
+          <p className="absolute left-4 top-4 z-10 inline-block rounded-full border border-white/40 bg-black/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white backdrop-blur-sm sm:left-8 sm:top-8">
+            {item.category}
+          </p>
+        )}
+
+        <div className="relative z-10 w-full px-5 pb-8 pt-20 text-left sm:px-8 sm:pb-10 lg:px-12">
+          <h1 className="line-clamp-2 w-full text-left text-[18px] font-bold leading-6 text-white drop-shadow-md">
             {item.title}
           </h1>
           {item.caption && (
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed tracking-wide text-gray-200 sm:text-base">
+            <p className="mt-2 line-clamp-3 w-full text-left text-sm leading-relaxed text-white/90 sm:text-base">
               {item.caption}
             </p>
           )}
-          <button
-            onClick={scrollToGallery}
-            className="group mt-10 inline-flex items-center gap-2 rounded-full border border-white/80 bg-transparent px-7 py-3 text-xs font-semibold uppercase tracking-[0.2em] transition hover:bg-white hover:text-black"
-          >
-            View Gallery
-            <ChevronDown size={16} className="transition-transform group-hover:translate-y-0.5" />
-          </button>
+          <div className="mt-5 flex justify-center">
+            <button
+              onClick={scrollToGallery}
+              className="group inline-flex items-center gap-2 rounded-full border border-white/80 bg-black/15 px-6 py-2.5 text-xs font-semibold uppercase tracking-wider transition hover:bg-white hover:text-black"
+            >
+              View Gallery
+              <ChevronDown size={16} className="transition-transform group-hover:translate-y-0.5" />
+            </button>
+          </div>
         </div>
       </section>
 

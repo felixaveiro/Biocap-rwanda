@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -35,6 +35,8 @@ interface GalleryCardItem {
   date: string;
   tall?: boolean;
   galleryId?: string;
+  remoteGallery?: boolean;
+  coverMediaId?: string;
 }
 
 const GALLERY_ITEMS: GalleryCardItem[] = [
@@ -143,9 +145,60 @@ const CATEGORY_LABELS: Record<Category, string> = CATEGORIES.reduce(
 );
 function CollectionCard({ item }: { item: GalleryCardItem }) {
   const [hovered, setHovered] = useState(false);
+  const [coverSrc, setCoverSrc] = useState(item.src);
+  const cardRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    if (!item.remoteGallery || !item.galleryId) return;
+
+    let isCurrent = true;
+    let observer: IntersectionObserver | undefined;
+
+    const loadCoverPreview = async () => {
+      try {
+        const response = await galleryApi.getWebsiteCollectionMedia(item.galleryId!);
+        const payload = response as { items?: unknown[]; media?: unknown[]; data?: unknown[] };
+        const records = Array.isArray(response)
+          ? response
+          : payload.items || payload.media || payload.data || [];
+        const mediaRecords = records.filter(
+          (record): record is Record<string, unknown> => !!record && typeof record === 'object'
+        );
+        const cover = mediaRecords.find((record) =>
+          String(record.id || record._id || '') === item.coverMediaId
+        ) || mediaRecords[0];
+        const urls = cover?.urls as Record<string, unknown> | undefined;
+        const previewUrl = [urls?.preview, urls?.download, urls?.thumbnail].find(
+          (url): url is string => typeof url === 'string' && !!url
+        );
+        if (isCurrent && previewUrl) setCoverSrc(previewUrl);
+      } catch (error) {
+        console.error('Failed to load high-resolution gallery cover:', error);
+      }
+    };
+
+    const card = cardRef.current;
+    if (card && 'IntersectionObserver' in window) {
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer?.disconnect();
+          void loadCoverPreview();
+        }
+      }, { rootMargin: '200px' });
+      observer.observe(card);
+    } else {
+      void loadCoverPreview();
+    }
+
+    return () => {
+      isCurrent = false;
+      observer?.disconnect();
+    };
+  }, [item.coverMediaId, item.galleryId, item.remoteGallery]);
 
   return (
     <Link
+      ref={cardRef}
       href={item.galleryId ? `/Gallery/${item.galleryId}` : item.href}
       target={item.galleryId ? undefined : '_blank'}
       rel={item.galleryId ? undefined : 'noopener noreferrer'}
@@ -175,7 +228,7 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
         minHeight: item.tall ? '420px' : '200px',
       }}>
         <Image
-          src={item.src}
+          src={coverSrc}
           alt={item.alt}
           fill
           style={{
@@ -192,7 +245,7 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(to top, rgba(27,58,92,0.92) 0%, rgba(27,58,92,0.35) 50%, transparent 100%)',
+        background: 'linear-gradient(to top, rgba(27,58,92,0.28) 0%, rgba(27,58,92,0.05) 22%, transparent 42%)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
@@ -359,6 +412,8 @@ export default function GalleryPage() {
             .map((collection) => ({
               id: collection.id,
               galleryId: collection.slug,
+              remoteGallery: true,
+              coverMediaId: collection.coverUrl?.match(/\/media\/([^/]+)\/thumbnail/)?.[1],
               src: collection.coverUrl || '/image/IMG_101.jpg',
               alt: collection.name,
               title: collection.name,
