@@ -209,8 +209,9 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
         borderRadius: '14px',
         overflow: 'hidden',
         cursor: 'pointer',
-        gridRow: item.tall ? 'span 2' : 'span 1',
-        background: '#ddd',
+        gridRow: item.galleryId ? 'span 1' : item.tall ? 'span 2' : 'span 1',
+        aspectRatio: item.galleryId ? '16 / 9' : undefined,
+        background: item.galleryId ? 'transparent' : '#ddd',
         display: 'block',
         textDecoration: 'none',
         boxShadow: hovered
@@ -225,7 +226,7 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
         position: 'relative',
         width: '100%',
         height: '100%',
-        minHeight: item.tall ? '420px' : '200px',
+        minHeight: item.galleryId ? undefined : item.tall ? '420px' : '200px',
       }}>
         <Image
           src={coverSrc}
@@ -233,7 +234,7 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
           fill
           style={{
             objectFit: 'cover',
-            transform: hovered ? 'scale(1.07)' : 'scale(1)',
+            transform: hovered && !item.galleryId ? 'scale(1.07)' : 'scale(1)',
             transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
           }}
           sizes="(max-width: 768px) 100vw, 33vw"
@@ -438,18 +439,10 @@ export default function GalleryPage() {
       }
     };
 
-    const refreshVisibleCollections = () => {
-      if (document.visibilityState === 'visible') void loadWebsiteCollections();
-    };
-
     void loadPublishedItems();
     void loadWebsiteCollections();
-    const refreshInterval = window.setInterval(refreshVisibleCollections, 5_000);
-    document.addEventListener('visibilitychange', refreshVisibleCollections);
     return () => {
       isCurrent = false;
-      window.clearInterval(refreshInterval);
-      document.removeEventListener('visibilitychange', refreshVisibleCollections);
     };
   }, []);
 
@@ -606,14 +599,13 @@ export default function GalleryPage() {
         .gallery-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          grid-auto-rows: 210px;
           gap: 14px;
         }
         @media (max-width: 900px) {
-          .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 180px; }
+          .gallery-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 560px) {
-          .gallery-grid { grid-template-columns: 1fr; grid-auto-rows: 220px; }
+          .gallery-grid { grid-template-columns: 1fr; }
           .gallery-controls { flex-direction: column; align-items: flex-start; }
           .search-input { width: 100%; }
           .search-wrap { width: 100%; }
