@@ -87,7 +87,7 @@ const newsItems: NewsItem[] = [
        name: 'DNA Week 2026 Event Report',
         type: 'PDF',
         size: '2.1 MB',
-        url: 'documents/DNA-DAY-2026-EVENT-REPORT.pdf',
+        url: '/documents/DNA-DAY-2026-EVENT-REPORT.pdf',
       },
   ],
   links: [
@@ -129,7 +129,7 @@ const newsItems: NewsItem[] = [
         name: 'BioCap Comms Induction & Stakeholder Workshop Report',
         type: 'PDF',
         size: '1.4 MB',
-        url: 'documents/2nd-Day-BioCap-project-Comms-Induction-Workshop-Report.pdf',
+        url: '/documents/2nd-Day-BioCap-project-Comms-Induction-Workshop-Report.pdf',
       },
     ],
     links: [
@@ -184,7 +184,57 @@ const newsItems: NewsItem[] = [
     role: 'Risk Management & Stewardship Session, Day 1',
   },
 },
+{
+  id: 4,
+  day: '09',
+  month: 'Sept',
+  year: '2026',
+  category: 'Research & Capacity Building',
+  author: 'AfS-Rwanda',
+  location: 'Michigan State University, East Lansing, USA',
+  title: 'Rwanda AgriBioTech Implementation and Capacity Building Program',
+  excerpt:
+    "AfS-Rwanda presented a research poster at the Global Agriculture Biotechnology Symposium 2026, tracing Rwanda's journey from biosafety policy to biotech crop products and the BioCap-powered capacity behind it.",
+  image: '/image/regulatory-image.jpg',
+  accent: '#E8185A',
+  accentBg: '#fde8ef',
+  intro:
+    "On 2–5 August 2026, AfS-Rwanda presented the poster \"From Policy to Product: Rwanda's Journey in Crop Biotechnology, Climate Resilience, and Agricultural Competitiveness\" at the Global Agriculture Biotechnology Symposium 2026 hosted by Michigan State University, authored by Pacifique Nshimiyimana.",
+  body:
+    "The poster maps the pressures facing Rwandan farmers — Fall Armyworm and drought in maize, Late Blight in potato, CMD and CBSD in cassava, and BXW and Fusarium wilt TR4 in banana — and pairs each challenge with a biotechnology solution. It follows Rwanda's biosafety path from signing the Cartagena Protocol in 2000 and ratifying it in 2004, through to Law No. 025/2024 and the move toward deployment of biotech crops. Evidence from Nigeria's TELA maize and Bangladesh's Bt eggplant shows the yield, cost, and income gains possible, while the BioCap Project's Centre of Excellence at RAB Rubona is building the laboratories, training, and biosafety systems to deliver locally developed products. Regulation, communication, and partnerships are presented as the pillars that sustain public trust and adoption.",
+  highlights: [
+    'Four food-security crops in the pipeline: banana, cassava, potato, and maize',
+    'Biosafety journey: Cartagena Protocol signed in 2000, ratified in 2004, and Law No. 025/2024 enacted to guide regulation',
+    'Biotech potato clones showed strong yield gains over non-biotech varieties, with Victoria and Shangi improvements completed under RABP-CMP',
+    'Studies from other countries: TELA maize in Nigeria (88% yield advantage) and Bt eggplant in Bangladesh (51% yield increase, 37.5% lower pesticide costs, 128% higher net revenue)',
+    'BioCap Centre of Excellence at RAB Rubona supports laboratories, gene editing, bioinformatics, and PhD, Master\'s, and technical staff training',
+    'Four pillars of trust and adoption: Science, Regulation, Communication, and Partnerships',
+  ],
+  resources: [
+    {
+      name: 'Rwanda AgriBioTech Implementation and Capacity Building Program - Poster by AfS-Rwanda at Michigan State University - Global Agriculture Biotechnology Symposium 2026',
+      type: 'PDF',
+      size: '3.2 MB',
+      url: '/documents/Pacifique x PosterB_small.pdf',
+    },
+  ],
+  links: [
+    { label: 'BioCap Rwanda — Learn More', url: 'https://biocap-rwanda.afs-rwanda.org' },
+    { label: 'Alliance for Science Rwanda', url: 'https://www.afs-rwanda.org/' },
+  ],
+  quote: {
+    text: 'Rwanda is emerging as an example of how countries can responsibly use modern biotechnology to strengthen food security, climate resilience, and agricultural competitiveness.',
+    name: 'Pacifique Nshimiyimana',
+    role: 'Poster author, AfS-Rwanda',
+  },
+},
 ];
+
+const newestFirstNewsItems = [...newsItems].sort((a, b) => {
+  const dateValue = (item: NewsItem) =>
+    new Date(`${item.month} ${Number.parseInt(item.day, 10)}, ${item.year}`).getTime();
+  return dateValue(b) - dateValue(a);
+});
 
 // ─── Shared type/style block ────────────────────────────────────────
 
@@ -505,8 +555,8 @@ export default function DNAWeekPage() {
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(newsItems.length / perPage));
-  const pageItems = newsItems.slice((page - 1) * perPage, page * perPage);
+  const totalPages = Math.max(1, Math.ceil(newestFirstNewsItems.length / perPage));
+  const pageItems = newestFirstNewsItems.slice((page - 1) * perPage, page * perPage);
 
   return (
     <div className="bg-white min-h-screen font-sans">
@@ -527,7 +577,7 @@ export default function DNAWeekPage() {
               Resource Report  <span className="text-[#E8185A]">Information</span>
             </h1>
             <p className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md">
-              Sessions, speakers, and resources from Rwanda's 
+              Sessions, speakers, and resources from Rwanda&apos;s 
               click any article for the full write-up and downloadable materials.
             </p>
           </div>
