@@ -55,9 +55,11 @@ async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
     _id: String(collection.id || slug),
     mediaType: 'folder',
     title: String(collection.name || collection.title || slug),
-    category: 'activities',
+    category: 'workshop',
     caption: String(collection.description || collection.caption || ''),
-    thumbnailUrl: typeof collection.coverUrl === 'string' ? collection.coverUrl : undefined,
+    thumbnailUrl: [collection.coverUrl, collection.thumbnail, collection.thumbnailUrl].find(
+      (url): url is string => typeof url === 'string' && !!url
+    ),
     images: [],
     createdBy: { _id: '', username: '', role: 'admin' },
     createdAt: String(collection.createdAt || new Date().toISOString()),
@@ -404,7 +406,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   }
 
   const selectedCover = item.images?.find((image) => image.isCover)?.url;
-  const coverImage = item.thumbnailUrl || selectedCover || images[0]?.url || '';
+  const coverImage = selectedCover || images[0]?.url || item.thumbnailUrl || '';
 
   const createdDate = item.createdAt ? new Date(item.createdAt) : null;
   const dateLabel =
@@ -446,8 +448,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
             className="object-cover"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0f2236] via-[#1B3A5C]/50 to-[#1B3A5C]/20" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C]/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-5 pb-10 pt-28 sm:px-8 sm:pb-14">
           <nav
@@ -599,7 +600,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                   />
 
                   {/* Hover / focus gradient (always visible on touch screens) */}
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f2236]/80 via-transparent to-transparent opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100" />
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f2236]/65 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100" />
 
                   {liked && (
                     <span className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-[#E8185A] text-white shadow md:group-hover:opacity-0">

@@ -364,7 +364,7 @@ export interface BlogStatsResponse {
 
 // ─── Gallery Domain ──────────────────────────────────────────────────────────
 export type GalleryMediaType = 'folder' | 'video';
-export type GalleryCategory = 'events' | 'team' | 'activities';
+export type GalleryCategory = 'events' | 'team' | 'activities' | 'workshop';
 
 export interface GalleryImage {
   url: string;

@@ -55,9 +55,9 @@ const GALLERY_ITEMS: GalleryCardItem[] = [
   {
     id: 2,
     src: '/image/DSC01236.jpg',
-    alt: 'OFAB stakeholder engagement outcomes',
-    title: 'OFAB: Outcomes & Impact',
-    caption: 'Documenting the outcomes of the Open Forum on Agricultural Biotechnology (OFAB), highlighting evidence-based dialogue between scientists, policymakers, and civil society on biotech adoption in Rwanda.',
+    alt: 'BIOCAP stakeholder engagement outcomes',
+    title: 'BIOCAP Stakeholder Engagement & Impact',
+    caption: 'Documenting BIOCAP stakeholder engagement and its impact, highlighting evidence-based dialogue between researchers, policymakers, and communities on agricultural biotechnology in Rwanda.',
     category: 'community',
     href: 'https://biotechnology.pixieset.com/theimpactofofabformediaandinfruencersday2/',
     itemCount: 17,
@@ -66,9 +66,9 @@ const GALLERY_ITEMS: GalleryCardItem[] = [
   {
     id: 3,
     src: '/image/DSC01175.jpg',
-    alt: 'OFAB media and influencer engagement',
-    title: 'OFAB Media & Influencer Engagement',
-    caption: 'Strategic science communication sessions bringing together journalists and digital influencers to strengthen public understanding of agricultural biotechnology research and its implications for food security.',
+    alt: 'BIOCAP science communication and advocacy engagement',
+    title: 'BIOCAP Science Communication & Advocacy',
+    caption: 'BIOCAP communication and advocacy engagement bringing together journalists, researchers, and partners to strengthen public understanding of agricultural biotechnology and support informed dialogue across Rwanda.',
     category: 'outreach',
     href: 'https://biotechnology.pixieset.com/ofabday02/',
     itemCount: 29,
@@ -127,7 +127,7 @@ const GALLERY_ITEMS: GalleryCardItem[] = [
 const CATEGORIES: { key: Category; label: string; Icon: React.ElementType }[] = [
   { key: 'all',        label: 'All Collections',                    Icon: Images        },
   { key: 'field',      label: 'Confined Field Trials (CFTs)',       Icon: Leaf          },
-  { key: 'workshop',   label: 'Capacity-Building & Training',       Icon: GraduationCap },
+  { key: 'workshop',   label: 'Workshop',                           Icon: GraduationCap },
   { key: 'conference', label: 'Regulatory & Launch Proceedings',    Icon: Presentation  },
   { key: 'outreach',   label: 'Science Communication & Advocacy',  Icon: Megaphone     },
   { key: 'dna',        label: 'Molecular Biology & DNA Week',       Icon: Dna           },
@@ -228,18 +228,29 @@ function CollectionCard({ item }: { item: GalleryCardItem }) {
         height: '100%',
         minHeight: item.galleryId ? undefined : item.tall ? '420px' : '200px',
       }}>
-        <Image
-          src={coverSrc}
-          alt={item.alt}
-          fill
-          style={{
-            objectFit: 'cover',
-            transform: hovered && !item.galleryId ? 'scale(1.07)' : 'scale(1)',
-            transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
-          }}
-          sizes="(max-width: 768px) 100vw, 33vw"
-          unoptimized
-        />
+        {coverSrc ? (
+          <Image
+            src={coverSrc}
+            alt={item.alt}
+            fill
+            style={{
+              objectFit: 'cover',
+              transform: hovered && !item.galleryId ? 'scale(1.07)' : 'scale(1)',
+              transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
+            }}
+            sizes="(max-width: 768px) 100vw, 33vw"
+            unoptimized
+          />
+        ) : (
+          <div
+            role="img"
+            aria-label={`${item.title}: no cover image`}
+            className="flex h-full min-h-[160px] items-center justify-center gap-2 bg-[#e8edf0] text-[#52656a]"
+          >
+            <Images size={20} strokeWidth={1.5} />
+            <span className="text-xs font-semibold">No cover image</span>
+          </div>
+        )}
       </div>
 
       {/* Always-visible bottom gradient + info */}
@@ -379,11 +390,11 @@ export default function GalleryPage() {
                 return {
                   id: item._id,
                   galleryId: item._id,
-                  src: item.mediaType === 'video' ? item.thumbnailUrl || '/image/IMG_101.jpg' : cover?.url || '/image/IMG_101.jpg',
+                  src: item.mediaType === 'video' ? item.thumbnailUrl || '' : cover?.url || '',
                   alt: item.title,
                   title: item.title,
                   caption: item.caption,
-                  category: item.category,
+                  category: item.category === 'activities' ? 'workshop' : item.category,
                   href: `/Gallery/${item._id}`,
                   itemCount: item.mediaType === 'video' ? 1 : item.images?.length || 0,
                   date: new Date(item.createdAt).toLocaleDateString('en-US', {
@@ -415,11 +426,11 @@ export default function GalleryPage() {
               galleryId: collection.slug,
               remoteGallery: true,
               coverMediaId: collection.coverUrl?.match(/\/media\/([^/]+)\/thumbnail/)?.[1],
-              src: collection.coverUrl || '/image/IMG_101.jpg',
+              src: collection.coverUrl || '',
               alt: collection.name,
               title: collection.name,
               caption: collection.description || '',
-              category: 'activities',
+              category: 'workshop',
               href: `/Gallery/${collection.slug}`,
               itemCount: collection.itemCount || 0,
               date: collection.updatedAt
