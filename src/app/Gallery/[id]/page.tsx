@@ -383,7 +383,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         className="flex min-h-screen items-center justify-center gap-3 bg-white text-[#1B3A5C]"
         style={{ fontFamily: SANS }}
       >
-        <Loader2 className="animate-spin" size={24} /> Loading collection...
+        <Loader2 className="animate-spin" size={24} /> Loading collections...
       </div>
     );
   }
