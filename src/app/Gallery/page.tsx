@@ -52,17 +52,7 @@ const GALLERY_ITEMS: GalleryCardItem[] = [
     date: 'December 04, 2025',
     tall: true,
   },
-  {
-    id: 2,
-    src: '/image/DSC01236.jpg',
-    alt: 'BIOCAP stakeholder engagement outcomes',
-    title: 'BIOCAP Stakeholder Engagement & Impact',
-    caption: 'Documenting BIOCAP stakeholder engagement and its impact, highlighting evidence-based dialogue between researchers, policymakers, and communities on agricultural biotechnology in Rwanda.',
-    category: 'community',
-    href: 'https://biotechnology.pixieset.com/theimpactofofabformediaandinfruencersday2/',
-    itemCount: 17,
-    date: 'May 20, 2026',
-  },
+ 
   {
     id: 3,
     src: '/image/DSC01175.jpg',
