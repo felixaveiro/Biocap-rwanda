@@ -369,6 +369,9 @@ export type GalleryCategory = 'events' | 'team' | 'activities' | 'workshop';
 export interface GalleryImage {
   url: string;
   publicId: string;
+  mediaType?: 'image' | 'video';
+  videoUrl?: string;
+  thumbnailUrl?: string;
   _id?: string;
   // OPTIONAL caption the uploader typed for this specific photo.
   caption?: string | null;

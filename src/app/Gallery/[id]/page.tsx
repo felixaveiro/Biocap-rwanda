@@ -43,6 +43,12 @@ const getMediaRecords = (value: unknown): unknown[] => {
   return [];
 };
 
+const getMediaUrl = (value: unknown): string | undefined => {
+  if (typeof value === 'string') return value;
+  const record = asRecord(value);
+  return typeof record?.url === 'string' ? record.url : undefined;
+};
+
 async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
   const collectionResponse = await galleryApi.getWebsiteCollection(slug);
   const collectionPayload = asRecord(collectionResponse);
@@ -82,6 +88,24 @@ async function getWebsiteGalleryImages(slug: string, coverUrl?: string): Promise
     const urls = asRecord(media.urls);
     const nestedMedia = asRecord(media.media);
     const isCover = media === coverRecord;
+    const mediaSource = getMediaUrl(
+      media.videoUrl || media.originalUrl || media.downloadUrl || media.fileUrl || media.mediaUrl ||
+      media.url || variants?.original || urls?.original || urls?.download || nestedMedia?.url
+    );
+    const mediaTypeText = [media.mediaType, media.type, media.mimeType, media.contentType, media.fileType]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ')
+      .toLowerCase();
+    const mediaName = [media.fileName, media.filename, media.name]
+      .filter((value): value is string => typeof value === 'string')
+      .join(' ');
+    const isVideo = mediaTypeText.includes('video') ||
+      /\.(mp4|mov|webm|m4v)(?:[?#]|$)/i.test(mediaSource || '') ||
+      /\.(mp4|mov|webm|m4v)$/i.test(mediaName);
+    const thumbnailUrl = getMediaUrl(
+      media.thumbnailUrl || media.thumbnail || media.previewUrl || urls?.thumbnail || urls?.preview ||
+      variants?.thumbnail || variants?.preview || nestedMedia?.thumbnailUrl || nestedMedia?.thumbnail
+    );
     const coverPreview = isCover
       ? [urls?.preview, urls?.download, urls?.thumbnail].find(
           (url): url is string => typeof url === 'string' && !!url
@@ -90,7 +114,7 @@ async function getWebsiteGalleryImages(slug: string, coverUrl?: string): Promise
     const candidate = coverPreview || media.url || media.originalUrl || media.downloadUrl || media.fileUrl ||
       media.mediaUrl || media.thumbnailUrl || variants?.original || urls?.preview ||
       urls?.download || urls?.thumbnail || urls?.original || nestedMedia?.url;
-    const url = typeof candidate === 'string' ? candidate : asRecord(candidate)?.url;
+    const url = isVideo ? thumbnailUrl || mediaSource : getMediaUrl(candidate);
     if (typeof url !== 'string' || !url) return [];
     const mediaId = String(media.id || media._id || media.mediaId || index);
     return [{
@@ -98,6 +122,9 @@ async function getWebsiteGalleryImages(slug: string, coverUrl?: string): Promise
       publicId: mediaId,
       referenceId: mediaId,
       url,
+      mediaType: isVideo ? 'video' as const : 'image' as const,
+      videoUrl: isVideo ? mediaSource : undefined,
+      thumbnailUrl: isVideo ? thumbnailUrl : undefined,
       isCover,
       caption: typeof media.title === 'string' ? media.title :
         typeof media.caption === 'string' ? media.caption : null,
@@ -118,6 +145,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
 
   // Grid tile loading + interactive UI state
   const [loadedTiles, setLoadedTiles] = useState<Record<string, boolean>>({});
+  const [failedVideoPosters, setFailedVideoPosters] = useState<Record<string, boolean>>({});
   const [likedMap, setLikedMap] = useState<Record<string, boolean>>({});
   const [onlyFavourites, setOnlyFavourites] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -565,17 +593,19 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
             className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
           >
             {visibleImages.map((image, index) => {
-              const fileName = getFileName(index, image.caption, image.url);
+              const mediaUrl = image.videoUrl || image.url;
+              const fileName = getFileName(index, image.caption, mediaUrl);
               const liked = !!likedMap[image.url];
               const imageKey = image._id || image.referenceId || image.publicId || String(index);
               const tileLoaded = !!loadedTiles[image.url];
+              const videoPosterFailed = !!failedVideoPosters[image.url];
 
               return (
                 <div
                   key={imageKey}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Open photo ${index + 1}${image.caption ? `: ${image.caption}` : ''}`}
+                  aria-label={`Open ${image.mediaType === 'video' ? 'video' : 'photo'} ${index + 1}${image.caption ? `: ${image.caption}` : ''}`}
                   onClick={() => setActiveImageIndex(index)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -587,17 +617,46 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                     tileLoaded ? '' : 'min-h-[180px] animate-pulse'
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.url}
-                    alt={image.caption || `${item.title}, photo ${index + 1}`}
-                    loading={index < 8 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    onLoad={() => setLoadedTiles((prev) => (prev[image.url] ? prev : { ...prev, [image.url]: true }))}
-                    className={`block h-auto w-full transition-opacity duration-500 ${
-                      tileLoaded ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  />
+                  {image.mediaType === 'video' ? (
+                    image.thumbnailUrl && !videoPosterFailed ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.thumbnailUrl}
+                        alt={image.caption || `${item.title}, video ${index + 1}`}
+                        loading={index < 8 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        onLoad={() => setLoadedTiles((prev) => (prev[image.url] ? prev : { ...prev, [image.url]: true }))}
+                        onError={() => {
+                          setFailedVideoPosters((prev) => ({ ...prev, [image.url]: true }));
+                          setLoadedTiles((prev) => ({ ...prev, [image.url]: true }));
+                        }}
+                        className="block aspect-video w-full bg-[#17283b] object-cover"
+                      />
+                    ) : (
+                      <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-[#1B3A5C] to-[#08111d] text-white/85">
+                        <Play size={32} className="fill-current" />
+                        <span className="text-xs font-semibold">Video preview unavailable</span>
+                      </div>
+                    )
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={image.url}
+                      alt={image.caption || `${item.title}, photo ${index + 1}`}
+                      loading={index < 8 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      onLoad={() => setLoadedTiles((prev) => (prev[image.url] ? prev : { ...prev, [image.url]: true }))}
+                      className={`block h-auto w-full transition-opacity duration-500 ${
+                        tileLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  )}
+
+                  {image.mediaType === 'video' && (
+                    <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white shadow-lg">
+                      <Play size={20} className="ml-0.5 fill-current" />
+                    </span>
+                  )}
 
                   {/* Hover / focus gradient (always visible on touch screens) */}
                   <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f2236]/65 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100" />
@@ -625,7 +684,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                       <Heart size={15} className={liked ? 'fill-current' : ''} />
                     </button>
                     <button
-                      onClick={(e) => handleDownload(e, image.url, fileName)}
+                      onClick={(e) => handleDownload(e, mediaUrl, fileName)}
                       aria-label="Download photo"
                       title="Download"
                       className={tileBtn}
@@ -633,7 +692,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                       <Download size={15} />
                     </button>
                     <button
-                      onClick={(e) => handleShare(e, image.url, image.caption || item.title)}
+                      onClick={(e) => handleShare(e, mediaUrl, image.caption || item.title)}
                       aria-label="Share photo"
                       title="Share"
                       className={tileBtn}
@@ -725,8 +784,8 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                   onClick={(e) =>
                     handleDownload(
                       e,
-                      activeImage.url,
-                      getFileName(activeImageIndex, activeImage.caption, activeImage.url)
+                      activeImage.videoUrl || activeImage.url,
+                      getFileName(activeImageIndex, activeImage.caption, activeImage.videoUrl || activeImage.url)
                     )
                   }
                   disabled={downloading}
@@ -742,7 +801,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                 </button>
 
                 <button
-                  onClick={(e) => handleShare(e, activeImage.url, activeImage.caption || item.title)}
+                  onClick={(e) => handleShare(e, activeImage.videoUrl || activeImage.url, activeImage.caption || item.title)}
                   title="Share"
                   aria-label="Share photo"
                   className={`${iconBtn} relative`}
@@ -792,24 +851,40 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                 </button>
               )}
 
-              <div className="relative w-full max-w-6xl self-stretch">
-                {!activeLoaded && (
-                  <div className="absolute inset-0 z-0 flex items-center justify-center text-white/30">
-                    <Loader2 size={32} className="animate-spin" />
-                  </div>
+              <div className="relative flex w-full max-w-6xl items-center justify-center self-stretch">
+                {activeImage.mediaType === 'video' && activeImage.videoUrl ? (
+                  <video
+                    key={activeImage.videoUrl}
+                    src={activeImage.videoUrl}
+                    poster={activeImage.thumbnailUrl || activeImage.url}
+                    controls
+                    autoPlay
+                    playsInline
+                    preload="metadata"
+                    onLoadedData={() => setLoadedUrl(activeImage.url)}
+                    className="max-h-full max-w-full rounded-md bg-black object-contain"
+                  />
+                ) : (
+                  <>
+                    {!activeLoaded && (
+                      <div className="absolute inset-0 z-0 flex items-center justify-center text-white/30">
+                        <Loader2 size={32} className="animate-spin" />
+                      </div>
+                    )}
+                    <Image
+                      key={activeImage.url}
+                      src={activeImage.url}
+                      alt={activeImage.caption || item.title}
+                      fill
+                      unoptimized
+                      priority
+                      onLoad={() => setLoadedUrl(activeImage.url)}
+                      className={`object-contain transition-opacity duration-300 ${
+                        activeLoaded ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  </>
                 )}
-                <Image
-                  key={activeImage.url}
-                  src={activeImage.url}
-                  alt={activeImage.caption || item.title}
-                  fill
-                  unoptimized
-                  priority
-                  onLoad={() => setLoadedUrl(activeImage.url)}
-                  className={`object-contain transition-opacity duration-300 ${
-                    activeLoaded ? 'opacity-100' : 'opacity-0'
-                  }`}
-                />
               </div>
 
               {activeImageIndex < visibleImages.length - 1 && (
