@@ -201,8 +201,13 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   }, [params]);
 
   const images = item?.images || [];
+  const sortedImages = [...images].sort(
+    (left, right) => Number(right.mediaType === 'video') - Number(left.mediaType === 'video')
+  );
   const likedCount = images.filter((image) => likedMap[image.url]).length;
-  const visibleImages = onlyFavourites ? images.filter((image) => likedMap[image.url]) : images;
+  const visibleImages = onlyFavourites
+    ? sortedImages.filter((image) => likedMap[image.url])
+    : sortedImages;
   const lightboxOpen = activeImageIndex !== null;
 
   // Remember liked photos per gallery (safe if storage is blocked)
@@ -587,10 +592,9 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
             playsInline
           />
         ) : visibleImages.length ? (
-          // Masonry: every photo keeps its own proportions, so nothing is cropped
           <section
-            aria-label={`${item.title} photos`}
-            className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4"
+            aria-label={`${item.title} photos and videos`}
+            className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-4"
           >
             {visibleImages.map((image, index) => {
               const mediaUrl = image.videoUrl || image.url;
@@ -613,8 +617,8 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                       setActiveImageIndex(index);
                     }
                   }}
-                  className={`group relative mb-4 block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-lg bg-[#e6e9ef] shadow-sm ring-1 ring-black/5 transition-shadow duration-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B3A5C] ${
-                    tileLoaded ? '' : 'min-h-[180px] animate-pulse'
+                  className={`group relative block w-full cursor-zoom-in overflow-hidden rounded-lg bg-[#e6e9ef] shadow-sm ring-1 ring-black/5 transition-shadow duration-300 hover:shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1B3A5C] ${
+                    tileLoaded ? '' : 'animate-pulse'
                   }`}
                 >
                   {image.mediaType === 'video' ? (
@@ -646,7 +650,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                       loading={index < 8 ? 'eager' : 'lazy'}
                       decoding="async"
                       onLoad={() => setLoadedTiles((prev) => (prev[image.url] ? prev : { ...prev, [image.url]: true }))}
-                      className={`block h-auto w-full transition-opacity duration-500 ${
+                      className={`block aspect-video w-full object-cover transition-opacity duration-500 ${
                         tileLoaded ? 'opacity-100' : 'opacity-0'
                       }`}
                     />
