@@ -46,10 +46,22 @@ const getMediaRecords = (value: unknown): unknown[] => {
 const getMediaUrl = (value: unknown): string | undefined => {
   if (typeof value === 'string') return value;
   const record = asRecord(value);
-  return typeof record?.url === 'string' ? record.url : undefined;
+  const variants = asRecord(record?.variants);
+  const urls = asRecord(record?.urls);
+  const candidates = [
+    record?.originalUrl, record?.downloadUrl, record?.url,
+    variants?.original, urls?.original, urls?.download, urls?.preview, urls?.thumbnail,
+  ];
+  return candidates.find((url): url is string => typeof url === 'string' && !!url);
 };
 
-async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
+type WebsiteGalleryItem = GalleryItem & {
+  coverMediaId?: string;
+  coverId?: string;
+  coverImageId?: string;
+};
+
+async function getWebsiteGalleryItem(slug: string): Promise<WebsiteGalleryItem> {
   const collectionResponse = await galleryApi.getWebsiteCollection(slug);
   const collectionPayload = asRecord(collectionResponse);
   const collection = asRecord(collectionPayload?.collection) ||
@@ -63,9 +75,11 @@ async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
     title: String(collection.name || collection.title || slug),
     category: 'workshop',
     caption: String(collection.description || collection.caption || ''),
-    thumbnailUrl: [collection.coverUrl, collection.thumbnail, collection.thumbnailUrl].find(
-      (url): url is string => typeof url === 'string' && !!url
-    ),
+    thumbnailUrl: getMediaUrl(collection.coverUrl) || getMediaUrl(collection.thumbnail) ||
+      getMediaUrl(collection.thumbnailUrl),
+    coverMediaId: typeof collection.coverMediaId === 'string' ? collection.coverMediaId : undefined,
+    coverId: typeof collection.coverId === 'string' ? collection.coverId : undefined,
+    coverImageId: typeof collection.coverImageId === 'string' ? collection.coverImageId : undefined,
     images: [],
     createdBy: { _id: '', username: '', role: 'admin' },
     createdAt: String(collection.createdAt || new Date().toISOString()),
@@ -73,15 +87,38 @@ async function getWebsiteGalleryItem(slug: string): Promise<GalleryItem> {
   };
 }
 
-async function getWebsiteGalleryImages(slug: string, coverUrl?: string): Promise<NonNullable<GalleryItem['images']>> {
+async function getWebsiteGalleryImages(
+  slug: string,
+  collection: Pick<WebsiteGalleryItem, 'thumbnailUrl' | 'coverMediaId' | 'coverId' | 'coverImageId'>
+): Promise<NonNullable<GalleryItem['images']>> {
   const mediaResponse = await galleryApi.getWebsiteCollectionMedia(slug);
-  const coverMediaId = coverUrl?.match(/\/media\/([^/]+)\/thumbnail/)?.[1];
+  const coverUrl = collection.thumbnailUrl;
+  const coverMediaIds = [collection.coverMediaId, collection.coverId, collection.coverImageId]
+    .filter((id): id is string => !!id)
+    .map((id) => id.trim());
+  const coverUrlId = coverUrl?.match(/\/media\/([^/?#]+)/)?.[1];
+  if (coverUrlId) coverMediaIds.push(coverUrlId);
+  const normalizeUrl = (url: string) => url.split(/[?#]/, 1)[0].replace(/\/$/, '');
+  const normalizedCoverUrl = coverUrl ? normalizeUrl(coverUrl) : undefined;
   const mediaRecords = getMediaRecords(mediaResponse)
     .map(asRecord)
     .filter((media): media is Record<string, unknown> => media !== null);
-  const coverRecord = mediaRecords.find((media) =>
-    String(media.id || media._id || '') === coverMediaId
-  ) || mediaRecords[0];
+  const coverRecord = mediaRecords.find((media) => {
+    const ids = [media.id, media._id, media.mediaId, media.publicId, media.referenceId, media.assetId]
+      .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number')
+      .map(String);
+    if (coverMediaIds.some((id) => ids.includes(id))) return true;
+    if (media.isCover === true || media.isSelectedCover === true) return true;
+
+    const urls = asRecord(media.urls);
+    const variants = asRecord(media.variants);
+    const mediaUrls = [
+      media.url, media.originalUrl, media.downloadUrl, media.fileUrl, media.mediaUrl,
+      media.thumbnailUrl, media.previewUrl, urls?.original, urls?.download, urls?.thumbnail,
+      urls?.preview, variants?.original, variants?.thumbnail, variants?.preview,
+    ].filter((url): url is string => typeof url === 'string');
+    return !!normalizedCoverUrl && mediaUrls.some((url) => normalizeUrl(url) === normalizedCoverUrl);
+  });
 
   return mediaRecords.flatMap((media, index) => {
     const variants = asRecord(media.variants);
@@ -107,7 +144,11 @@ async function getWebsiteGalleryImages(slug: string, coverUrl?: string): Promise
       variants?.thumbnail || variants?.preview || nestedMedia?.thumbnailUrl || nestedMedia?.thumbnail
     );
     const coverPreview = isCover
-      ? [urls?.preview, urls?.download, urls?.thumbnail].find(
+      ? [
+          media.originalUrl, media.downloadUrl, media.fileUrl, media.mediaUrl,
+          variants?.original, urls?.original, urls?.download, media.url,
+          urls?.preview, urls?.thumbnail,
+        ].find(
           (url): url is string => typeof url === 'string' && !!url
         )
       : undefined;
@@ -173,7 +214,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         if (isCurrent) setItem(websiteItem);
         setLoading(false);
         setLoadingImages(true);
-        void getWebsiteGalleryImages(id, websiteItem.thumbnailUrl)
+        void getWebsiteGalleryImages(id, websiteItem)
           .then((websiteImages) => {
             if (isCurrent) {
               setItem((currentItem) => currentItem
@@ -439,7 +480,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   }
 
   const selectedCover = item.images?.find((image) => image.isCover)?.url;
-  const coverImage = selectedCover || images[0]?.url || item.thumbnailUrl || '';
+  const coverImage = selectedCover || item.thumbnailUrl || '';
 
   const createdDate = item.createdAt ? new Date(item.createdAt) : null;
   const dateLabel =
@@ -483,8 +524,8 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
           </div>
         )}
         {/* Readability overlay: dark on the left (text side), light on the right so faces stay clear */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C]/85 via-[#1B3A5C]/25 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1B3A5C]/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1B3A5C]/35 via-transparent to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-5 pb-10 pt-28 sm:px-8 sm:pb-14">
           <nav
