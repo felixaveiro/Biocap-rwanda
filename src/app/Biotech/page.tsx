@@ -147,7 +147,7 @@ const CROPS: CropData[] = [
       {
         title: 'BXW Resistance: Kamara ',
         SectionIcon: ShieldAlert,
-        body: 'Training focuses on BXW resistance targets MusaPUB22 and MusaPUB23, already successfully knocked out in dessert banana cultivar Kamara/Sukali Ndiizi using CRISPR-Cas9. The resulting transgene-free events have been validated for mutation accuracy and absence of foreign DNA, and are now ready for field evaluation in Rwanda — led by a RAB scientist returning from her PhD at IITA in 2025.',
+        body: 'Training focuses on BXW resistance targets: MusaPUB22 and MusaPUB23, already successfully knocked out using CRISPR-Cas9 by IITA scientists in dessert banana cultivar known in Rwanda as Kamara or regionally recognized as Sukali Ndiizi. The resulting transgene-free events have been validated for mutation accuracy and absence of foreign DNA and are now ready for field evaluation in Rwanda led by a RAB scientist returning from her PhD at IITA in 2025.',
       },
       {
         title: 'Injagi Editing & FULCRUM™ System',

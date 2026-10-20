@@ -467,21 +467,24 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
           .gl-progress-bar { animation: none !important; }
         }
       `}</style>
-
-      {/* ── Hero ─────────────────────────────────────────── */}
-      <section className="relative isolate flex min-h-[56vh] w-full items-end overflow-hidden bg-[#1B3A5C] text-white">
+      <section className="relative isolate flex h-[80vh] min-h-[560px] w-full items-end overflow-hidden bg-[#1B3A5C] text-white">
+        {/* Full-width background photo. -top-8 (2rem) pushes the image up so the top 2rem is cropped. */}
         {coverImage && (
-          <Image
-            src={coverImage}
-            alt={item.title}
-            fill
-            priority
-            unoptimized
-            sizes="100vw"
-            className="object-cover"
-          />
+          <div className="absolute inset-x-0 -top-8 bottom-0">
+            <Image
+              src={coverImage}
+              alt={item.title}
+              fill
+              priority
+              unoptimized
+              sizes="100vw"
+              className="object-cover object-top"
+            />
+          </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C] via-[#1B3A5C]/85 to-transparent" />
+        {/* Readability overlay: dark on the left (text side), light on the right so faces stay clear */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1B3A5C]/85 via-[#1B3A5C]/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1B3A5C]/70 via-transparent to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-5 pb-10 pt-28 sm:px-8 sm:pb-14">
           <nav
@@ -594,7 +597,7 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         ) : visibleImages.length ? (
           <section
             aria-label={`${item.title} photos and videos`}
-            className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:gap-4 xl:grid-cols-4"
+            className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4"
           >
             {visibleImages.map((image, index) => {
               const mediaUrl = image.videoUrl || image.url;
