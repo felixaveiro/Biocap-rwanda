@@ -39,6 +39,7 @@ const COLORS = {
 const SW = 1.5; 
 
 const RABP_CMP_URL = 'https://rabp.aatf-africa.org/index.php';
+const RABP_CMP_MISSION_URL = 'https://rabp.aatf-africa.org/objectives.php';
 
 interface HeroButton {
   label: string;
@@ -84,11 +85,16 @@ const HERO_SLIDES: HeroSlide[] = [
     body: 'RABP-CMP leverages modern biotechnology to develop resilient cassava, maize, and potato varieties for Rwanda. Through innovation, research, and partnerships, the programme supports sustainable agriculture, improved yields, and enhanced food security for more than 500,000 smallholder farmers.',
     buttons: [
       { label: 'Explore More', href: RABP_CMP_URL, external: true, primary: true },
+      { label: 'Our Mission', href: RABP_CMP_MISSION_URL, external: true },
     ],
   },
 ];
 
 const HERO_INTERVAL_MS = 8000;
+
+// Which part of the photo stays visible when the screen shape differs from the photo.
+// 'center top' keeps heads/faces in view. Try 'center' or 'center 30%' to show more of the bottom.
+const HERO_IMAGE_POSITION = 'center top';
 
 const FEATURES = [
   {
@@ -451,7 +457,6 @@ export default function HomePage() {
         @media (max-width: 768px) {
           .bc-hero { padding: 0 1.5rem; }
           .bc-hero-inner { padding: 5rem 0 7rem; }
-          .bc-hero-bg > div { background-attachment: scroll !important; }
         }
       `}</style>
 
@@ -466,8 +471,8 @@ export default function HomePage() {
                 inset: 0,
                 backgroundImage: `url('${s.image}')`,
                 backgroundSize: 'cover',
-                backgroundPosition: 'center 15%',
-                backgroundAttachment: 'fixed',
+                backgroundPosition: HERO_IMAGE_POSITION,
+                backgroundRepeat: 'no-repeat',
                 opacity: i === slide ? 1 : 0,
                 transition: 'opacity 1.4s ease',
               }}
