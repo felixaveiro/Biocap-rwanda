@@ -2,7 +2,7 @@
 
 import { motion, useInView } from 'framer-motion';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Variants } from 'framer-motion';
 import useSWR from 'swr';
 import Footer from '@/components/Footer';
@@ -21,6 +21,8 @@ import {
   Users,
   Building2,
   Wheat,
+  Star,
+  ExternalLink,
 } from 'lucide-react';
 
 const COLORS = {
@@ -36,11 +38,57 @@ const COLORS = {
 
 const SW = 1.5; 
 
-const HERO_SLIDES = [
-  '/image/IMG_150.jpg',
-  '/image/IMG_36.jpg',
-  '/image/DSC06556(1).jpg',
+const RABP_CMP_URL = 'https://rabp.aatf-africa.org/index.php';
+
+interface HeroButton {
+  label: string;
+  href: string;
+  external?: boolean;
+  primary?: boolean;
+}
+
+interface HeroSlide {
+  key: 'biocap' | 'cmp';
+  image: string;
+  overlay: string;
+  badge: string;
+  title: React.ReactNode;
+  body: string;
+  buttons: HeroButton[];
+}
+
+// Two hero slides: the BioCap project and the RABP-CMP project
+const HERO_SLIDES: HeroSlide[] = [
+  {
+    key: 'biocap',
+    image: '/image/IMG_150.jpg',
+    overlay: 'linear-gradient(to right, #1B3A5C 0%, rgba(27,58,92,0.85) 55%, transparent 100%)',
+    badge: 'Rwanda Agricultural Biotech Initiative',
+    title: (
+      <>
+        The Science of <span className="text-[#E8185A]">Rwandan</span> Growth.
+      </>
+    ),
+    body: 'We are unlocking the genetic potential of Rwandan farmer-preferred crops to ensure food security and economic prosperity for every farmer across our diversified agro-ecological zones.',
+    buttons: [
+      { label: 'Explore Our Events', href: '/Resource', primary: true },
+      { label: 'Our Mission', href: '/About#mission' },
+    ],
+  },
+  {
+    key: 'cmp',
+    image: '/image/IMG_36.jpg',
+    overlay: 'linear-gradient(to right, rgba(10,112,82,0.97) 0%, rgba(28,120,72,0.90) 55%, rgba(58,125,63,0.35) 100%)',
+    badge: 'First Biotech Crop Approvals in Rwanda — September 2025',
+    title: <>Transforming Agriculture Through Agricultural Biotechnology</>,
+    body: 'RABP-CMP leverages modern biotechnology to develop resilient cassava, maize, and potato varieties for Rwanda. Through innovation, research, and partnerships, the programme supports sustainable agriculture, improved yields, and enhanced food security for more than 500,000 smallholder farmers.',
+    buttons: [
+      { label: 'Explore More', href: RABP_CMP_URL, external: true, primary: true },
+    ],
+  },
 ];
+
+const HERO_INTERVAL_MS = 8000;
 
 const FEATURES = [
   {
@@ -141,6 +189,44 @@ function Section({
   );
 }
 
+/* ── HERO BUTTON (internal link or external site) ── */
+function HeroLink({ btn }: { btn: HeroButton }) {
+  const base: React.CSSProperties = btn.primary
+    ? { background: COLORS.pink, color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', transition: 'filter 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }
+    : { background: 'rgba(255,255,255,0.12)', color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', transition: 'background 0.2s', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' };
+
+  const hoverIn = (e: React.MouseEvent<HTMLElement>) => {
+    if (btn.primary) e.currentTarget.style.filter = 'brightness(1.1)';
+    else e.currentTarget.style.background = 'rgba(255,255,255,0.22)';
+  };
+  const hoverOut = (e: React.MouseEvent<HTMLElement>) => {
+    if (btn.primary) e.currentTarget.style.filter = 'brightness(1)';
+    else e.currentTarget.style.background = 'rgba(255,255,255,0.12)';
+  };
+
+  if (btn.external) {
+    return (
+      <a
+        href={btn.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={base}
+        onMouseEnter={hoverIn}
+        onMouseLeave={hoverOut}
+      >
+        {btn.label}
+        <ExternalLink size={16} aria-hidden="true" />
+      </a>
+    );
+  }
+
+  return (
+    <Link href={btn.href} style={base} onMouseEnter={hoverIn} onMouseLeave={hoverOut}>
+      {btn.label}
+    </Link>
+  );
+}
+
 /* ══════════════════════════════════════════════════════
    PAGE
 ══════════════════════════════════════════════════════ */
@@ -150,9 +236,12 @@ export default function HomePage() {
 
   const [slide, setSlide] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setSlide(s => (s + 1) % HERO_SLIDES.length), 5000);
+    // Restarts the timer whenever a dot is clicked, so a manual choice isn't skipped straight away
+    const id = setInterval(() => setSlide(s => (s + 1) % HERO_SLIDES.length), HERO_INTERVAL_MS);
     return () => clearInterval(id);
-  }, []);
+  }, [slide]);
+
+  const current = HERO_SLIDES[slide];
 
   // 🟢 FETCH 3 MOST RECENT PUBLISHED STORIES FROM BACKEND
   const { data: rawStoriesData, isLoading: storiesLoading } = useSWR(
@@ -366,16 +455,16 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* ════════ HERO ════════ */}
+      {/* ════════ HERO (2 sliding slides: BioCap + RABP-CMP) ════════ */}
       <section className="bc-hero" ref={heroRef}>
         <div className="bc-hero-bg" style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-          {HERO_SLIDES.map((src, i) => (
+          {HERO_SLIDES.map((s, i) => (
             <div
-              key={src}
+              key={s.key}
               style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundImage: `url('${src}')`,
+                backgroundImage: `url('${s.image}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center 15%',
                 backgroundAttachment: 'fixed',
@@ -386,72 +475,79 @@ export default function HomePage() {
           ))}
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 2,
-            pointerEvents: 'none',
-            background: 'linear-gradient(to right, #1B3A5C 0%, rgba(27,58,92,0.85) 55%, transparent 100%)',
-          }}
-        />
+        {/* Colour overlay per slide: navy for BioCap, green for RABP-CMP */}
+        {HERO_SLIDES.map((s, i) => (
+          <div
+            key={s.key}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 2,
+              pointerEvents: 'none',
+              background: s.overlay,
+              opacity: i === slide ? 1 : 0,
+              transition: 'opacity 1.4s ease',
+            }}
+          />
+        ))}
 
         <div className="bc-hero-inner">
+          {/* key={current.key} remounts this block so the text animates in on every slide change */}
           <motion.div
+            key={current.key}
             initial="hidden"
             animate="show"
             variants={{ show: { transition: { staggerChildren: 0.1 } } }}
             style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}
           >
-            <motion.p
-              variants={fadeUp}
-              className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md"
-            >
-              Rwanda Agricultural Biotech Initiative
-            </motion.p>
+            {current.key === 'cmp' ? (
+              <motion.p
+                variants={fadeUp}
+                className="inline-flex items-center gap-2 rounded-full border border-[#FFD600]/40 bg-white/10 px-4 py-2 text-[11px] sm:text-xs font-extrabold tracking-wider uppercase text-[#FFD600] mb-5 backdrop-blur-sm"
+              >
+                <Star size={14} fill="#FFD600" aria-hidden="true" />
+                {current.badge}
+              </motion.p>
+            ) : (
+              <motion.p
+                variants={fadeUp}
+                className="text-[#E8185A] text-xs font-bold tracking-[4px] uppercase mb-3 drop-shadow-md"
+              >
+                {current.badge}
+              </motion.p>
+            )}
 
             <motion.h1
               variants={fadeUp}
-              className="text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg"
+              className={
+                current.key === 'cmp'
+                  ? 'text-4xl lg:text-5xl font-sans font-extrabold text-white leading-tight mb-5 drop-shadow-lg'
+                  : 'text-5xl lg:text-6xl font-serif text-white leading-tight mb-4 italic drop-shadow-lg'
+              }
             >
-              The Science of <span className="text-[#E8185A]">Rwandan</span> Growth.
+              {current.title}
             </motion.h1>
 
             <motion.p
               variants={fadeUp}
               className="text-white/90 text-lg max-w-xl leading-relaxed font-medium drop-shadow-md"
             >
-              We are unlocking the genetic potential of Rwandan farmer-preferred crops to ensure
-              food security and economic prosperity for every farmer across our diversified
-              agro-ecological zones.
+              {current.body}
             </motion.p>
 
             <motion.div variants={fadeUp} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '2rem' }}>
-              <Link
-                href="/Resource"
-                style={{ background: COLORS.pink, color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', transition: 'filter 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.1)')}
-                onMouseLeave={e => (e.currentTarget.style.filter = 'brightness(1)')}
-              >
-                Explore Our Events
-              </Link>
-              <Link
-                href="/About#mission"
-                style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', padding: '1rem 2.2rem', borderRadius: '14px', fontWeight: 700, textDecoration: 'none', fontSize: '0.95rem', border: '1px solid rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)', transition: 'background 0.2s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.22)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.12)')}
-              >
-                Our Mission
-              </Link>
+              {current.buttons.map((btn) => (
+                <HeroLink key={btn.label} btn={btn} />
+              ))}
             </motion.div>
           </motion.div>
         </div>
 
         {/* Dots */}
         <div style={{ position: 'absolute', bottom: '2.5rem', left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {HERO_SLIDES.map((_, i) => (
+          {HERO_SLIDES.map((s, i) => (
             <button
-              key={i}
+              key={s.key}
               className="bc-slide-dot"
               onClick={() => setSlide(i)}
               aria-label={`Go to slide ${i + 1}`}
