@@ -6,6 +6,7 @@ import {
   Leaf,
   CircleDot,
   Banana,
+  Wheat,
   Dna,
   ShieldAlert,
   TrendingUp,
@@ -18,7 +19,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 
-type CropKey = 'cassava' | 'potato' | 'banana';
+type CropKey = 'cassava' | 'potato' | 'banana' | 'maize';
+type ProjectKey = 'biocap' | 'cmp';
 
 interface CropDocument {
   title: string;
@@ -40,6 +42,12 @@ interface CropData {
   sections: { title: string; body: string; SectionIcon: React.ElementType }[];
   documents: CropDocument[];
 }
+
+// Which crops each project shows, in tab order
+const PROJECTS: { key: ProjectKey; label: string; crops: CropKey[] }[] = [
+  { key: 'biocap', label: 'BioCap Project', crops: ['cassava', 'potato', 'banana'] },
+  { key: 'cmp', label: 'RABP-CMP Project', crops: ['cassava', 'maize', 'potato'] },
+];
 
 // Hero background video (public/image/Biocap-workshop.mp4) and its still-image fallback
 const HERO_VIDEO = '/image/Biocap-workshop.mp4';
@@ -169,6 +177,43 @@ const CROPS: CropData[] = [
       },
     ],
   },
+  {
+    // CMP only
+    key: 'maize',
+    label: 'Biotech Maize',
+    Icon: Wheat,
+    // image: '/image/maize.png',
+    color: '#C98A0B',
+    colorLight: '#fbf1d9',
+    status: 'approved',
+    statusLabel: 'REMA 2025',
+    subtitle: 'REMA environmental release approved September 2025',
+    sections: [
+      {
+        title: 'What is Biotech Maize?',
+        SectionIcon: Leaf,
+        body: 'Drought-tolerant and insect-resistant biotech maize varieties developed for Rwanda contain Bt traits providing natural resistance to the devastating fall armyworm (Spodoptera frugiperda) that has swept across Africa since 2016.',
+      },
+      {
+        title: 'Key Challenges Addressed',
+        SectionIcon: ShieldAlert,
+        body: 'The fall armyworm arrived in Africa around 2016 and rapidly spread across Rwanda, reducing maize yields by up to 50% in some areas. Chemical control is expensive and poses health and environmental risks. Biotech maize provides a durable, farmer-friendly solution.',
+      },
+      {
+        title: 'Benefits for Farmers',
+        SectionIcon: TrendingUp,
+        body: 'Biotech maize reduces the need for chemical pesticides, lowering input costs. Its drought-tolerant traits protect yields during dry spells. Together these traits deliver consistent, reliable harvests for smallholder households depending on maize as a staple food and income source.',
+      },
+    ],
+    documents: [
+      {
+        title: 'A5-Biotech-Maize-General-FAQ-2025',
+        filename: 'A5-Biotech-Maize-General-FAQ-2025.pdf',
+        fileSize: '4,808.2 KB',
+        downloadUrl: '/documents/crop_maize_1777555721_A5-Biotech-Maize-General-FAQ-2025.pdf',
+      },
+    ],
+  },
 ];
 
 function CropMark({
@@ -190,6 +235,42 @@ function CropMark({
     );
   }
   return <crop.Icon size={size} color={iconColor} aria-hidden="true" />;
+}
+
+function ProjectToggle({
+  project,
+  onChange,
+}: {
+  project: ProjectKey;
+  onChange: (key: ProjectKey) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Project"
+      className="inline-flex rounded-full bg-white p-1 shadow-sm border border-slate-200"
+    >
+      {PROJECTS.map((p) => {
+        const isActive = project === p.key;
+        return (
+          <button
+            key={p.key}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(p.key)}
+            className="rounded-full px-8 py-2.5 text-sm font-bold transition-all duration-200"
+            style={{
+              background: isActive ? '#1B3A5C' : 'transparent',
+              color: isActive ? '#fff' : '#1B3A5C',
+              boxShadow: isActive ? '0 8px 24px #1B3A5C40' : 'none',
+            }}
+          >
+            {p.label}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function CropTab({
@@ -254,7 +335,7 @@ function InfoCard({
   );
 }
 
-function CropPanel({ crop }: { crop: CropData }) {
+function CropPanel({ crop, project }: { crop: CropData; project: ProjectKey }) {
   return (
     <div className="max-w-6xl mx-auto px-4 lg:px-6">
       <div
@@ -285,31 +366,34 @@ function CropPanel({ crop }: { crop: CropData }) {
         )}
       </div>
 
-      <div className="flex justify-end">
-        <div
-          className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
-          style={{ width: '95%', background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <FlaskConical size={24} color="#fff" aria-hidden="true" />
+      {/* The BioCap objective only applies to the BioCap project */}
+      {project === 'biocap' && (
+        <div className="flex justify-end">
+          <div
+            className="rounded-3xl px-6 lg:px-8 py-6 flex items-center justify-between flex-wrap gap-4 shadow-lg mt-4"
+            style={{ width: '95%', background: `linear-gradient(135deg, ${crop.color} 0%, #1B3A5C 130%)` }}
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <FlaskConical size={24} color="#fff" aria-hidden="true" />
+              </div>
+              <div>
+                <p className="bc-serif m-0 text-white text-ml font-bold">Rwanda BioCap Project Intended Objective</p>
+                <p className="m-0 mt-1 text-white/75 text-[0.8rem]">
+                  Researchers at RAB Build Capacity to Develop and Deploy Improved Farmer-preferred  {crop.label} Varieties.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="bc-serif m-0 text-white text-ml font-bold">Rwanda BioCap Project Intended Objective</p>
-              <p className="m-0 mt-1 text-white/75 text-[0.8rem]">
-                Researchers at RAB Build Capacity to Develop and Deploy Improved Farmer-preferred  {crop.label} Varieties.
-              </p>
-            </div>
-          </div>
 
-          <div className="text-right">
-            <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
-              <CheckCircle size={16} aria-hidden="true" /> Ongoing
-            </span>
-            <span className="block text-white/70 text-[0.7rem]">2025–2030 </span>
+            <div className="text-right">
+              <span className="text-white font-bold text-base inline-flex items-center gap-1.5">
+                <CheckCircle size={16} aria-hidden="true" /> Ongoing
+              </span>
+              <span className="block text-white/70 text-[0.7rem]">2025–2030 </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="grid gap-4 my-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
         {crop.sections.map((s) => (
@@ -335,6 +419,10 @@ function CropPanel({ crop }: { crop: CropData }) {
           </span>
         </p>
 
+        {crop.documents.length === 0 && (
+          <p className="m-0 text-[0.8rem] text-slate-400">No documents available yet.</p>
+        )}
+
         {crop.documents.map((doc, idx) => (
           <div key={idx} className="bg-[#f7f6f4] rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap my-2">
             <div>
@@ -357,8 +445,20 @@ function CropPanel({ crop }: { crop: CropData }) {
 }
 
 export default function BiotechCropsPage() {
+  const [project, setProject] = useState<ProjectKey>('biocap');
   const [active, setActive] = useState<CropKey>('cassava');
-  const activeCrop = CROPS.find((c) => c.key === active)!;
+
+  const visibleCrops = PROJECTS.find((p) => p.key === project)!.crops.map(
+    (key) => CROPS.find((c) => c.key === key)!
+  );
+  // Fall back to the first crop if the active one isn't part of this project
+  const activeCrop = visibleCrops.find((c) => c.key === active) ?? visibleCrops[0];
+
+  const handleProjectChange = (key: ProjectKey) => {
+    setProject(key);
+    const crops = PROJECTS.find((p) => p.key === key)!.crops;
+    if (!crops.includes(active)) setActive(crops[0]);
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
@@ -487,18 +587,23 @@ export default function BiotechCropsPage() {
         </section>
 
         <section id="crops" className="scroll-mt-4 bg-[#f7f6f4] pt-10 pb-14">
+          {/* Project switch: BioCap (cassava, potato, banana) or CMP (cassava, maize, potato) */}
+          <div className="flex justify-center px-4 mb-6">
+            <ProjectToggle project={project} onChange={handleProjectChange} />
+          </div>
+
           <div className="flex justify-center gap-3 px-4 flex-wrap mb-8">
-            {CROPS.map((crop) => (
+            {visibleCrops.map((crop) => (
               <CropTab
                 key={crop.key}
                 crop={crop}
-                active={active === crop.key}
+                active={activeCrop.key === crop.key}
                 onClick={() => setActive(crop.key)}
               />
             ))}
           </div>
 
-          <CropPanel crop={activeCrop} />
+          <CropPanel crop={activeCrop} project={project} />
         </section>
       </div>
 
