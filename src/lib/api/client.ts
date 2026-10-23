@@ -5,10 +5,7 @@ import { authCookies } from "@/lib/auth/cookies";
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://biocap-dashboard-backend.onrender.com";
-
-/**
- * Thrown for every failed request (network error, 4xx, 5xx).
- */
+  
 export class ApiError extends Error {
   status: number;
 
@@ -23,16 +20,12 @@ interface RequestOptions {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
   cache?: RequestCache;
-  /** Set true for endpoints that require the Bearer token */
   auth?: boolean;
 }
 
-// Single active promise to prevent duplicate simultaneous refresh requests
 let refreshPromise: Promise<string | null> | null = null;
 
-/**
- * Helper to clear authentication state and redirect cleanly to login.
- */
+
 function handleAuthFailure() {
   authCookies.clearAll();
   if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth/login")) {
@@ -40,11 +33,6 @@ function handleAuthFailure() {
   }
 }
 
-/**
- * FIX: Reads the user id from the JWT payload (the backend signs it as `id`).
- * Used as a fallback when the userId cookie was never saved.
- * Works even if the access token is already expired (we only decode, not verify).
- */
 function getUserIdFromToken(token: string | null): string | null {
   if (!token) return null;
   try {
@@ -56,9 +44,6 @@ function getUserIdFromToken(token: string | null): string | null {
   }
 }
 
-/**
- * Clean, single-target token refresh mechanism.
- */
 async function tryRefreshToken(): Promise<string | null> {
   const refreshToken = authCookies.getRefreshToken();
 
@@ -67,12 +52,10 @@ async function tryRefreshToken(): Promise<string | null> {
     return null;
   }
 
-  // Reuse in-flight request if multiple 401s occur at the same time
   if (refreshPromise) {
     return refreshPromise;
   }
 
-  // FIX: backend /api/auth/refresh requires BOTH refreshToken and userId
   const userId =
     authCookies.getUserId() || getUserIdFromToken(authCookies.getToken());
 
@@ -122,23 +105,18 @@ async function tryRefreshToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-/**
- * Generic JSON request helper with automatic token refresh on 401 responses.
- */
 export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const { method = "GET", body, auth = false, cache } = options;
 
-  // Check if this is an explicitly public route
   const isPublicRoute = path.includes("/public");
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  // Only attach authorization headers if auth is explicitly required AND not a public route
   if (auth && !isPublicRoute) {
     const token = authCookies.getToken();
     if (!token) {
@@ -164,7 +142,6 @@ export async function apiRequest<T>(
     );
   }
 
-  // Attempt token refresh on 401 (excluding public endpoints, refresh, and login)
   if (
     response.status === 401 &&
     auth &&
@@ -213,9 +190,6 @@ interface FormRequestOptions {
   auth?: boolean;
 }
 
-/**
- * Multipart request helper for media & file uploads (Blog dynamic sections).
- */
 export async function apiFormRequest<T>(
   path: string,
   options: FormRequestOptions

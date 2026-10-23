@@ -10,7 +10,8 @@ import StoryEditor from "@/components/StoryEditor";
 import { base64ToFile } from "@/lib/utils/file";
 import { useSession } from "@/hooks/useSession";
 import { blogsApi } from "@/lib/api/blogs";
-import { Role, BlogPost } from "@/types";
+import { ApiError } from "@/lib/api/client";
+import { Role, BlogBlock, BlogPost } from "@/types";
 import {
   ArrowLeft,
   Save,
@@ -42,6 +43,51 @@ const CATEGORIES = [
   { label: "TRADE & FOOD", value: "Trade & Food", icon: ShoppingBag },
 ];
 
+interface DraftBlock extends BlogBlock {
+  rawFile?: File;
+}
+
+interface DraftSection {
+  id: string;
+  kind: "paragraph" | "heading" | "quote" | "image";
+  text: string;
+  attribution?: string;
+  caption?: string;
+  fitMode?: "cover" | "contain";
+  imagePreview?: string | null;
+  imageFile?: File | null;
+  imageFileKey?: string | null;
+}
+
+interface LocalStoryDraft {
+  title: string;
+  tag: string;
+  excerpt: string;
+  blocks: DraftBlock[];
+  coverImage: string;
+  socialHandle: string;
+  organizationLink: string;
+  draftId?: string;
+  serverBlocks?: DraftBlock[];
+  coverUploaded?: boolean;
+}
+
+const fileToDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+const dataUrlToFile = (dataUrl: string, name: string) => {
+  const [header, data] = dataUrl.split(",");
+  const mime = header.match(/data:(.*?);base64/)?.[1] || "image/jpeg";
+  const binary = atob(data || "");
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new File([bytes], name, { type: mime });
+};
+
 export default function CreateNewStoryPage() {
   const router = useRouter();
   const { user, loading, allowed } = useSession("blog:create");
@@ -50,7 +96,7 @@ export default function CreateNewStoryPage() {
   const [tag, setTag] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content] = useState("");
-  const [blocks, setBlocks] = useState<any[]>([]);
+  const [blocks, setBlocks] = useState<DraftBlock[]>([]);
   const [inlineImages, setInlineImages] = useState<File[]>([]);
   
   const [socialHandle, setSocialHandle] = useState("");
@@ -61,6 +107,17 @@ export default function CreateNewStoryPage() {
   const [croppedPreview, setCroppedPreview] = useState<string | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [restoredSections, setRestoredSections] = useState<DraftSection[] | undefined>();
+  const [editorVersion, setEditorVersion] = useState(0);
+  const [draftSaveStatus, setDraftSaveStatus] = useState("Recovery copy ready");
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftRestoreComplete, setDraftRestoreComplete] = useState(false);
+  const [autosaveRetry, setAutosaveRetry] = useState(0);
+  const draftIdRef = useRef<string | null>(null);
+  const serverBlocksRef = useRef<DraftBlock[]>([]);
+  const serverCoverRef = useRef<File | string | null>(null);
+  const autosaveInFlightRef = useRef(false);
+  const autosavePendingRef = useRef(false);
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -87,6 +144,224 @@ export default function CreateNewStoryPage() {
     }
   }, [user, isProfileSynced]);
 
+  const draftStorageKey = user?._id ? `biocap-story-draft:${user._id}` : null;
+
+  useEffect(() => {
+    if (!draftStorageKey) return;
+    try {
+      const rawDraft = localStorage.getItem(draftStorageKey);
+      if (rawDraft) {
+        const saved = JSON.parse(rawDraft) as LocalStoryDraft;
+        setTitle(saved.title || "");
+        setTag(saved.tag || "");
+        setExcerpt(saved.excerpt || "");
+        setSocialHandle(saved.socialHandle || "");
+        setOrganizationLink(saved.organizationLink || "");
+        if (saved.draftId) {
+          draftIdRef.current = saved.draftId;
+          setDraftId(saved.draftId);
+          serverBlocksRef.current = saved.serverBlocks || [];
+        }
+
+        const restoredBlocks: DraftBlock[] = (saved.blocks || []).map((block) => {
+          if (block.type === "image" && block.src?.startsWith("data:image")) {
+            return { ...block, rawFile: dataUrlToFile(block.src, block.fileKey || "inline-image.jpg") };
+          }
+          return block;
+        });
+        setBlocks(restoredBlocks);
+        setInlineImages(
+          restoredBlocks
+            .flatMap((block) =>
+              block.type === "image" && block.rawFile instanceof File ? [block.rawFile] : []
+            )
+        );
+        setRestoredSections(
+          restoredBlocks.map((block) => ({
+            id: crypto.randomUUID(),
+            kind: block.type === "h2" ? "heading" : block.type === "quote" ? "quote" : block.type === "image" ? "image" : "paragraph",
+            text: block.text || "",
+            attribution: block.type === "quote" ? block.caption || "" : "",
+            caption: block.type === "image" ? block.caption || "" : "",
+            fitMode: block.fitMode || "cover",
+            imagePreview: block.type === "image" ? block.src || null : null,
+            imageFile: block.type === "image" ? block.rawFile || null : null,
+            imageFileKey: block.fileKey || null,
+          }))
+        );
+        setEditorVersion((version) => version + 1);
+
+        if (saved.coverImage?.startsWith("data:image")) {
+          const restoredCover = dataUrlToFile(saved.coverImage, "story-cover.jpg");
+          setCoverImageFile(restoredCover);
+          setCroppedPreview(saved.coverImage);
+          setRawImageSrc(saved.coverImage);
+          if (saved.coverUploaded && saved.draftId) serverCoverRef.current = restoredCover;
+        }
+        setDraftSaveStatus("Recovered unsaved draft");
+      }
+    } catch (error) {
+      console.error("Could not restore local story draft:", error);
+      setDraftSaveStatus("Local recovery unavailable");
+    } finally {
+      setDraftRestoreComplete(true);
+    }
+  }, [draftStorageKey]);
+
+  useEffect(() => {
+    if (!draftRestoreComplete || !draftStorageKey) return;
+    const timeout = window.setTimeout(async () => {
+      try {
+        const savedBlocks = await Promise.all(
+          blocks.map(async (block) => {
+            if (block.type === "image" && block.rawFile instanceof File) {
+              return { ...block, src: await fileToDataUrl(block.rawFile), rawFile: undefined };
+            }
+            return block;
+          })
+        );
+        const coverImage = coverImageFile
+          ? await fileToDataUrl(coverImageFile)
+          : croppedPreview || rawImageSrc || "";
+        const localDraft: LocalStoryDraft = {
+          title,
+          tag,
+          excerpt,
+          blocks: savedBlocks,
+          coverImage,
+          socialHandle,
+          organizationLink,
+          ...(draftIdRef.current ? { draftId: draftIdRef.current } : {}),
+          ...(serverBlocksRef.current.length ? { serverBlocks: serverBlocksRef.current } : {}),
+          ...(serverCoverRef.current ? { coverUploaded: true } : {}),
+        };
+        localStorage.setItem(draftStorageKey, JSON.stringify(localDraft));
+        setDraftSaveStatus("Saved in this browser");
+      } catch (error) {
+        console.error("Could not save local story recovery copy:", error);
+        setDraftSaveStatus("Browser storage is full");
+      }
+    }, 500);
+    return () => window.clearTimeout(timeout);
+  }, [
+    blocks,
+    coverImageFile,
+    croppedPreview,
+    draftRestoreComplete,
+    draftStorageKey,
+    draftId,
+    excerpt,
+    organizationLink,
+    rawImageSrc,
+    socialHandle,
+    tag,
+    title,
+  ]);
+
+  useEffect(() => {
+    if (!draftRestoreComplete || !user || !draftStorageKey) return;
+    const hasManuscript = blocks.some((block) => Boolean((block.text || "").trim() || block.type === "image"));
+    const hasCover = Boolean(coverImageFile || croppedPreview || rawImageSrc);
+    if (!title.trim() || !tag.trim() || !excerpt.trim() || !hasManuscript || !hasCover) return;
+
+    const timeout = window.setTimeout(async () => {
+      if (autosaveInFlightRef.current) {
+        autosavePendingRef.current = true;
+        return;
+      }
+      autosaveInFlightRef.current = true;
+      setDraftSaveStatus("Saving draft to account...");
+      try {
+        const creatorRole = (user.role as Role) || "contributor";
+        const image = coverImageFile || croppedPreview || rawImageSrc;
+        if (!image) return;
+        const previousImages = new Map(
+          serverBlocksRef.current
+            .filter((block) => block.type === "image" && block.fileKey && (block.src || block.url))
+            .map((block) => [block.fileKey, block])
+        );
+        const serverBlocks = blocks.map((block) => {
+          const previous = block.fileKey ? previousImages.get(block.fileKey) : undefined;
+          return previous && block.type === "image"
+            ? { ...block, src: previous.src || previous.url, source: previous.source, rawFile: undefined }
+            : block;
+        });
+        const coverChanged = serverCoverRef.current !== image;
+        let savedStory: BlogPost;
+        if (draftIdRef.current) {
+          try {
+            savedStory = await blogsApi.updateBlog(draftIdRef.current, {
+              title: title.trim(),
+              tag: tag.trim(),
+              excerpt: excerpt.trim(),
+              blocks: serverBlocks,
+              ...(coverChanged ? { img: image } : {}),
+              socialHandle: socialHandle.trim() || undefined,
+              organizationLink: organizationLink.trim() || undefined,
+            }, creatorRole);
+          } catch (error) {
+            if (!(error instanceof ApiError) || error.status !== 404) throw error;
+            draftIdRef.current = null;
+            setDraftId(null);
+            savedStory = await blogsApi.createBlog({
+              title: title.trim(),
+              tag: tag.trim(),
+              excerpt: excerpt.trim(),
+              blocks: serverBlocks,
+              img: image,
+              images: inlineImages,
+              socialHandle: socialHandle.trim() || undefined,
+              organizationLink: organizationLink.trim() || undefined,
+            }, creatorRole);
+          }
+        } else {
+          savedStory = await blogsApi.createBlog({
+              title: title.trim(),
+              tag: tag.trim(),
+              excerpt: excerpt.trim(),
+              blocks: serverBlocks,
+              img: image,
+              images: inlineImages,
+              socialHandle: socialHandle.trim() || undefined,
+              organizationLink: organizationLink.trim() || undefined,
+          }, creatorRole);
+        }
+        if (savedStory?._id) {
+          draftIdRef.current = savedStory._id;
+          setDraftId(savedStory._id);
+        }
+        serverBlocksRef.current = savedStory?.blocks || serverBlocks;
+        serverCoverRef.current = image;
+        setDraftSaveStatus("Draft saved to account");
+      } catch (error) {
+        console.error("Automatic draft save failed:", error);
+        setDraftSaveStatus("Saved in this browser; account sync failed");
+      } finally {
+        autosaveInFlightRef.current = false;
+        if (autosavePendingRef.current) {
+          autosavePendingRef.current = false;
+          setAutosaveRetry((retry) => retry + 1);
+        }
+      }
+    }, 1500);
+    return () => window.clearTimeout(timeout);
+  }, [
+    blocks,
+    autosaveRetry,
+    coverImageFile,
+    croppedPreview,
+    draftRestoreComplete,
+    draftStorageKey,
+    excerpt,
+    inlineImages,
+    organizationLink,
+    rawImageSrc,
+    socialHandle,
+    tag,
+    title,
+    user,
+  ]);
+
   const detectedSocialPlatform = useMemo(() => {
     const val = socialHandle.toLowerCase().trim();
     if (!val) return null;
@@ -98,8 +373,8 @@ export default function CreateNewStoryPage() {
     return { name: "Handle", icon: AtSign };
   }, [socialHandle]);
 
-  const handleStoryEditorChange = useCallback((b: any[], files: File[]) => {
-    setBlocks(b || []);
+  const handleStoryEditorChange = useCallback((b: BlogBlock[], files: File[]) => {
+    setBlocks((b || []) as DraftBlock[]);
     setInlineImages(files || []);
   }, []);
 
@@ -130,6 +405,7 @@ export default function CreateNewStoryPage() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (file) {
+      serverCoverRef.current = null;
       setCoverImageFile(file);
       setErrors((prev) => ({ ...prev, cover: false }));
       
@@ -145,6 +421,7 @@ export default function CreateNewStoryPage() {
   };
 
   const handleCropSave = (croppedBase64: string) => {
+    serverCoverRef.current = null;
     setCroppedPreview(croppedBase64);
     const file = base64ToFile(croppedBase64, `cover-${Date.now()}.jpg`);
     setCoverImageFile(file);
@@ -227,25 +504,61 @@ export default function CreateNewStoryPage() {
 
     try {
       const creatorRole = (user.role as Role) || "contributor";
-      const rawBlocks = (blocks && blocks.length > 0) ? blocks : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
+      const rawBlocks: BlogBlock[] = (blocks && blocks.length > 0)
+        ? blocks
+        : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
+      const savedImages = new Map(
+        serverBlocksRef.current
+          .filter((block) => block.type === "image" && block.fileKey && (block.src || block.url))
+          .map((block) => [block.fileKey, block])
+      );
+      const blocksToSave = rawBlocks.map((block) => {
+        const previous = block.fileKey ? savedImages.get(block.fileKey) : undefined;
+        return previous && block.type === "image"
+          ? { ...block, src: previous.src || previous.url, source: previous.source, rawFile: undefined }
+          : block;
+      });
 
-      const newBlog = await blogsApi.createBlog(
-        {
+      const blogPayload = {
           title: title.trim(),
           tag: tag.trim(),
           excerpt: excerpt.trim(),
-          blocks: rawBlocks,
+          blocks: blocksToSave,
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
-          img: finalCoverImg!,
-          images: inlineImages,
-        },
-        creatorRole
-      );
+      };
+      let newBlog: BlogPost;
+      if (draftIdRef.current) {
+        try {
+          newBlog = await blogsApi.updateBlog(
+            draftIdRef.current,
+            {
+              ...blogPayload,
+              ...(serverCoverRef.current === finalCoverImg ? {} : { img: finalCoverImg! }),
+            },
+            creatorRole
+          );
+        } catch (error) {
+          if (!(error instanceof ApiError) || error.status !== 404) throw error;
+          draftIdRef.current = null;
+          setDraftId(null);
+          newBlog = await blogsApi.createBlog(
+            { ...blogPayload, img: finalCoverImg!, images: inlineImages },
+            creatorRole
+          );
+        }
+      } else {
+        newBlog = await blogsApi.createBlog(
+          { ...blogPayload, img: finalCoverImg!, images: inlineImages },
+          creatorRole
+        );
+      }
 
       if (shouldSubmitForReview && newBlog?._id) {
         await blogsApi.submitBlog(newBlog._id, creatorRole);
       }
+
+      if (draftStorageKey) localStorage.removeItem(draftStorageKey);
 
       router.refresh();
       router.push("/creator/my-stories");
@@ -465,12 +778,14 @@ export default function CreateNewStoryPage() {
 
           <div ref={editorRef} className="border-t border-[#EDEAE0] pt-6">
             <StoryEditor
+              key={editorVersion}
               excerpt={excerpt}
               setExcerpt={(v) => {
                 setExcerpt(v);
                 if (v.trim()) setErrors((prev) => ({ ...prev, excerpt: false }));
               }}
               excerptError={errors.excerpt}
+              initialSections={restoredSections}
               controlsPosition="bottom"
               onChange={handleStoryEditorChange}
             />
@@ -524,6 +839,9 @@ export default function CreateNewStoryPage() {
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-[#EDEAE0] pt-6">
+            <span className="mr-auto text-[10px] text-[#6B7268]" aria-live="polite">
+              {draftSaveStatus}
+            </span>
             <button
               type="button"
               disabled={isSubmitting}
