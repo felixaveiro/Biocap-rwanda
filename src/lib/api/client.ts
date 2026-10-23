@@ -35,9 +35,24 @@ let refreshPromise: Promise<string | null> | null = null;
  */
 function handleAuthFailure() {
   authCookies.clearAll();
-  // 🟢 FIX: Target '/auth/login' instead of '/login' to avoid 404
   if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth/login")) {
     window.location.href = "/auth/login?expired=true";
+  }
+}
+
+/**
+ * FIX: Reads the user id from the JWT payload (the backend signs it as `id`).
+ * Used as a fallback when the userId cookie was never saved.
+ * Works even if the access token is already expired (we only decode, not verify).
+ */
+function getUserIdFromToken(token: string | null): string | null {
+  if (!token) return null;
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const decoded = JSON.parse(atob(payload));
+    return decoded?.id ?? null;
+  } catch {
+    return null;
   }
 }
 
@@ -57,6 +72,10 @@ async function tryRefreshToken(): Promise<string | null> {
     return refreshPromise;
   }
 
+  // FIX: backend /api/auth/refresh requires BOTH refreshToken and userId
+  const userId =
+    authCookies.getUserId() || getUserIdFromToken(authCookies.getToken());
+
   refreshPromise = (async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
@@ -65,7 +84,7 @@ async function tryRefreshToken(): Promise<string | null> {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refreshToken, userId }),
       });
 
       // Handle 400, 401, and 403 as expired/invalid refresh sessions
