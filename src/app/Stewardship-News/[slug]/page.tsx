@@ -221,7 +221,8 @@ export default function StewardshipArticlePage() {
   const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
   const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
   const [consentNote, setConsentNote] = useState('');
-  
+  const [consentError, setConsentError] = useState<string | null>(null);
+
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const creator = story?.originalAuthor || story?.author;
@@ -294,17 +295,24 @@ export default function StewardshipArticlePage() {
   const handleConsentDecision = async (approved: boolean) => {
     if (!story) return;
 
+    const reason = consentNote.trim();
+    if (!approved && !reason) {
+      setConsentError('Please explain why you are rejecting the editor changes.');
+      return;
+    }
+
     try {
+      setConsentError(null);
       setConsentSubmitting(approved ? 'approve' : 'reject');
       await blogsApi.respondToWriterConsent(story._id, {
         approved,
-        note: approved ? 'Approved by writer.' : (consentNote || 'The article needs revision before publication.'),
+        note: approved ? 'Approved by writer.' : reason,
       });
       setConsentNote('');
       await revalidateStory();
     } catch (err: unknown) {
       console.error('Failed to update consent:', err);
-      window.alert(err instanceof Error ? err.message : 'Unable to update the writer consent decision.');
+      setConsentError(err instanceof Error ? err.message : 'Unable to update the writer consent decision.');
     } finally {
       setConsentSubmitting(null);
     }
@@ -542,6 +550,7 @@ export default function StewardshipArticlePage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 title={`${platform}: ${handleValue}`}
+                                aria-label={`${platform}: ${handleValue} (opens in a new tab)`}
                                 className="group relative inline-flex items-center justify-center cursor-pointer"
                               >
                                 {renderSocialPlatformIcon(platform)}
@@ -606,19 +615,32 @@ export default function StewardshipArticlePage() {
                             Reject changes
                           </button>
                         </div>
+                        <label htmlFor="consent-note" className="mt-4 block text-xs font-semibold text-[#1B3A5C]">
+                          Reason for rejecting (required to reject)
+                        </label>
                         <textarea
+                          id="consent-note"
                           value={consentNote}
-                          onChange={(event) => setConsentNote(event.target.value)}
-                          placeholder="Optional note for rejection or approval"
-                          className="mt-4 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-[#1B3A5C]"
+                          onChange={(event) => {
+                            setConsentNote(event.target.value);
+                            if (consentError) setConsentError(null);
+                          }}
+                          placeholder="Explain what needs to change. Optional when approving."
+                          aria-invalid={consentError ? true : undefined}
+                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-[#1B3A5C]"
                           rows={3}
                         />
+                        {consentError && (
+                          <p role="alert" className="mt-2 text-xs font-medium text-[#C22055]">
+                            {consentError}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
 
-                {!canPublish && story?.publishConsentStatus && story.publishConsentStatus !== 'approved' && story.publishConsentStatus !== 'not_required' && (
+                {isWriter && !canPublish && story?.publishConsentStatus && story.publishConsentStatus !== 'approved' && story.publishConsentStatus !== 'not_required' && (
                   <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
                     Publishing is currently blocked until the writer resolves the pending consent decision.
                   </div>
@@ -655,10 +677,13 @@ export default function StewardshipArticlePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          navigator.clipboard?.writeText(window.location.href);
+                      onClick={async () => {
+                        if (typeof window === 'undefined') return;
+                        try {
+                          await navigator.clipboard.writeText(window.location.href);
                           window.alert('Link copied to clipboard!');
+                        } catch {
+                          window.alert('Could not copy the link. Please copy it from the address bar.');
                         }
                       }}
                       aria-label="Copy link"

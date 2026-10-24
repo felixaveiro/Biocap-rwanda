@@ -1,6 +1,6 @@
 // src/lib/api/blogs.ts
 
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, apiFormRequest, ApiError } from "./client";
 import { base64ToFile } from "@/lib/utils/file";
 import {
   BlogPost,
@@ -129,7 +129,21 @@ export interface CloudinarySignatureResponse {
 // ─── Helper: Direct Cloudinary Signature & Parallel Upload ───────────────────
 
 /**
- * Fetches an upload signature from the backend and uploads a file directly 
+ * POST /api/upload/image — uploads one image through the backend (server-side Cloudinary upload).
+ * Prefer uploadDirectToCloudinary for large files; this route is for small images.
+ */
+export async function uploadImage(file: File): Promise<{ success: boolean; imageUrl: string; publicId: string }> {
+  const formData = new FormData();
+  formData.append("image", file);
+  return apiFormRequest<{ success: boolean; imageUrl: string; publicId: string }>("/api/upload/image", {
+    method: "POST",
+    formData,
+    auth: true,
+  });
+}
+
+/**
+ * Fetches an upload signature from the backend and uploads a file directly
  * from the browser to Cloudinary (bypassing the Render server).
  */
 export async function uploadDirectToCloudinary(file: File): Promise<{ url: string; publicId: string }> {
@@ -360,7 +374,7 @@ export async function getBlogById(id: string, role?: Role): Promise<BlogPost> {
 }
 
 export async function getBlogStats(role?: Role): Promise<BlogStatsResponse> {
-  const endpoint = role === "communication_officer" ? "/api/officer/dashboard-stats" : "/api/blogs/stats";
+  const endpoint = role === "communication_officer" ? "/api/officer/blogs/stats" : "/api/blogs/stats";
   try {
     return await apiRequest<BlogStatsResponse>(endpoint, { auth: true });
   } catch (err) {
@@ -820,9 +834,101 @@ export async function markChangeImplemented(id: string, payload?: MarkChangeImpl
   return extractBlogFromResponse(res);
 }
 
+// ─── Writer Submissions, Contributor Blogs & Editor Revisions ─────────────────
+
+export interface EditorRevisionChange {
+  field: string;
+  before?: unknown;
+  after?: unknown;
+}
+
+export interface EditorRevisionProposal {
+  version?: number;
+  status?: "pending" | "accepted" | "rejected" | "withdrawn" | string;
+  editor?: { _id?: string; firstName?: string; lastName?: string; username?: string; role?: string };
+  proposedAt?: string;
+  decidedAt?: string;
+  decisionNote?: string;
+  changes?: EditorRevisionChange[];
+}
+
+/** Response of GET /api/editor/blogs/:id/revisions and /api/officer/blogs/:id/revisions */
+export interface EditorRevisionHistory {
+  status: string;
+  publishConsentStatus?: string;
+  current?: Record<string, unknown>;
+  changesSinceLastProposal?: EditorRevisionChange[];
+  proposals: EditorRevisionProposal[];
+}
+
+/** Response of GET /api/contributor/blogs/:id/editor-revision (the writer's view of the latest proposal) */
+export interface WriterEditorRevision {
+  status: string;
+  publishConsentStatus?: string;
+  pending: boolean;
+  version?: number;
+  recordStatus?: string;
+  editor?: EditorRevisionProposal["editor"];
+  proposedAt?: string;
+  decidedAt?: string;
+  decisionNote?: string;
+  baseline?: Record<string, unknown>;
+  proposal?: Record<string, unknown>;
+  changes?: EditorRevisionChange[];
+}
+
+/** Writer: track the status of blogs they wrote or submitted, including rejection notes */
+export async function getMySubmissions(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
+  const query = new URLSearchParams();
+  if (params.status) query.append("status", params.status);
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/blogs/my-submissions${queryString}`, { auth: true });
+}
+
+/** Contributor: paginated list of their own blogs */
+export async function getContributorBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
+  const query = new URLSearchParams();
+  if (params.status) query.append("status", params.status);
+  if (params.page) query.append("page", params.page.toString());
+  if (params.limit) query.append("limit", params.limit.toString());
+  const queryString = query.toString() ? `?${query.toString()}` : "";
+  return apiRequest<PaginatedResponse<BlogPost>>(`/api/contributor/my-blogs${queryString}`, { auth: true });
+}
+
+/** Contributor: a single blog they own */
+export async function getContributorBlogById(id: string): Promise<BlogPost> {
+  return apiRequest<BlogPost>(`/api/contributor/my-blogs/${id}`, { auth: true });
+}
+
+/** Writer: the latest editor revision proposed on their blog */
+export async function getWriterEditorRevision(id: string): Promise<WriterEditorRevision> {
+  return apiRequest<WriterEditorRevision>(`/api/contributor/blogs/${id}/editor-revision`, { auth: true });
+}
+
+/** Editor, Officer or Admin: full editor revision history of a blog */
+export async function getEditorRevisionHistory(id: string, role?: Role): Promise<EditorRevisionHistory> {
+  const basePath = role === "communication_officer" ? "/api/officer" : "/api/editor";
+  return apiRequest<EditorRevisionHistory>(`${basePath}/blogs/${id}/revisions`, { auth: true });
+}
+
+/** Editor: withdraw a pending editor proposal before the writer decides */
+export async function withdrawEditorProposal(id: string): Promise<{ message: string; blog: BlogPost }> {
+  const res = await apiRequest<unknown>(`/api/editor/blogs/${id}/proposal`, {
+    method: "DELETE",
+    auth: true,
+  });
+
+  return extractBlogFromResponse(res);
+}
+
 // ─── Editor Dedicated Operations ───────────────────────────────────────────
 
 export const editorApi = {
+  withdrawEditorProposal,
+  getRevisionHistory: getEditorRevisionHistory,
+
   getBlogStats: async (): Promise<BlogStatsResponse> => {
     try {
       return await apiRequest<BlogStatsResponse>("/api/blogs/stats", { auth: true });
@@ -918,6 +1024,7 @@ export const officerApi = {
   deleteBlogComment,
   getEditorChanges,
   acceptEditorChanges,
+  getRevisionHistory: (id: string) => getEditorRevisionHistory(id, "communication_officer"),
   getNotifications: getOfficerNotifications,
   markNotificationRead,
   getActivityLogs: getOfficerActivityLogs,
@@ -977,4 +1084,11 @@ export const blogsApi = {
   getCreatorPublishedFeed,
   getCreatorPublishedBySlug,
   markChangeImplemented,
+  uploadImage,
+  getMySubmissions,
+  getContributorBlogs,
+  getContributorBlogById,
+  getWriterEditorRevision,
+  getEditorRevisionHistory,
+  withdrawEditorProposal,
 };
