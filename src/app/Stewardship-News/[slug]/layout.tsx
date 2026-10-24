@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://biocap-rwanda.afs-rwanda.org';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://biocapapi.afs-rwanda.org';
 const SITE_URL = 'https://biocap-rwanda.afs-rwanda.org';
 
 async function fetchStoryForMeta(slug: string) {

@@ -4,7 +4,7 @@ import { authCookies } from "@/lib/auth/cookies";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://biocap-dashboard-backend.onrender.com";
+  "https://biocapapi.afs-rwanda.org";
   
 export class ApiError extends Error {
   status: number;
