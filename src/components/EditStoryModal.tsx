@@ -10,7 +10,7 @@ import React, {
 import { sanitizeHtml } from "@/lib/sanitize";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
-import { blogsApi, UpdateBlogPayload } from "@/lib/api/blogs";
+import { blogsApi, editorApi, UpdateBlogPayload } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import CommentManager from "@/components/CommentManager";
 import ImageCropperModal from "@/components/ImageCropperModal";
@@ -610,6 +610,9 @@ export default function EditStoryModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [proposalNotice, setProposalNotice] = useState<string | null>(null);
+  // True once a proposal or its withdrawal is saved; the list refreshes when the editor closes the modal.
+  const [proposalSaved, setProposalSaved] = useState(false);
+  const [isEmailingWriter, setIsEmailingWriter] = useState(false);
   const { user: sessionUser } = useSession();
 
   const editorFeedbackNote = localStory.lastRejectionNote || null;
@@ -1057,9 +1060,15 @@ export default function EditStoryModal({
 
       if (isEditorProposal) {
         const result = await blogsApi.proposeEditorChanges(localStory._id, payload);
-        setProposalNotice(result.message);
+        // Stay open so the outcome is visible. The writer email status is shown, and the proposal is pending.
+        setLocalStory((prev) => ({ ...prev, publishConsentStatus: "pending" }));
+        if (result.writerNotified === false) {
+          setErrorMessage(result.message);
+        } else {
+          setProposalNotice(result.message);
+        }
+        setProposalSaved(true);
         setIsSubmitting(false);
-        onStoryUpdated();
         return;
       }
 
@@ -1083,7 +1092,56 @@ export default function EditStoryModal({
     } catch (error: unknown) {
       console.error("Failed to update story:", error);
       const msg = error instanceof Error ? error.message : "Failed to save story changes.";
-      setErrorMessage(msg);
+      if (isEditorProposal && msg.includes("already awaiting")) {
+        // The writer has not decided yet, so the pending proposal is still there.
+        setLocalStory((prev) => ({ ...prev, publishConsentStatus: "pending" }));
+        setErrorMessage(`${msg} You can email the writer a reminder below, or withdraw your proposal to change it.`);
+      } else {
+        setErrorMessage(msg);
+      }
+      setIsSubmitting(false);
+    }
+  };
+
+  // A pending proposal can be reminded to the writer or withdrawn from here.
+  const hasPendingProposal = isEditorProposal && localStory.publishConsentStatus === "pending";
+
+  const handleClose = () => {
+    if (proposalSaved) onStoryUpdated();
+    onClose();
+  };
+
+  const handleEmailWriter = async () => {
+    setIsEmailingWriter(true);
+    setErrorMessage(null);
+    setProposalNotice(null);
+    try {
+      const result = await editorApi.notifyWriterOfProposal(localStory._id);
+      if (result.writerNotified) {
+        setProposalNotice(result.message);
+      } else {
+        setErrorMessage(result.message);
+      }
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Could not email the writer.");
+    } finally {
+      setIsEmailingWriter(false);
+    }
+  };
+
+  const handleWithdrawProposal = async () => {
+    if (!window.confirm("Withdraw your proposed changes? The writer will be told they were withdrawn.")) return;
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    setProposalNotice(null);
+    try {
+      const result = await editorApi.withdrawEditorProposal(localStory._id);
+      setLocalStory((prev) => ({ ...prev, publishConsentStatus: "not_required" }));
+      setProposalNotice(result.message);
+      setProposalSaved(true);
+    } catch (err: unknown) {
+      setErrorMessage(err instanceof Error ? err.message : "Could not withdraw the proposal.");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -1356,7 +1414,7 @@ export default function EditStoryModal({
           <button
             type="button"
             disabled={isSubmitting}
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close"
             className="border border-[#D9D4C6] bg-white p-1.5 text-[#1E2620] transition-colors hover:bg-[#1E2620] hover:text-white cursor-pointer disabled:opacity-50"
           >
@@ -1534,6 +1592,29 @@ export default function EditStoryModal({
             <div role="status" className="flex items-center gap-2.5 border-l-4 border-emerald-700 bg-emerald-50 p-3.5 text-emerald-950">
               <CheckCircle2 size={16} className="shrink-0 text-emerald-700" />
               <span className="text-xs font-bold">{proposalNotice}</span>
+            </div>
+          )}
+
+          {/* Pending proposal actions */}
+          {hasPendingProposal && (
+            <div className="flex flex-wrap items-center gap-2.5 border border-amber-200 bg-amber-50 p-3.5 text-xs text-slate-700">
+              <span className="font-semibold text-[#1B3A5C]">Your proposal is waiting for the writer.</span>
+              <button
+                type="button"
+                disabled={isEmailingWriter || isSubmitting}
+                onClick={handleEmailWriter}
+                className={btnNeutral}
+              >
+                {isEmailingWriter ? "Sending…" : "Email writer"}
+              </button>
+              <button
+                type="button"
+                disabled={isEmailingWriter || isSubmitting}
+                onClick={handleWithdrawProposal}
+                className={btnNeutral}
+              >
+                Withdraw proposal
+              </button>
             </div>
           )}
 
@@ -1992,7 +2073,7 @@ export default function EditStoryModal({
 
         {/* Footer Actions */}
         <div className="flex flex-wrap items-center justify-end gap-2.5 border-t border-[#E2DDCF] bg-[#F7F6F2] px-6 py-4">
-          <button type="button" disabled={isSubmitting} onClick={onClose} className={btnNeutral}>
+          <button type="button" disabled={isSubmitting} onClick={handleClose} className={btnNeutral}>
             Cancel
           </button>
           <button

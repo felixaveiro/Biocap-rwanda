@@ -516,11 +516,27 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?:
 /**
  * Editor: propose changes to a writer's story. The live story stays unchanged until the writer accepts them.
  */
-export async function proposeEditorChanges(id: string, payload: UpdateBlogPayload): Promise<{ message: string; blog: BlogPost }> {
+export interface EditorProposalResult {
+  message: string;
+  blog: BlogPost;
+  /** False when the proposal was saved but the writer's email did not go out. */
+  writerNotified?: boolean;
+  writerEmailError?: string | null;
+}
+
+export async function proposeEditorChanges(id: string, payload: UpdateBlogPayload): Promise<EditorProposalResult> {
   return saveBlogChanges(`/api/editor/blogs/${id}`, payload);
 }
 
-async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promise<{ message: string; blog: BlogPost }> {
+/** Editor: email the writer about the pending proposal again, e.g. after the first email failed. */
+export async function notifyWriterOfProposal(id: string): Promise<{ message: string; writerNotified: boolean; writerEmailError?: string | null }> {
+  return apiRequest<{ message: string; writerNotified: boolean; writerEmailError?: string | null }>(
+    `/api/editor/blogs/${id}/proposal/notify-writer`,
+    { method: "POST", auth: true }
+  );
+}
+
+async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promise<EditorProposalResult> {
   const uploadPromises: Promise<{ url: string; publicId: string }>[] = [];
 
   // Cover Image
@@ -636,7 +652,12 @@ async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promis
     },
   });
 
-  return extractBlogFromResponse(res);
+  const raw = (res && typeof res === "object" ? res : {}) as { writerNotified?: boolean; writerEmailError?: string | null };
+  return {
+    ...extractBlogFromResponse(res),
+    writerNotified: raw.writerNotified,
+    writerEmailError: raw.writerEmailError,
+  };
 }
 
 export async function deleteBlog(id: string, _role?: Role): Promise<{ message: string }> {
@@ -961,6 +982,7 @@ export async function withdrawEditorProposal(id: string): Promise<{ message: str
 
 export const editorApi = {
   withdrawEditorProposal,
+  notifyWriterOfProposal,
   getRevisionHistory: getEditorRevisionHistory,
 
   getBlogStats: async (): Promise<BlogStatsResponse> => {
