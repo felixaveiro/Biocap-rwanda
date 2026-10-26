@@ -102,7 +102,7 @@ const buildReviewItems = (changes: EditorRevisionChange[]): ReviewItem[] => {
   return items;
 };
 
-function DiffText({ segments }: { segments: DiffSegment[] }) {
+export function DiffText({ segments }: { segments: DiffSegment[] }) {
   return (
     <p className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-800">
       {segments.map((segment, index) => {
@@ -340,8 +340,8 @@ export default function EditorProposalReview({
 
               {!approved && reviewComplete && (
                 <p className="text-xs text-slate-600">
-                  The proposal is only applied when every change is accepted. Rejecting any change returns the whole
-                  proposal to the editor with your reason.
+                  The proposal is only applied when every change is accepted. If you reject any change, the editor&apos;s
+                  changes are removed and your story stays as you wrote it. The editor receives your reason.
                 </p>
               )}
             </>

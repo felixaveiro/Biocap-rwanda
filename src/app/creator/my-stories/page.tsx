@@ -114,6 +114,7 @@ export default function CreatorMyStoriesPage() {
   }, [currentCreatorUser, isPermissionAllowed, fetchPersonalStories]);
 
   const rejectedCount = personalStoriesList.filter((s) => s.status === "rejected").length;
+  const pendingProposals = personalStoriesList.filter((s) => s.publishConsentStatus === "pending");
 
   const fontVars = `${fraunces.variable} ${inter.variable} ${plexMono.variable}`;
   const bodyFont: React.CSSProperties = { fontFamily: "var(--font-body)" };
@@ -142,6 +143,23 @@ export default function CreatorMyStoriesPage() {
       />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+        {pendingProposals.length > 0 && (
+          <section aria-labelledby="pending-proposals-heading" className="border-l-4 border-amber-600 bg-amber-50 p-4 space-y-2">
+            <p id="pending-proposals-heading" className="text-sm font-semibold text-[#1B3A5C]">
+              Editor changes are waiting for your decision
+            </p>
+            <ul className="space-y-1">
+              {pendingProposals.map((story) => (
+                <li key={story._id}>
+                  <Link href={`/creator/proposals/${story._id}`} className="text-xs font-semibold text-[#1B3A5C] underline">
+                    Review changes to &quot;{story.title}&quot;
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* Masthead Header Strip */}
         <div className="border-b border-[#D9D4C6] pb-5">
           <div className="flex flex-wrap items-end justify-between gap-4">

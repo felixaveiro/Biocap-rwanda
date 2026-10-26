@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
 import EditorProposalReview from "@/components/EditorProposalReview";
-import { blogsApi } from "@/lib/api/blogs";
+import ProposalFullStory, { type StorySnapshot } from "@/components/ProposalFullStory";
+import { blogsApi, type WriterEditorRevision } from "@/lib/api/blogs";
 import { BlogPost } from "@/types";
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -17,6 +18,7 @@ export default function CreatorProposalReviewPage() {
   const [story, setStory] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [revision, setRevision] = useState<WriterEditorRevision | null>(null);
 
   const loadStory = useCallback(async () => {
     try {
@@ -33,6 +35,14 @@ export default function CreatorProposalReviewPage() {
   useEffect(() => {
     loadStory();
   }, [loadStory]);
+
+  // The full story before and after the editor's changes, for the "Full story" view.
+  useEffect(() => {
+    blogsApi
+      .getWriterEditorRevision(storyId)
+      .then(setRevision)
+      .catch(() => setRevision(null));
+  }, [storyId]);
 
   const pending = story?.publishConsentStatus === "pending";
 
@@ -91,6 +101,24 @@ export default function CreatorProposalReviewPage() {
         )}
 
         {pending && <EditorProposalReview storyId={storyId} onDecided={loadStory} />}
+
+        {revision?.baseline && revision?.proposal && (
+          <section aria-labelledby="full-story-heading" className="space-y-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Full story</p>
+              <h3 id="full-story-heading" className="mt-1 text-base font-semibold text-[#1B3A5C]">
+                The story with the editor&apos;s changes marked
+              </h3>
+              <p className="mt-1 text-xs text-slate-600">
+                Your version is compared with the editor&apos;s proposed version. Accept or reject the changes above.
+              </p>
+            </div>
+            <ProposalFullStory
+              baseline={revision.baseline as StorySnapshot}
+              proposal={revision.proposal as StorySnapshot}
+            />
+          </section>
+        )}
       </main>
     </div>
   );
