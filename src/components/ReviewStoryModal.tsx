@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from "react-dom";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, Comment, BlogBlock } from "@/types";
-import { blogsApi, officerApi } from "@/lib/api/blogs";
+import { blogsApi, officerApi, UpdateBlogPayload } from "@/lib/api/blogs";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
 import {
@@ -58,7 +59,7 @@ function formatPublishedLinks(text: string): string {
   if (!text) return '';
 
   const normalizeUrl = (url: string) => {
-    let trimmed = url.trim();
+    const trimmed = url.trim();
     if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
       return `https://${trimmed}`;
     }
@@ -86,7 +87,7 @@ function formatPublishedLinks(text: string): string {
       `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="published-article-link"${restAttrs}>${label}</a>`
   );
 
-  return formatted;
+  return sanitizeHtml(formatted);
 }
 
 const renderSocialPlatformIcon = (platformName: string) => {
@@ -408,7 +409,7 @@ export default function ReviewStoryModal({
           hasSectionImageEdits;
 
         if (isEditor && hasContentEdits) {
-          const updatePayload: Record<string, any> = {
+          const updatePayload: UpdateBlogPayload = {
             title: editedTitle,
             excerpt: editedExcerpt,
             blocks: JSON.stringify(editedBlocks),

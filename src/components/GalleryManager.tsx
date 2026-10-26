@@ -318,11 +318,11 @@ export default function GalleryManager({
                       <td className="p-4">
                         <div className="font-bold text-[#1E2620] leading-snug">{item.title}</div>
                         <div className="text-[#6B7268] text-[11px] line-clamp-1 mt-0.5 italic">
-                          "{item.caption}"
+                          &quot;{item.caption}&quot;
                         </div>
                         {item.mediaType === 'folder' && coverImage?.caption && (
                           <div className="text-[#8B9188] text-[10px] line-clamp-1 mt-0.5">
-                            Cover caption: "{coverImage.caption}"
+                            Cover caption: &quot;{coverImage.caption}&quot;
                           </div>
                         )}
                       </td>

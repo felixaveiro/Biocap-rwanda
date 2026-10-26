@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, User, Role } from "@/types";
-import { blogsApi, editorApi } from "@/lib/api/blogs";
+import { blogsApi } from "@/lib/api/blogs";
 import EditStoryModal from "@/components/EditStoryModal";
 import ReviewStoryModal from "@/components/ReviewStoryModal";
 import {
   Edit3,
-  CheckCircle2,
   XCircle,
   Eye,
   Send,
@@ -91,10 +90,6 @@ export default function BlogTable({
       r.includes("contributor") ||
       r.includes("principal_investigator") ||
       r.includes("correspondent")
-  );
-  const isEditor = userRoles.some((r) => r === "editor" || r === "admin");
-  const canPublish = userRoles.some(
-    (r) => r === "communication_officer" || r === "admin" || r === "editor" || isCreator
   );
 
   // Creator Action: Submit Draft for Review
@@ -217,7 +212,6 @@ export default function BlogTable({
 
   const btnBase =
     "inline-flex items-center gap-1 border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors disabled:opacity-40 disabled:pointer-events-none cursor-pointer";
-  const btnNeutral = `${btnBase} border-[#D9D4C6] bg-white text-[#3A4239] hover:border-[#1E2620] hover:text-[#1E2620]`;
   const btnMoss = `${btnBase} border-[#3F6B4F]/40 bg-[#3F6B4F]/10 text-[#2C4B38] hover:bg-[#3F6B4F] hover:text-white hover:border-[#3F6B4F]`;
   const btnGold = `${btnBase} border-[#A9812F]/40 bg-[#A9812F]/10 text-[#7A5D22] hover:bg-[#A9812F] hover:text-white hover:border-[#A9812F]`;
   const btnClay = `${btnBase} border-[#B65C4B]/40 bg-[#B65C4B]/10 text-[#8B4136] hover:bg-[#B65C4B] hover:text-white hover:border-[#B65C4B]`;
@@ -292,7 +286,7 @@ export default function BlogTable({
                         className="border border-[#D9D4C6] bg-[#F3F2ED] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#5A6259]"
                         style={monoFont}
                       >
-                        {story.tag || (story as any).category || "General"}
+                        {story.tag || (story as BlogPost & { category?: string }).category || "General"}
                       </span>
                     </td>
 

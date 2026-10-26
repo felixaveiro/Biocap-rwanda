@@ -502,7 +502,7 @@ export default function ObjectivesPage() {
               Programme <em>Vision</em> & Goals
             </h1>
             <p className="obj-hero-sub">
-              Transforming Rwanda's agriculture through safe, strategic deployment
+              Transforming Rwanda&apos;s agriculture through safe, strategic deployment
               of biotechnology — building capacity, increasing yields, and securing
               food for future generations.
             </p>
@@ -553,7 +553,7 @@ export default function ObjectivesPage() {
         <section className="obj-grid-section">
           <div className="obj-grid-inner">
             <div className="obj-section-header">
-              <span className="obj-section-label">What We're Building</span>
+              <span className="obj-section-label">What We&apos;re Building</span>
               <h2 className="obj-section-title">Programme Objectives</h2>
               <div className="obj-section-underline" />
             </div>
@@ -578,7 +578,7 @@ export default function ObjectivesPage() {
             <h2>Ready to Learn More?</h2>
             <p>
               Explore our biotechnology initiatives, field research, and the science
-              driving Rwanda's agricultural transformation.
+              driving Rwanda&apos;s agricultural transformation.
             </p>
             <Link href="/Biotech" className="obj-cta-btn">
               Explore Biotechnology

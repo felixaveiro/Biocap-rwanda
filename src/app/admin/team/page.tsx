@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import UserTable from "@/components/UserTable";
 import { usersApi } from "@/lib/api/users";
 import { useSession } from "@/hooks/useSession";
-import { User, Role, ROLES, ROLE_LABELS } from "@/types";
+import { User, Role, ROLES, ROLE_LABELS, PaginatedResponse } from "@/types";
 import {
   UserPlus,
   Users as UsersIcon,
@@ -64,7 +64,8 @@ export default function AdminTeamPage() {
 
     try {
       const adminRole = currentAdminUser.role as Role;
-      const apiResponse: any = await usersApi.listUsers(adminRole);
+      const apiResponse: (PaginatedResponse<User> & { users?: User[] }) | User[] =
+        await usersApi.listUsers(adminRole);
 
       // Normalize backend response regardless of payload structure
       let extractedUsersList: User[] = [];

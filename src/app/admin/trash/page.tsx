@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Fraunces, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import { blogsApi } from "@/lib/api/blogs";
@@ -38,7 +38,7 @@ export default function AdminTrashPage() {
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const fetchDeleted = async () => {
+  const fetchDeleted = useCallback(async () => {
     setLoading(true);
     setErrorMsg(null);
     try {
@@ -59,13 +59,13 @@ export default function AdminTrashPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       fetchDeleted();
     }
-  }, [user]);
+  }, [user, fetchDeleted]);
 
   const handleRestore = async (id: string) => {
     setActiveActionId(id);

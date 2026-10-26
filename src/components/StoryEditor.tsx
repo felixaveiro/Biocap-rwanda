@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import type { BlogBlock } from "@/types";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
 import {
@@ -40,7 +41,7 @@ interface Props {
   setExcerpt: (v: string) => void;
   excerptError?: boolean;
   initialSections?: Section[];
-  onChange?: (blocks: any[], files: File[]) => void;
+  onChange?: (blocks: (BlogBlock & { rawFile?: File })[], files: File[]) => void;
   controlsPosition?: "top" | "bottom";
 }
 
@@ -161,7 +162,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
   }, [onChange]);
 
   useEffect(() => {
-    const blocks: any[] = [];
+    const blocks: (BlogBlock & { rawFile?: File })[] = [];
     const files: File[] = [];
 
     for (const sec of sections) {
@@ -193,7 +194,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         
         const displaySrc = sec.imagePreview?.startsWith("data:image")
           ? undefined
-          : sec.imagePreview;
+          : sec.imagePreview ?? undefined;
 
         blocks.push({
           type: "image",

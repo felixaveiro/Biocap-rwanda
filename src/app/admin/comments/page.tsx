@@ -16,7 +16,7 @@ export default function CommentModerationPage() {
     try {
       // Fetch articles and filter those containing public comments
       const res = await blogsApi.getBlogs(undefined, { limit: 50 });
-      const blogList = Array.isArray(res) ? res : (res as any).docs || (res as any).data || [];
+      const blogList = Array.isArray(res) ? res : res.docs || res.data || [];
       
       // Keep only stories that have comments
       const filtered = blogList.filter((b: BlogPost) => Array.isArray(b.comments) && b.comments.length > 0);

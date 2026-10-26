@@ -595,12 +595,12 @@ function StewardshipNewsContent() {
     }
   );
 
-  const latestStories: BlogPost[] = Array.isArray(rawStoriesData)
+  const latestStories: (BlogPost & { category?: string; summary?: string })[] = Array.isArray(rawStoriesData)
     ? rawStoriesData
-    : Array.isArray((rawStoriesData as any)?.data)
-    ? (rawStoriesData as any).data
-    : Array.isArray((rawStoriesData as any)?.docs)
-    ? (rawStoriesData as any).docs
+    : Array.isArray(rawStoriesData?.data)
+    ? rawStoriesData.data
+    : Array.isArray(rawStoriesData?.docs)
+    ? rawStoriesData.docs
     : [];
 
   useEffect(() => {
@@ -816,9 +816,9 @@ function StewardshipNewsContent() {
               A Sustainable Agriculture for <span className="text-[#E8185A] italic">Rwanda</span>
             </h2>
             <p className="text-slate-600 text-base leading-relaxed text-justify">
-              "We don't have time, We need faster and more effective delivery of solutions to our farmers, 
+              &quot;We don&apos;t have time, We need faster and more effective delivery of solutions to our farmers, 
               and we must establish strong partnership models. This is also the time to communicate science
-              effectively to build trust."
+              effectively to build trust.&quot;
             </p>
             <p className="text-[#1B3A5C] text-sm font-bold mt-1">
               — Dr. Joyce Maru, <span className="font-normal text-slate-500">Regional Director - CIP</span>
@@ -831,7 +831,7 @@ function StewardshipNewsContent() {
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-10">
               <div className="flex items-center justify-center gap-2 text-[#E8185A] text-xs font-bold uppercase tracking-widest mb-3">
-                <div className="w-6 h-[2px] bg-[#E8185A]" /> What We're Building
+                <div className="w-6 h-[2px] bg-[#E8185A]" /> What We&apos;re Building
                 <div className="w-6 h-[2px] bg-[#E8185A]" />
               </div>
               <h2 className="env-serif text-3xl lg:text-4xl text-[#1B3A5C] mb-3">
@@ -899,8 +899,8 @@ function StewardshipNewsContent() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {latestStories.map((s) => {
                 const cardCoverUrl = getOptimizedImageUrl(s.img, 800);
-                const tagLabel = s.tag || (s as any).category || 'General';
-                const summaryText = s.excerpt || (s as any).summary || s.blocks?.find(b => b.type === 'p')?.text || '';
+                const tagLabel = s.tag || s.category || 'General';
+                const summaryText = s.excerpt || s.summary || s.blocks?.find(b => b.type === 'p')?.text || '';
 
                 return (
                   <Link

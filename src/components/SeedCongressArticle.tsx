@@ -12,9 +12,7 @@ import {
   CalendarDays, 
   Users, 
   ArrowUpRight, 
-  User,
-  CheckCircle2,
-  Quote
+  User
 } from 'lucide-react';
 
 // ── Inline markdown-style bold helper ───────────────────────────────

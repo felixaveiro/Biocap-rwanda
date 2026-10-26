@@ -260,12 +260,12 @@ export default function HomePage() {
     }
   );
 
-  const publishedStories: BlogPost[] = Array.isArray(rawStoriesData)
+  const publishedStories: (BlogPost & { category?: string; summary?: string })[] = Array.isArray(rawStoriesData)
     ? rawStoriesData.slice(0, 3)
-    : Array.isArray((rawStoriesData as any)?.data)
-    ? (rawStoriesData as any).data.slice(0, 3)
-    : Array.isArray((rawStoriesData as any)?.docs)
-    ? (rawStoriesData as any).docs.slice(0, 3)
+    : Array.isArray(rawStoriesData?.data)
+    ? rawStoriesData.data.slice(0, 3)
+    : Array.isArray(rawStoriesData?.docs)
+    ? rawStoriesData.docs.slice(0, 3)
     : [];
 
   return (
@@ -713,7 +713,7 @@ export default function HomePage() {
           ) : (
             publishedStories.map((story, i) => {
               const cardCoverUrl = getOptimizedImageUrl(story.img, 800);
-              const tagLabel = story.tag || (story as any).category || 'General';
+              const tagLabel = story.tag || story.category || 'General';
               const formattedDate = story.publishedAt
                 ? new Date(story.publishedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
                 : story.createdAt
@@ -783,7 +783,7 @@ export default function HomePage() {
                         WebkitBoxOrient: 'vertical', 
                         overflow: 'hidden' 
                       }}>
-                        {story.excerpt || (story as any).summary || 'No summary provided.'}
+                        {story.excerpt || story.summary || 'No summary provided.'}
                       </p>
                     </div>
                   </motion.div>

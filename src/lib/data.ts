@@ -235,7 +235,11 @@ export async function getBlog(id: string): Promise<BlogPost | undefined> {
 async function saveBlog(blog: BlogPost): Promise<BlogPost> {
   const blogs = await listBlogs();
   const idx = blogs.findIndex((b) => b._id === blog._id);
-  idx >= 0 ? (blogs[idx] = blog) : blogs.push(blog);
+  if (idx >= 0) {
+    blogs[idx] = blog;
+  } else {
+    blogs.push(blog);
+  }
   write(BLOGS_KEY, blogs);
   return blog;
 }

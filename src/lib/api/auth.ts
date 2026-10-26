@@ -98,7 +98,7 @@ export interface RefreshTokenResponse {
   expiresIn?: string;
 }
 
-export interface UserProfile extends User {}
+export type UserProfile = User;
 
 // ─── API Functions ───────────────────────────────────────────────────────────
 
@@ -145,35 +145,26 @@ export async function refreshSession(): Promise<RefreshTokenResponse | null> {
   const userId = authCookies.getUserId();
   const payload = { refreshToken: currentRefreshToken, userId };
 
-  const endpoints = ["/api/auth/refresh", "/api/auth/refresh-token"];
+  try {
+    const res = await apiRequest<RefreshTokenResponse>("/api/auth/refresh", {
+      method: "POST",
+      body: payload,
+    });
 
-  for (const endpoint of endpoints) {
-    try {
-      const res = await apiRequest<RefreshTokenResponse>(endpoint, {
-        method: "POST",
-        body: payload,
-      });
-
-      if (res && res.accessToken) {
-        authCookies.setToken(res.accessToken);
-        if (res.refreshToken) authCookies.setRefreshToken(res.refreshToken);
-      }
-
-      return res;
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) continue;
-
-      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        authCookies.clearSession();
-        return null;
-      }
-
-      continue;
+    if (res && res.accessToken) {
+      authCookies.setToken(res.accessToken);
+      if (res.refreshToken) authCookies.setRefreshToken(res.refreshToken);
     }
-  }
 
-  authCookies.clearSession();
-  return null;
+    return res;
+  } catch (err) {
+    // Only an explicitly rejected session should log the user out.
+    // Network errors and 5xx responses leave the session in place so a retry can succeed.
+    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+      authCookies.clearSession();
+    }
+    return null;
+  }
 }
 
 /**
@@ -235,21 +226,10 @@ export async function updateMe(payload: UpdateMePayload): Promise<UserProfile> {
 
 /**
  * Profile updater used by contributor and creator profile settings pages.
- * Directly invokes updateMe (PUT /api/auth/me) with fallback handling for legacy endpoints.
+ * The backend only accepts profile updates at PUT /api/auth/me.
  */
 export async function updateProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  try {
-    return await updateMe(payload);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      return await apiRequest<UserProfile>("/api/contributor/profile", {
-        method: "PUT",
-        body: payload,
-        auth: true,
-      });
-    }
-    throw err;
-  }
+  return updateMe(payload);
 }
 
 /**

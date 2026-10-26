@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import Header from "@/components/Header";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
-import { ActivityLog } from "@/lib/api/blogs";
+import { ActivityLog, AuditLogFilterOptions } from "@/lib/api/blogs";
 import { RefreshCw, Search, Clock, AlertCircle } from "lucide-react";
 
 export default function AdminAuditPage() {
-  const { user: currentAdminUser, loading: sessionLoading, allowed: isPermissionAllowed } = useSession("user:view");
+  const { user: currentAdminUser, allowed: isPermissionAllowed } = useSession("user:view");
 
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +25,7 @@ export default function AdminAuditPage() {
     setErrorMessage(null);
 
     try {
-      const params: any = {};
+      const params: AuditLogFilterOptions = {};
       if (actorFilter) params.actor = actorFilter;
       if (actionFilter) params.action = actionFilter;
       if (fromDate) params.from = fromDate;
@@ -35,8 +35,8 @@ export default function AdminAuditPage() {
       // Normalize response
       let extracted: ActivityLog[] = [];
       if (Array.isArray(res)) extracted = res;
-      else if (Array.isArray((res as any)?.data)) extracted = (res as any).data;
-      else if (Array.isArray((res as any)?.docs)) extracted = (res as any).docs;
+      else if (Array.isArray(res?.data)) extracted = res.data;
+      else if (Array.isArray(res?.docs)) extracted = res.docs;
 
       setLogs(extracted);
     } catch (error: unknown) {
@@ -146,7 +146,7 @@ export default function AdminAuditPage() {
                     <tr key={l._id} className="hover:bg-slate-50/50">
                       <td className="px-4 py-3 text-xs text-slate-500">{new Date(l.createdAt).toLocaleString()}</td>
                       <td className="px-4 py-3">
-                        {typeof l.user === 'string' ? l.user : `${(l.user as any)?.firstName || ''} ${(l.user as any)?.lastName || ''} ${(l.user as any)?.username ? `(${(l.user as any).username})` : ''}`}
+                        {typeof l.user === 'string' ? l.user : `${l.user?.firstName || ''} ${l.user?.lastName || ''} ${l.user?.username ? `(${l.user.username})` : ''}`}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs">{l.action}</td>
                       <td className="px-4 py-3">{l.resource || l.resourceId || '-'}</td>

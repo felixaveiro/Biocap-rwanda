@@ -2,7 +2,7 @@
 import React from 'react';
 import GalleryManager from '@/components/GalleryManager';
 import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
-import { Sparkles, Layers, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 const fraunces = Fraunces({
   subsets: ['latin'],

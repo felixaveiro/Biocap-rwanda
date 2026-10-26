@@ -7,9 +7,10 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from "react";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
-import { blogsApi } from "@/lib/api/blogs";
+import { blogsApi, UpdateBlogPayload } from "@/lib/api/blogs";
 import CommentManager from "@/components/CommentManager";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
@@ -76,7 +77,7 @@ function formatPublishedLinks(text: string): string {
   if (!text) return '';
 
   const normalizeUrl = (url: string) => {
-    let trimmed = url.trim();
+    const trimmed = url.trim();
     if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
       return `https://${trimmed}`;
     }
@@ -112,7 +113,7 @@ function formatPublishedLinks(text: string): string {
     }
   );
 
-  return formatted;
+  return sanitizeHtml(formatted);
 }
 
 // Finds the editable paragraph (rendered by EditableParagraph) that contains a node
@@ -637,7 +638,7 @@ export default function EditStoryModal({
           const rawBlocks: BlogBlock[] =
             fullData.blocks && fullData.blocks.length > 0
               ? fullData.blocks
-              : [{ type: "p", text: (fullData as any).content || fullData.bodyHtml || "" }];
+              : [{ type: "p", text: (fullData as BlogPost & { content?: string }).content || fullData.bodyHtml || "" }];
 
           // Normalise links ONCE at load time so the DOM and state never disagree later
           setEditedBlocks(
@@ -1025,7 +1026,7 @@ export default function EditStoryModal({
     setErrorMessage(null);
 
     try {
-      const payload: Record<string, any> = {
+      const payload: UpdateBlogPayload = {
         title: articleTitle,
         tag: articleTag,
         excerpt: articleExcerpt,
@@ -1415,7 +1416,7 @@ export default function EditStoryModal({
 
               <div className="divide-y divide-[#EDEAE0]">
                 {openChangeRequests.map((cr, idx) => {
-                  const commenterObj = cr.commenter as any;
+                  const commenterObj = typeof cr.commenter === "string" ? undefined : cr.commenter;
                   const commenterName =
                     typeof cr.commenter === "string"
                       ? cr.commenter

@@ -37,7 +37,7 @@ export default function CreatorOverviewDashboardPage() {
 
     try {
       const creatorRole = currentCreatorUser.role as Role;
-      const apiResponse: any = await blogsApi.getBlogs(creatorRole);
+      const apiResponse = await blogsApi.getBlogs(creatorRole);
 
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(apiResponse)) extractedBlogs = apiResponse;

@@ -50,7 +50,7 @@ export default function CommunicationOfficerOverviewPage() {
 
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(publishedRes)) extractedBlogs = publishedRes;
-      else if (Array.isArray((publishedRes as any)?.data)) extractedBlogs = (publishedRes as any).data;
+      else if (Array.isArray(publishedRes?.data)) extractedBlogs = publishedRes.data;
 
       setPublishedStories(extractedBlogs);
       setNotifications(Array.isArray(notifRes) ? notifRes : []);

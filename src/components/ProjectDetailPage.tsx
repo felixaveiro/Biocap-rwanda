@@ -176,7 +176,7 @@ export default function ProjectDetailPage({
         {/* Quote */}
         {m.quote && (
           <div className="bg-[#1a3a5c] rounded-3xl p-10 text-center">
-            <div className="text-[#e8185e] text-5xl font-serif mb-4">"</div>
+            <div className="text-[#e8185e] text-5xl font-serif mb-4">&quot;</div>
             <p className="text-white font-serif italic text-xl md:text-2xl leading-relaxed mb-6">
               {m.quote}
             </p>

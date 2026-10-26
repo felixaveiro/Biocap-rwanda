@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import { usersApi } from "@/lib/api/users";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
-import { User, BlogPost, Role } from "@/types";
+import { User, BlogPost, Role, PaginatedResponse } from "@/types";
 import {
   Users as UsersIcon,
   FileText,
@@ -63,7 +63,10 @@ export default function AdminOverviewDashboardPage() {
       const adminRole = currentAdminUser.role as Role;
 
       // Fetch system users and platform stories in parallel
-      const [usersResponse, blogsResponse]: [any, any] = await Promise.all([
+      const [usersResponse, blogsResponse]: [
+        (PaginatedResponse<User> & { users?: User[] }) | User[],
+        PaginatedResponse<BlogPost> | BlogPost[],
+      ] = await Promise.all([
         usersApi.listUsers(adminRole),
         blogsApi.getBlogs(adminRole),
       ]);

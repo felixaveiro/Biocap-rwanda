@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
           <span className="text-[#133248]">Password?</span>
         </h1>
         <p className="text-center text-xs sm:text-sm text-[#133248]/80 font-medium mb-6">
-          Enter your registered email address and we'll send you a password reset link.
+          Enter your registered email address and we&apos;ll send you a password reset link.
         </p>
 
         {/* Alerts */}

@@ -15,6 +15,9 @@ import {
 
 // ─── Payload Interfaces ────────────────────────────────────────────────────────
 
+// Inline image blocks may carry the original File picked by the editor
+type BlogBlockWithRawFile = BlogBlock & { rawFile?: File };
+
 export interface CreateBlogPayload {
   title: string;
   tag: string;
@@ -32,7 +35,7 @@ export interface UpdateBlogPayload {
   title?: string;
   tag?: string;
   excerpt?: string;
-  blocks?: BlogBlock[];
+  blocks?: BlogBlock[] | string; // a JSON string is accepted too; the backend parses both
   modal?: BlogModalMetadata;
   socialHandle?: string;
   organizationLink?: string;
@@ -428,8 +431,8 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
     let fileToUpload: File | null = null;
 
     if (block.type === "image" || block.type === "hero") {
-      if ((block as any).rawFile instanceof File) {
-        fileToUpload = (block as any).rawFile;
+      if ((block as BlogBlockWithRawFile).rawFile instanceof File) {
+        fileToUpload = (block as BlogBlockWithRawFile).rawFile as File;
       } else if (typeof block.src === "string" && block.src.startsWith("data:image")) {
         fileToUpload = base64ToFile(block.src, `inline-${Date.now()}-${idx}.jpg`);
       }
@@ -548,8 +551,8 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?:
       let fileToUpload: File | null = null;
 
       if (block.type === "image" || block.type === "hero") {
-        if ((block as any).rawFile instanceof File) {
-          fileToUpload = (block as any).rawFile;
+        if ((block as BlogBlockWithRawFile).rawFile instanceof File) {
+          fileToUpload = (block as BlogBlockWithRawFile).rawFile as File;
         } else if (typeof block.src === "string" && block.src.startsWith("data:image")) {
           fileToUpload = base64ToFile(block.src, `inline-${crypto.randomUUID()}.jpg`);
         }
@@ -705,22 +708,14 @@ export async function unpublishBlog(id: string, payload?: UnpublishBlogPayload, 
 // ─── Communication Officer Operations ───────────────────────────────────────
 
 export async function getOfficerPendingBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> {
-  const query = new URLSearchParams();
+  // The backend has no /api/officer/pending route; pending review is a status filter on /api/blogs.
+  const query = new URLSearchParams({ status: "pending_review" });
   if (params.page) query.append("page", params.page.toString());
   if (params.limit) query.append("limit", params.limit.toString());
   if (params.tag) query.append("tag", params.tag);
   if (params.search) query.append("search", params.search);
 
-  const queryString = query.toString() ? `?${query.toString()}` : "";
-  
-  try {
-    return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/officer/pending${queryString}`, { auth: true });
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 404) {
-      return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/blogs?status=pending_review${queryString}`, { auth: true });
-    }
-    throw err;
-  }
+  return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/blogs?${query.toString()}`, { auth: true });
 }
 
 export async function getOfficerPublishedBlogs(params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost>> {
@@ -761,14 +756,6 @@ export async function markNotificationRead(id: string): Promise<{ message: strin
     method: "PATCH",
     auth: true,
   });
-}
-
-export async function getOfficerActivityLogs(): Promise<ActivityLog[]> {
-  return apiRequest<ActivityLog[]>("/api/officer/activity-logs", { auth: true });
-}
-
-export async function getOfficerActivityLogById(id: string): Promise<ActivityLog> {
-  return apiRequest<ActivityLog>(`/api/officer/activity-logs/${id}`, { auth: true });
 }
 
 export async function getAdminAuditLogs(params: AuditLogFilterOptions = {}): Promise<PaginatedResponse<ActivityLog> | ActivityLog[]> {
@@ -832,6 +819,18 @@ export async function markChangeImplemented(id: string, payload?: MarkChangeImpl
   });
 
   return extractBlogFromResponse(res);
+}
+
+// ─── Dashboard Summaries (documented in /api-docs, previously unused) ─────────
+
+/** Admin: dashboard summary. The spec only says "Dashboard summary data", so the shape is left open. */
+export async function getAdminDashboard(): Promise<Record<string, unknown>> {
+  return apiRequest<Record<string, unknown>>("/api/admin/dashboard", { auth: true });
+}
+
+/** Communication officer: dashboard summary */
+export async function getOfficerDashboard(): Promise<Record<string, unknown>> {
+  return apiRequest<Record<string, unknown>>("/api/officer/dashboard", { auth: true });
 }
 
 // ─── Writer Submissions, Contributor Blogs & Editor Revisions ─────────────────
@@ -930,30 +929,15 @@ export const editorApi = {
   getRevisionHistory: getEditorRevisionHistory,
 
   getBlogStats: async (): Promise<BlogStatsResponse> => {
-    try {
-      return await apiRequest<BlogStatsResponse>("/api/blogs/stats", { auth: true });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        return await apiRequest<BlogStatsResponse>("/api/editor/blogs/stats", { auth: true });
-      }
-      throw err;
-    }
+    return apiRequest<BlogStatsResponse>("/api/editor/blogs/stats", { auth: true });
   },
 
   getReviewQueue: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
     const query = new URLSearchParams();
-    query.append("status", "pending_review");
     if (params.page) query.append("page", params.page.toString());
     if (params.limit) query.append("limit", params.limit.toString());
-
-    try {
-      return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/blogs?${query.toString()}`, { auth: true });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs/review-queue?${query.toString()}`, { auth: true });
-      }
-      throw err;
-    }
+    const queryString = query.toString() ? `?${query.toString()}` : "";
+    return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs/review-queue${queryString}`, { auth: true });
   },
 
   getBlogs: async (params: BlogFilterOptions = {}): Promise<PaginatedResponse<BlogPost> | BlogPost[]> => {
@@ -964,26 +948,11 @@ export const editorApi = {
     if (params.page) query.append("page", params.page.toString());
     if (params.limit) query.append("limit", params.limit.toString());
     const queryString = query.toString() ? `?${query.toString()}` : "";
-
-    try {
-      return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/blogs${queryString}`, { auth: true });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        return await apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs${queryString}`, { auth: true });
-      }
-      throw err;
-    }
+    return apiRequest<PaginatedResponse<BlogPost> | BlogPost[]>(`/api/editor/blogs${queryString}`, { auth: true });
   },
 
   getBlogById: async (id: string): Promise<BlogPost> => {
-    try {
-      return await apiRequest<BlogPost>(`/api/blogs/${id}`, { auth: true });
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        return await apiRequest<BlogPost>(`/api/editor/blogs/${id}`, { auth: true });
-      }
-      throw err;
-    }
+    return apiRequest<BlogPost>(`/api/editor/blogs/${id}`, { auth: true });
   },
 
   createBlog: async (payload: CreateBlogPayload): Promise<BlogPost> => {
@@ -995,19 +964,23 @@ export const editorApi = {
   },
 
   submitBlog: async (id: string): Promise<{ message: string; blog: BlogPost }> => {
-    return submitBlog(id, "editor");
+    const res = await apiRequest<unknown>(`/api/editor/blogs/${id}/submit`, { method: "PATCH", auth: true });
+    return extractBlogFromResponse(res);
   },
 
   reviewBlog: async (id: string, payload: ReviewBlogPayload): Promise<{ message: string; blog: BlogPost }> => {
-    return reviewBlog(id, payload, "editor");
+    const res = await apiRequest<unknown>(`/api/editor/blogs/${id}/review`, { method: "PATCH", auth: true, body: payload });
+    return extractBlogFromResponse(res);
   },
 
   unpublishBlog: async (id: string, payload?: UnpublishBlogPayload): Promise<{ message: string; blog: BlogPost }> => {
-    return unpublishBlog(id, payload, "editor");
+    const res = await apiRequest<unknown>(`/api/editor/blogs/${id}/unpublish`, { method: "PATCH", auth: true, body: payload || {} });
+    return extractBlogFromResponse(res);
   },
 
   publishBlog: async (id: string): Promise<{ message: string; blog: BlogPost }> => {
-    return publishBlog(id, "editor");
+    const res = await apiRequest<unknown>(`/api/editor/blogs/${id}/publish`, { method: "PATCH", auth: true });
+    return extractBlogFromResponse(res);
   },
 };
 
@@ -1027,8 +1000,6 @@ export const officerApi = {
   getRevisionHistory: (id: string) => getEditorRevisionHistory(id, "communication_officer"),
   getNotifications: getOfficerNotifications,
   markNotificationRead,
-  getActivityLogs: getOfficerActivityLogs,
-  getActivityLogById: getOfficerActivityLogById,
 };
 
 // ─── Unified Namespace Exports ────────────────────────────────────────────────
@@ -1074,8 +1045,6 @@ export const blogsApi = {
   acceptEditorChanges,
   getOfficerNotifications,
   markNotificationRead,
-  getOfficerActivityLogs,
-  getOfficerActivityLogById,
   getAdminAuditLogs,
   getAdminAuditLogsByBlog,
   getAdminAuditLogsByUser,
@@ -1085,6 +1054,8 @@ export const blogsApi = {
   getCreatorPublishedBySlug,
   markChangeImplemented,
   uploadImage,
+  getAdminDashboard,
+  getOfficerDashboard,
   getMySubmissions,
   getContributorBlogs,
   getContributorBlogById,

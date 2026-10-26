@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost } from "@/types";
-import { Globe, RefreshCw, AlertCircle, Tag, Calendar, User as UserIcon, ExternalLink } from "lucide-react";
+import { Globe, RefreshCw, AlertCircle, Calendar, User as UserIcon, ExternalLink } from "lucide-react";
 
 export default function CreatorPublishedFeedPage() {
   const { user, loading: sessionLoading, allowed } = useSession("blog:view");
@@ -21,7 +21,7 @@ export default function CreatorPublishedFeedPage() {
     setErrorMsg(null);
 
     try {
-      const response: any = await blogsApi.getCreatorPublishedFeed();
+      const response = await blogsApi.getCreatorPublishedFeed();
 
       let blogList: BlogPost[] = [];
       if (Array.isArray(response)) blogList = response;

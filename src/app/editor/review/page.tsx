@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
-import { BlogPost, Role } from "@/types";
+import { BlogPost } from "@/types";
 import { AlertCircle, RefreshCw, Inbox } from "lucide-react";
 
 // ── Type system (matches My Stories / Create Story / Editor Catalog) ──
@@ -54,8 +54,8 @@ export default function EditorReviewQueuePage() {
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(response)) {
         extractedBlogs = response;
-      } else if (response && Array.isArray((response as any).data)) {
-        extractedBlogs = (response as any).data;
+      } else if (response && Array.isArray(response.data)) {
+        extractedBlogs = response.data;
       }
 
       setReviewQueue(extractedBlogs);

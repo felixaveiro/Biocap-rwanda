@@ -112,7 +112,7 @@ export default function CreateTeamMemberPage() {
       organizationLink: organizationLink.trim() || undefined,
       socialHandle: socialHandle.trim() || undefined,
       dateOfBirth: dateOfBirth || undefined,
-    } as any;
+    };
 
     try {
       // Pass payload as required by usersApi.createUser

@@ -9,7 +9,7 @@ import BlogTable from "@/components/BlogTable";
 import EditStoryModal from "@/components/EditStoryModal";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
-import { BlogPost, Role } from "@/types";
+import { BlogPost, Role, User } from "@/types";
 import { Plus, AlertCircle, RefreshCw, FileText, PenLine } from "lucide-react";
 
 // ── Typography System ─────────────────────────────────────────
@@ -40,7 +40,7 @@ function StoryTableWrapper({
   onEditStory,
 }: {
   stories: BlogPost[];
-  user: any;
+  user: User;
   onRefresh: () => void;
   onEditStory: (story: BlogPost) => void;
 }) {
@@ -89,7 +89,7 @@ export default function CreatorMyStoriesPage() {
 
     try {
       const creatorRole = currentCreatorUser.role as Role;
-      const apiResponse: any = await blogsApi.getBlogs(creatorRole);
+      const apiResponse = await blogsApi.getBlogs(creatorRole);
 
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(apiResponse)) extractedBlogs = apiResponse;

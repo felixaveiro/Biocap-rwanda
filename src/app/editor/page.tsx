@@ -71,8 +71,8 @@ export default function EditorOverviewPage() {
       let extractedQueue: BlogPost[] = [];
       if (Array.isArray(queueResponse)) {
         extractedQueue = queueResponse;
-      } else if (queueResponse && Array.isArray((queueResponse as any).data)) {
-        extractedQueue = (queueResponse as any).data;
+      } else if (queueResponse && Array.isArray(queueResponse.data)) {
+        extractedQueue = queueResponse.data;
       }
 
       setReviewQueueList(extractedQueue);

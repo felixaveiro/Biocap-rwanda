@@ -4,18 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import Footer from '@/components/Footer';
 import {
-  CheckCircle2,
   Sprout,
-  ShieldCheck,
-  Users,
-  Microscope,
-  BookOpen,
-  Radio,
   Globe,
   Wheat,
-  Newspaper,
-  Smartphone,
-  Landmark,
   Handshake,
   GraduationCap,
   Leaf,
@@ -258,7 +249,7 @@ export default function AboutPage() {
     About Rwanda <span className="text-[#E8185A]">BioCap Project</span>
   </h1>
   <p className="text-white/90 text-lg max-w-3xl leading-relaxed font-medium drop-shadow-md text-justify">
-    At the heart of Rwanda's agricultural innovation agenda, the Rwanda BioCap Project
+    At the heart of Rwanda&apos;s agricultural innovation agenda, the Rwanda BioCap Project
     is establishing a Center of Excellence in Crop Biotechnology to cultivate world-class scientific
     expertise, foster responsible innovation, and deliver improved and farmer-preferred banana, cassava,
     and potato varieties that strengthen
@@ -328,7 +319,7 @@ export default function AboutPage() {
             Three Food-Security Crops. Five Major Disease Challenges.
           </h2>
           <p className="text-slate-500 text-sm mb-6 w-full text-justify">
-            Rwanda BioCap Project is helping Rwanda's farmers increase productivity, improve profitability, 
+            Rwanda BioCap Project is helping Rwanda&apos;s farmers increase productivity, improve profitability, 
             and strengthen climate resilience through responsible biotechnology innovation. 
             By developing disease-resistant, farmer-preferred crop varieties, the project reduces crop losses,
              lowers pesticide use, and supports more sustainable farming systems.
@@ -375,7 +366,7 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
           <div className="relative">
             <div className="bg-[#1B3A5C] aspect-[4/3] rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl">
-              <img src="/image/lounch.jpg" className="w-full h-full object-cover opacity-70" />
+              <img src="/image/lounch.jpg" alt="" className="w-full h-full object-cover opacity-70" />
             </div>
             <div className="absolute bottom-[-16px] right-[-16px] bg-white p-4 rounded-2xl shadow-xl z-20">
               <div className="font-serif text-2xl font-black text-[#E8185A]">15 Dec 2025</div>
@@ -390,7 +381,7 @@ export default function AboutPage() {
               <div className="w-6 h-[2px] bg-[#E8185A]" /> Our Mission
             </div>
             <p className="text-slate-600 mb-3 leading-relaxed text-justify">
-              To empower Rwanda's scientists to develop responsible biotechnology innovations
+              To empower Rwanda&apos;s scientists to develop responsible biotechnology innovations
                that enable farmers to grow more profitably, strengthen food security, 
                and build climate-resilient agricultural systems for future generations.
             </p>
@@ -862,11 +853,11 @@ export default function AboutPage() {
                 <span className="obj-vg-card-title">Our Goal</span>
               </div>
              <p style={{ marginBottom: '0.5rem' }}>
-  By 2029, Rwanda BioCap Project will have established Rwanda's Centre of Excellence in Crop
+  By 2029, Rwanda BioCap Project will have established Rwanda&apos;s Centre of Excellence in Crop
   Biotechnology as a regional hub for research, biosafety, and innovation,
   with the scientific, regulatory, and institutional capacity to develop,
   evaluate, and advance the deployment of biotechnology-enhanced potato,
-  cassava, and banana varieties that address Rwanda's most pressing
+  cassava, and banana varieties that address Rwanda&apos;s most pressing
   agricultural challenges.
 </p>
             </div>

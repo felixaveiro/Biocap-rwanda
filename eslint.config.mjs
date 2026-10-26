@@ -14,6 +14,15 @@ const eslintConfig = [
   {
     ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
   },
+  {
+    rules: {
+      // Parameters prefixed with "_" are intentionally unused (kept for API compatibility).
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_" },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { sanitizeHtml } from "@/lib/sanitize";
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -74,7 +75,7 @@ function formatPublishedLinks(text: string): string {
     }
   );
 
-  return formatted;
+  return sanitizeHtml(formatted);
 }
 
 // True when the saved text already contains HTML from the editor (bold, underline, spans, links...)
@@ -200,10 +201,10 @@ export default function StewardshipArticlePage() {
 
   const moreCollection = Array.isArray(rawMoreData)
     ? rawMoreData
-    : Array.isArray((rawMoreData as any)?.data)
-    ? (rawMoreData as any).data
-    : Array.isArray((rawMoreData as any)?.docs)
-    ? (rawMoreData as any).docs
+    : Array.isArray(rawMoreData?.data)
+    ? rawMoreData.data
+    : Array.isArray(rawMoreData?.docs)
+    ? rawMoreData.docs
     : [];
 
   const moreStories = moreCollection.filter((s: BlogPost) => s.slug !== slug).slice(0, 6);
@@ -517,7 +518,7 @@ export default function StewardshipArticlePage() {
                       <div className="mb-3 flex items-center gap-2">
                         <span className="h-2.5 w-2.5 rounded-full bg-[#C22055]" />
                         <h4 className="text-sm font-bold uppercase tracking-wider text-[#1B3A5C]">
-                          Reach out to author's handle
+                          Reach out to author&apos;s handle
                         </h4>
                       </div>
 

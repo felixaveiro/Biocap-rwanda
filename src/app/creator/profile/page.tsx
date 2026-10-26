@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Plus, Trash2, CheckCircle2, AlertCircle, Save, User as UserIcon, Lock, KeyRound } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { updateProfile } from "@/lib/api/auth";
 import Header from "@/components/Header";
 import ChangePasswordForm from "@/components/ChangePasswordForm";
-import { Role, ORGANIZATIONS, ROLE_LABELS, getRolesForOrganization } from "@/types";
+import { Role, ORGANIZATIONS, ROLE_LABELS } from "@/types";
 
 type SocialPlatform = "X (Twitter)" | "LinkedIn" | "Facebook" | "Instagram";
 
@@ -49,10 +49,6 @@ export default function ProfilePage() {
 
   const isAfSRwanda = organization === "Alliance for Science Rwanda (AfS-Rwanda)";
   const isMediaCorrespondent = role === "media_correspondent";
-
-  const availableRoles = useMemo(() => {
-    return getRolesForOrganization(organization);
-  }, [organization]);
 
   // Populate profile fields from logged-in user data
   useEffect(() => {

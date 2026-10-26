@@ -6,7 +6,7 @@ import BlogTable from "@/components/BlogTable";
 import { blogsApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost, Role } from "@/types";
-import { AlertCircle, RefreshCw, Globe, CheckCircle2, FileText, Clock } from "lucide-react";
+import { AlertCircle, RefreshCw, Globe, CheckCircle2, Clock } from "lucide-react";
 
 export default function OfficerPublishingDeskPage() {
   const {
@@ -33,7 +33,7 @@ export default function OfficerPublishingDeskPage() {
       if (Array.isArray(apiResponse)) {
         extractedBlogs = apiResponse;
       } else if (apiResponse && typeof apiResponse === 'object') {
-        const raw = apiResponse as any;
+        const raw: { data?: unknown; docs?: unknown; blogs?: unknown } = apiResponse;
         if (Array.isArray(raw.data)) {
           extractedBlogs = raw.data;
         } else if (Array.isArray(raw.docs)) {
@@ -105,7 +105,7 @@ export default function OfficerPublishingDeskPage() {
 
   const publishedCount = publishingQueueList.filter((s) => {
     const statusStr = String(s.status || '').toLowerCase();
-    return statusStr === 'published' || (s as any).isPublished === true;
+    return statusStr === 'published' || (s as BlogPost & { isPublished?: boolean }).isPublished === true;
   }).length;
 
   if (sessionLoading || !isPermissionAllowed || !currentOfficerUser) {

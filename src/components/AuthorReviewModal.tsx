@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from 'react-dom';
 import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
 import { BlogPost, BlogBlock } from '@/types';
@@ -49,7 +50,7 @@ function formatMarkdownLinks(text: string): string {
   if (!text) return "";
 
   const normalizeUrl = (url: string) => {
-    let trimmed = url.trim();
+    const trimmed = url.trim();
     if (!/^https?:\/\//i.test(trimmed) && !/^mailto:/i.test(trimmed)) {
       return `https://${trimmed}`;
     }
@@ -74,7 +75,7 @@ function formatMarkdownLinks(text: string): string {
       `<a href="${normalizeUrl(url)}" target="_blank" rel="noopener noreferrer" class="editor-link"${restAttrs}>${label}</a>`
   );
 
-  return formatted;
+  return sanitizeHtml(formatted);
 }
 
 const renderSocialPlatformIcon = (platformName: string) => {
@@ -295,7 +296,7 @@ export default function AuthorReviewModal({
           {/* Excerpt Summary */}
           {story.excerpt && (
             <div className="border-l-[3px] border-[#C22055] bg-slate-50 p-4 text-xs sm:text-sm italic text-[#3A4239] leading-relaxed">
-              "{story.excerpt}"
+              &quot;{story.excerpt}&quot;
             </div>
           )}
 
@@ -330,7 +331,7 @@ export default function AuthorReviewModal({
                     );
                   }
 
-                  const imageUrl = block.src || block.url || (block as any).imagePreview;
+                  const imageUrl = block.src || block.url || (block as BlogBlock & { imagePreview?: string }).imagePreview;
 
                   if (block.type === 'image' && imageUrl) {
                     return (
