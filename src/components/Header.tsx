@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { authCookies } from "@/lib/auth/cookies";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { LogOut } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 interface HeaderProps {
   title: string;
@@ -73,6 +74,8 @@ export default function Header({ title, subtitle }: HeaderProps) {
           )}
         </div>
 
+        <div className="flex shrink-0 items-center gap-5 pb-1">
+        <NotificationBell />
         <button
           type="button"
           onClick={signOut}
@@ -85,6 +88,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
             <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-[#8B4136] transition-all duration-200 group-hover:w-full" />
           </span>
         </button>
+        </div>
       </div>
 
       {/* Masthead rule — thick over thin, a real print convention rather than a shadow */}
