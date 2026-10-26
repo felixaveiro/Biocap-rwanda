@@ -344,6 +344,9 @@ export interface PaginatedResponse<T> {
     page: number;
     limit: number;
     pages: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPrevPage?: boolean;
   };
   totalDocs?: number;
   limit?: number;

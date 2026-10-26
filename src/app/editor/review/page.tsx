@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
-import { blogsApi } from "@/lib/api/blogs";
+import { editorApi } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";
 import { BlogPost } from "@/types";
 import { AlertCircle, RefreshCw, Inbox } from "lucide-react";
@@ -31,6 +31,8 @@ const plexMono = IBM_Plex_Mono({
 
 // ── Palette — canvas #F3F2ED · ink #1E2620 · moss #3F6B4F · gold #A9812F · clay #B65C4B · line #D9D4C6
 
+const QUEUE_PAGE_SIZE = 20;
+
 export default function EditorReviewQueuePage() {
   const {
     user: currentEditorUser,
@@ -39,23 +41,36 @@ export default function EditorReviewQueuePage() {
   } = useSession("blog:view");
 
   const [reviewQueue, setReviewQueue] = useState<BlogPost[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalInQueue, setTotalInQueue] = useState(0);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [fetchErrorMessage, setFetchErrorMessage] = useState<string | null>(null);
 
+  // Same endpoint and oldest-first order as the overview's priority queue, so both pages list the same stories.
   const fetchReviewQueue = useCallback(async () => {
     if (!currentEditorUser) return;
     setIsDataLoading(true);
     setFetchErrorMessage(null);
 
     try {
-      // Fetch articles pending review for the editor
-      const response = await blogsApi.getBlogs("editor", { status: "pending_review" });
+      const response = await editorApi.getReviewQueue({ page, limit: QUEUE_PAGE_SIZE });
 
       let extractedBlogs: BlogPost[] = [];
       if (Array.isArray(response)) {
         extractedBlogs = response;
-      } else if (response && Array.isArray(response.data)) {
-        extractedBlogs = response.data;
+        setTotalInQueue(response.length);
+        setTotalPages(1);
+      } else {
+        extractedBlogs = response?.data ?? [];
+        setTotalInQueue(response?.pagination?.total ?? extractedBlogs.length);
+        setTotalPages(Math.max(response?.pagination?.totalPages ?? 1, 1));
+      }
+
+      // A decision can empty the last page, so step back to the previous page.
+      if (extractedBlogs.length === 0 && page > 1) {
+        setPage((current) => current - 1);
+        return;
       }
 
       setReviewQueue(extractedBlogs);
@@ -66,7 +81,7 @@ export default function EditorReviewQueuePage() {
     } finally {
       setIsDataLoading(false);
     }
-  }, [currentEditorUser]);
+  }, [currentEditorUser, page]);
 
   useEffect(() => {
     if (currentEditorUser && isPermissionAllowed) {
@@ -83,7 +98,11 @@ export default function EditorReviewQueuePage() {
     return (
       <div className={`${fontVars} min-h-screen bg-[#F3F2ED] pb-16`} style={bodyFont}>
         <Header title="Editor Review Queue" subtitle="Verifying credentials…" />
-        <div className="p-8 text-sm text-[#6B7268]">Loading queue…</div>
+        <div className="p-8 text-sm text-[#6B7268]">
+          {!sessionLoading && !isPermissionAllowed
+            ? "You do not have access to the review queue. Redirecting…"
+            : "Loading queue…"}
+        </div>
       </div>
     );
   }
@@ -107,7 +126,7 @@ export default function EditorReviewQueuePage() {
             </h1>
             {!isDataLoading && (
               <span className="text-sm tabular-nums text-[#6B7268]" style={monoFont}>
-                {String(reviewQueue.length).padStart(2, "0")} in queue
+                {String(totalInQueue).padStart(2, "0")} in queue
               </span>
             )}
           </div>
@@ -154,6 +173,30 @@ export default function EditorReviewQueuePage() {
               user={currentEditorUser}
               onRefreshNeeded={fetchReviewQueue}
             />
+          </div>
+        )}
+
+        {!isDataLoading && totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-between text-xs text-[#6B7268]" style={monoFont}>
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((current) => current - 1)}
+              className="border border-[#D9D4C6] bg-white px-3 py-1.5 font-semibold uppercase tracking-wide text-[#1E2620] transition-colors hover:bg-[#1E2620] hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-[#1E2620] cursor-pointer"
+            >
+              Previous
+            </button>
+            <span className="tabular-nums">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((current) => current + 1)}
+              className="border border-[#D9D4C6] bg-white px-3 py-1.5 font-semibold uppercase tracking-wide text-[#1E2620] transition-colors hover:bg-[#1E2620] hover:text-white disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-[#1E2620] cursor-pointer"
+            >
+              Next
+            </button>
           </div>
         )}
       </main>

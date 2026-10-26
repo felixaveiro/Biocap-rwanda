@@ -5,7 +5,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from "react-dom";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, Comment, BlogBlock } from "@/types";
-import { blogsApi, officerApi, UpdateBlogPayload } from "@/lib/api/blogs";
+import { blogsApi, officerApi, UpdateBlogPayload, type ReviewBlogResult } from "@/lib/api/blogs";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
 import {
@@ -397,6 +397,7 @@ export default function ReviewStoryModal({
   const handleDecision = async (decision: "approve" | "reject") => {
     setIsSubmitting(true);
     setErrorMessage(null);
+    let reviewResult: ReviewBlogResult | null = null;
 
     try {
       if (decision === "approve") {
@@ -432,7 +433,7 @@ export default function ReviewStoryModal({
             approvalNote: revisionFeedbackNote,
           });
         } else {
-          await blogsApi.approveBlog(story._id, currentUserRole);
+          reviewResult = await blogsApi.approveBlog(story._id, currentUserRole);
         }
       } else {
         if (!revisionFeedbackNote.trim()) {
@@ -441,7 +442,16 @@ export default function ReviewStoryModal({
           return;
         }
 
-        await blogsApi.rejectBlog(story._id, revisionFeedbackNote, currentUserRole);
+        reviewResult = await blogsApi.rejectBlog(story._id, revisionFeedbackNote, currentUserRole);
+      }
+
+      // The decision is saved. Keep the modal open so the editor sees that the author still needs to be told.
+      if (reviewResult?.authorNotified === false) {
+        setErrorMessage(
+          `Decision saved, but the author was not emailed (${reviewResult.authorEmailError ?? "unknown error"}). Please tell them directly.`
+        );
+        setIsSubmitting(false);
+        return;
       }
 
       onReviewCompleted();

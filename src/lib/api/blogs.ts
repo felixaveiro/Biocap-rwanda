@@ -679,21 +679,34 @@ export async function submitBlog(id: string, _role?: Role): Promise<{ message: s
   return extractBlogFromResponse(res);
 }
 
-export async function reviewBlog(id: string, payload: ReviewBlogPayload, _role?: Role): Promise<{ message: string; blog: BlogPost }> {
+export interface ReviewBlogResult {
+  message: string;
+  blog: BlogPost;
+  /** False when the decision was saved but the author's email did not go out. */
+  authorNotified?: boolean;
+  authorEmailError?: string | null;
+}
+
+export async function reviewBlog(id: string, payload: ReviewBlogPayload, _role?: Role): Promise<ReviewBlogResult> {
   const res = await apiRequest<unknown>(`/api/blogs/${id}/review`, {
     method: "PATCH",
     auth: true,
     body: payload,
   });
 
-  return extractBlogFromResponse(res);
+  const raw = (res && typeof res === "object" ? res : {}) as { authorNotified?: boolean; authorEmailError?: string | null };
+  return {
+    ...extractBlogFromResponse(res),
+    authorNotified: raw.authorNotified,
+    authorEmailError: raw.authorEmailError,
+  };
 }
 
-export async function approveBlog(id: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+export async function approveBlog(id: string, role?: Role): Promise<ReviewBlogResult> {
   return reviewBlog(id, { decision: "approved" }, role);
 }
 
-export async function rejectBlog(id: string, note?: string, role?: Role): Promise<{ message: string; blog: BlogPost }> {
+export async function rejectBlog(id: string, note?: string, role?: Role): Promise<ReviewBlogResult> {
   return reviewBlog(id, { decision: "rejected", note }, role);
 }
 
