@@ -11,6 +11,7 @@ import { sanitizeHtml } from "@/lib/sanitize";
 import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi, UpdateBlogPayload } from "@/lib/api/blogs";
+import { useSession } from "@/hooks/useSession";
 import CommentManager from "@/components/CommentManager";
 import ImageCropperModal from "@/components/ImageCropperModal";
 import { base64ToFile } from "@/lib/utils/file";
@@ -608,6 +609,8 @@ export default function EditStoryModal({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [proposalNotice, setProposalNotice] = useState<string | null>(null);
+  const { user: sessionUser } = useSession();
 
   const editorFeedbackNote = localStory.lastRejectionNote || null;
 
@@ -615,6 +618,14 @@ export default function EditStoryModal({
   const cannotSubmitStory = ["published", "approved"].includes(
     String(localStory.status || "").toLowerCase()
   );
+
+  // An editor changing another writer's story proposes the change; the writer accepts or rejects it.
+  // Editors who wrote a story themselves edit it directly.
+  const isEditorProposal =
+    currentUserRole === "editor" &&
+    !!sessionUser &&
+    !!localStory.originalAuthor?._id &&
+    localStory.originalAuthor._id !== sessionUser._id;
 
   // Revision Requests State
   const [implementingChange, setImplementingChange] = useState<ChangeRequest | null>(null);
@@ -1042,6 +1053,14 @@ export default function EditStoryModal({
       const newInlineFiles = Object.values(editedSectionFiles);
       if (newInlineFiles.length > 0) {
         payload.images = newInlineFiles;
+      }
+
+      if (isEditorProposal) {
+        const result = await blogsApi.proposeEditorChanges(localStory._id, payload);
+        setProposalNotice(result.message);
+        setIsSubmitting(false);
+        onStoryUpdated();
+        return;
       }
 
       await blogsApi.updateBlog(localStory._id, payload, currentUserRole);
@@ -1510,6 +1529,14 @@ export default function EditStoryModal({
             </div>
           )}
 
+          {/* Proposal Confirmation */}
+          {proposalNotice && (
+            <div role="status" className="flex items-center gap-2.5 border-l-4 border-emerald-700 bg-emerald-50 p-3.5 text-emerald-950">
+              <CheckCircle2 size={16} className="shrink-0 text-emerald-700" />
+              <span className="text-xs font-bold">{proposalNotice}</span>
+            </div>
+          )}
+
           {/* Loading Full Payload State */}
           {isLoadingFullStory ? (
             <div className="space-y-4 animate-pulse py-6">
@@ -1975,9 +2002,15 @@ export default function EditStoryModal({
             className={btnNeutral}
           >
             {isSubmitting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-            {isSubmitting ? "Saving..." : cannotSubmitStory ? "Save Changes" : "Save Draft"}
+            {isSubmitting
+              ? "Saving..."
+              : isEditorProposal
+                ? "Propose Changes"
+                : cannotSubmitStory
+                  ? "Save Changes"
+                  : "Save Draft"}
           </button>
-          {!cannotSubmitStory && (
+          {!cannotSubmitStory && !isEditorProposal && (
             <button
               type="button"
               disabled={isSubmitting}

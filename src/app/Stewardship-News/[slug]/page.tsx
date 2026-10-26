@@ -11,6 +11,7 @@ import Footer from '@/components/Footer';
 import CustomShareModal from '@/components/CustomShareModal';
 import ArticleCommentSection from '@/components/ArticleCommentSection';
 import ArticleSidebar from '@/components/ArticleSidebar';
+import EditorProposalReview from '@/components/EditorProposalReview';
 import { useSession } from '@/hooks/useSession';
 import {
   Calendar,
@@ -20,10 +21,6 @@ import {
   ArrowLeft,
   Share2,
   Link2,
-  CheckCircle2,
-  XCircle,
-  ShieldAlert,
-  Loader2,
   MessageCircle,
 } from 'lucide-react';
 
@@ -220,9 +217,6 @@ export default function StewardshipArticlePage() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [commentSuccess, setCommentSuccess] = useState<string | null>(null);
-  const [consentSubmitting, setConsentSubmitting] = useState<'approve' | 'reject' | null>(null);
-  const [consentNote, setConsentNote] = useState('');
-  const [consentError, setConsentError] = useState<string | null>(null);
 
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
@@ -290,32 +284,6 @@ export default function StewardshipArticlePage() {
       setCommentError(err instanceof Error ? err.message : 'Unable to post your comment right now.');
     } finally {
       setCommentSubmitting(false);
-    }
-  };
-
-  const handleConsentDecision = async (approved: boolean) => {
-    if (!story) return;
-
-    const reason = consentNote.trim();
-    if (!approved && !reason) {
-      setConsentError('Please explain why you are rejecting the editor changes.');
-      return;
-    }
-
-    try {
-      setConsentError(null);
-      setConsentSubmitting(approved ? 'approve' : 'reject');
-      await blogsApi.respondToWriterConsent(story._id, {
-        approved,
-        note: approved ? 'Approved by writer.' : reason,
-      });
-      setConsentNote('');
-      await revalidateStory();
-    } catch (err: unknown) {
-      console.error('Failed to update consent:', err);
-      setConsentError(err instanceof Error ? err.message : 'Unable to update the writer consent decision.');
-    } finally {
-      setConsentSubmitting(null);
     }
   };
 
@@ -587,58 +555,8 @@ export default function StewardshipArticlePage() {
                   );
                 })()}
 
-                {writerConsentPending && (
-                  <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-slate-700">
-                    <div className="flex items-start gap-3">
-                      <ShieldAlert className="mt-0.5 text-amber-700" size={18} />
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-[#1B3A5C]">Writer review required</p>
-                        <p className="mt-2 text-sm leading-7">
-                          The editor made changes to this article. Please review and approve or reject the modifications before publishing.
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            disabled={!!consentSubmitting}
-                            onClick={() => handleConsentDecision(true)}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#1B3A5C] px-4 py-2 text-xs font-bold uppercase tracking-widest text-white disabled:opacity-60 cursor-pointer"
-                          >
-                            {consentSubmitting === 'approve' ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                            Approve changes
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!!consentSubmitting}
-                            onClick={() => handleConsentDecision(false)}
-                            className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/20 bg-white px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#1B3A5C] disabled:opacity-60 cursor-pointer"
-                          >
-                            {consentSubmitting === 'reject' ? <Loader2 size={12} className="animate-spin" /> : <XCircle size={12} />}
-                            Reject changes
-                          </button>
-                        </div>
-                        <label htmlFor="consent-note" className="mt-4 block text-xs font-semibold text-[#1B3A5C]">
-                          Reason for rejecting (required to reject)
-                        </label>
-                        <textarea
-                          id="consent-note"
-                          value={consentNote}
-                          onChange={(event) => {
-                            setConsentNote(event.target.value);
-                            if (consentError) setConsentError(null);
-                          }}
-                          placeholder="Explain what needs to change. Optional when approving."
-                          aria-invalid={consentError ? true : undefined}
-                          className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:border-[#1B3A5C]"
-                          rows={3}
-                        />
-                        {consentError && (
-                          <p role="alert" className="mt-2 text-xs font-medium text-[#C22055]">
-                            {consentError}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                {writerConsentPending && story && (
+                  <EditorProposalReview storyId={story._id} onDecided={revalidateStory} />
                 )}
 
                 {isWriter && !canPublish && story?.publishConsentStatus && story.publishConsentStatus !== 'approved' && story.publishConsentStatus !== 'not_required' && (

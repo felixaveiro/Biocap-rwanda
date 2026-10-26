@@ -509,6 +509,18 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
 }
 
 export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?: Role): Promise<BlogPost> {
+  const { blog } = await saveBlogChanges(`/api/blogs/${id}`, payload);
+  return blog;
+}
+
+/**
+ * Editor: propose changes to a writer's story. The live story stays unchanged until the writer accepts them.
+ */
+export async function proposeEditorChanges(id: string, payload: UpdateBlogPayload): Promise<{ message: string; blog: BlogPost }> {
+  return saveBlogChanges(`/api/editor/blogs/${id}`, payload);
+}
+
+async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promise<{ message: string; blog: BlogPost }> {
   const uploadPromises: Promise<{ url: string; publicId: string }>[] = [];
 
   // Cover Image
@@ -599,7 +611,7 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?:
     });
   }
 
-  const res = await apiRequest<unknown>(`/api/blogs/${id}`, {
+  const res = await apiRequest<unknown>(path, {
     method: "PUT",
     auth: true,
     body: {
@@ -624,8 +636,7 @@ export async function updateBlog(id: string, payload: UpdateBlogPayload, _role?:
     },
   });
 
-  const normalized = extractBlogFromResponse(res);
-  return normalized.blog;
+  return extractBlogFromResponse(res);
 }
 
 export async function deleteBlog(id: string, _role?: Role): Promise<{ message: string }> {
@@ -835,10 +846,21 @@ export async function getOfficerDashboard(): Promise<Record<string, unknown>> {
 
 // ─── Writer Submissions, Contributor Blogs & Editor Revisions ─────────────────
 
+/** One difference between two versions of a story. Block changes list each differing block by index. */
 export interface EditorRevisionChange {
   field: string;
   before?: unknown;
   after?: unknown;
+  changedBlocks?: { index: number; before: EditorRevisionBlock | null; after: EditorRevisionBlock | null }[];
+  beforeCount?: number;
+  afterCount?: number;
+}
+
+export interface EditorRevisionBlock {
+  type?: string;
+  text?: string;
+  src?: string;
+  [key: string]: unknown;
 }
 
 export interface EditorRevisionProposal {
@@ -1060,6 +1082,7 @@ export const blogsApi = {
   getContributorBlogs,
   getContributorBlogById,
   getWriterEditorRevision,
+  proposeEditorChanges,
   getEditorRevisionHistory,
   withdrawEditorProposal,
 };
