@@ -4,6 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { Mail, Phone } from 'lucide-react';
+import { useBrand } from '@/components/BrandProvider';
+import type { Brand } from '@/lib/brands';
 
 const navLinks = [
   { href: '/',                  label: 'Home'                  },
@@ -18,6 +21,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const brand = useBrand();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -28,6 +32,11 @@ export default function Navbar() {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  // AFS Rwanda: logo + email + phone + hamburger
+  if (brand.headerStyle === 'contact') {
+    return <ContactHeader brand={brand} />;
+  }
 
   return (
     <>
@@ -280,6 +289,153 @@ export default function Navbar() {
           ))}
         </ul>
       </div>
+    </>
+  );
+}
+
+/* ───────────────────────── AFS Rwanda header ───────────────────────── */
+
+function ContactHeader({ brand }: { brand: Brand }) {
+  const [open, setOpen] = useState(false);
+  const primary = brand.colors.primary;
+
+  return (
+    <>
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          height: 70, // same as NAVBAR_HEIGHT in Sidebar
+          background: `linear-gradient(${brand.headerBg}, ${brand.headerBg}), #fff`,
+          borderBottom: '1px solid rgba(2,84,150,0.15)',
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: '0 auto',
+            height: '100%',
+            padding: '0 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <a href={brand.websiteUrl}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={brand.logo} alt={brand.name} style={{ height: 46, width: 'auto' }} />
+          </a>
+
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.25rem',
+              fontSize: 14,
+              color: '#000',
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Mail size={16} color={primary} />
+              <span className="hidden sm:inline">{brand.email}</span>
+            </span>
+            <span className="hidden sm:flex" style={{ alignItems: 'center', gap: 6 }}>
+              <Phone size={16} color={primary} />
+              <span>{brand.phone}</span>
+            </span>
+
+            {/* Hamburger */}
+            <button
+              onClick={() => setOpen((o) => !o)}
+              aria-label="Toggle menu"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                width: 40,
+                height: 40,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+              }}
+            >
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    display: 'block',
+                    width: 22,
+                    height: 2,
+                    borderRadius: 2,
+                    background: primary,
+                    transition: 'transform .3s, opacity .2s',
+                    transform:
+                      open && i === 0
+                        ? 'translateY(7px) rotate(45deg)'
+                        : open && i === 2
+                        ? 'translateY(-7px) rotate(-45deg)'
+                        : 'none',
+                    opacity: open && i === 1 ? 0 : 1,
+                  }}
+                />
+              ))}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Drawer: links open the AFS website */}
+      {open && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              top: 70,
+              zIndex: 1001,
+              background: 'rgba(0,0,0,0.25)',
+            }}
+          />
+          <nav
+            style={{
+              position: 'fixed',
+              top: 70,
+              right: 0,
+              width: 260,
+              bottom: 0,
+              zIndex: 1002,
+              background: '#fff',
+              padding: '1rem',
+              boxShadow: '-8px 0 30px rgba(0,0,0,0.12)',
+            }}
+          >
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+              {brand.navLinks.map((l) => (
+                <li key={l.href}>
+                  <a
+                    href={l.href}
+                    style={{
+                      display: 'block',
+                      padding: '0.8rem 0.75rem',
+                      borderRadius: 8,
+                      color: '#0b2a4a',
+                      textDecoration: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </>
+      )}
     </>
   );
 }

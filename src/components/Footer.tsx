@@ -16,12 +16,12 @@ const QUICK_LINKS = [
   { label: 'Stewardship News', href: '/Stewardship-News' },
   { label: 'Gallery',        href: '/Gallery'      },
   { label: 'Resource',       href: '/Resource'     },
-  { 
-    label: 'Dashboard', 
-    href: '/auth/login',
-    target: '_blank',
-    rel: 'noopener noreferrer'
-  }
+{
+  label: 'Dashboard',
+  href: '/auth/login?brand=biocap',
+  target: '_blank',
+  rel: 'noopener noreferrer'
+}
 ];
 
 const RECENT_NEWS_FOOTER = [
