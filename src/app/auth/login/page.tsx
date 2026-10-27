@@ -14,6 +14,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isExpired = searchParams?.get("expired") === "true";
+  const isBiocap = brand.id === "biocap";
 
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -46,11 +47,20 @@ function LoginForm() {
       return;
     }
 
+    const identifier = form.identifier.trim();
+    if (
+      !isBiocap &&
+      !/^[^\s@]+@afs-rwanda\.org$/i.test(identifier)
+    ) {
+      setError("AFS login requires an email ending in @afs-rwanda.org.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const response = await loginUser({
-        email: form.identifier.trim(),
+        email: identifier,
         password: form.password,
       });
 
@@ -70,8 +80,6 @@ function LoginForm() {
       setIsSubmitting(false);
     }
   };
-
-  const isBiocap = brand.id === "biocap";
 
   return (
     <div
@@ -128,8 +136,8 @@ function LoginForm() {
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
-          type="text"
-          placeholder="Username or Email"
+          type={isBiocap ? "text" : "email"}
+          placeholder={isBiocap ? "Username or Email" : "AFS email address"}
           value={form.identifier}
           onChange={(e) => setForm({ ...form, identifier: e.target.value })}
           disabled={isSubmitting}
