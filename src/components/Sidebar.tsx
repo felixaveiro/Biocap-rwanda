@@ -98,7 +98,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     authCookies.clearAll();
-    window.location.href = "/auth/login";
+    window.location.href = "/auth/login?signed_out=1";
   };
 
   const profileHref =

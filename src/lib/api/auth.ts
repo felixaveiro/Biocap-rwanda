@@ -1,4 +1,4 @@
-import { apiRequest, ApiError } from "./client";
+import { apiRequest, ApiError, BASE_URL } from "./client";
 import { User, Role } from "@/types";
 import { authCookies } from "@/lib/auth/cookies";
 
@@ -245,4 +245,45 @@ export async function logoutUser(): Promise<{ message: string }> {
   } finally {
     authCookies.clearSession();
   }
+}
+// ─── AFS single sign-on ──────────────────────────────────────────────────────
+
+/** Whether AFS single sign-on is switched on for this API. */
+export async function ssoEnabled(): Promise<boolean> {
+  try {
+    const res = await apiRequest<{ enabled: boolean }>("/api/auth/sso/config");
+    return res.enabled === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Where the browser goes to start an AFS sign-in. `silent` asks AFS not to show a form. */
+export function ssoLoginUrl(next: string, silent = false): string {
+  const params = new URLSearchParams({ next });
+  if (silent) params.set("silent", "1");
+  return `${BASE_URL}/api/auth/sso/login?${params.toString()}`;
+}
+
+/**
+ * Trade the one-time code from an AFS sign-in for a session. The session is stored exactly as a password sign-in
+ * stores it, so the rest of the app behaves the same.
+ */
+export async function completeSsoSignIn(code: string): Promise<LoginResponse> {
+  const res = await apiRequest<LoginResponse>("/api/auth/sso/exchange", {
+    method: "POST",
+    body: { code },
+  });
+
+  if (res.accessToken) {
+    authCookies.setSession({
+      token: res.accessToken,
+      refreshToken: res.refreshToken,
+      userId: res.user?._id,
+      role: res.role || res.user?.role || "",
+      username: res.username || res.user?.username || "",
+    });
+  }
+
+  return res;
 }
