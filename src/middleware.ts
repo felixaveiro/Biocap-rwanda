@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 
 const VALID_BRANDS = ["biocap", "alliance"];
 
+// Dashboard sections that only a signed-in person may open. The backend is the authority: the access token is checked
+// with it before the page is sent. Role rules inside each section and every API still apply as before.
+const PROTECTED_PREFIXES = ["/admin", "/officer", "/editor", "/creator", "/dashboard"];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://biocapapi.afs-rwanda.org";
+
+async function hasValidSession(req: NextRequest): Promise<boolean> {
+  const token = req.cookies.get("biocap_token")?.value;
+  if (token) {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) return true;
+    } catch {
+      // API unreachable: fall through and treat as not signed in.
+    }
+  }
+  // An expired access token with a refresh token still present: let the page load so the browser can refresh it.
+  // If the refresh fails, the client sends the person to sign-in.
+  return Boolean(req.cookies.get("biocap_refresh_token")?.value) && !token;
+}
+
 // BioCap public website routes (AFS has its own website)
 const PUBLIC_PREFIXES = [
   "/About",
@@ -34,7 +58,7 @@ function redirectUrl(req: NextRequest, pathname: string, keepSearch: boolean) {
   return url;
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const fromUrl = req.nextUrl.searchParams.get("brand");
 
@@ -74,6 +98,12 @@ export function middleware(req: NextRequest) {
     if (isPublic) {
       return NextResponse.redirect(redirectUrl(req, "/auth/login", false));
     }
+  }
+
+  // 3. Dashboard sections need a signed-in person. The page is not sent to anyone else.
+  const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  if (isProtected && !(await hasValidSession(req))) {
+    return NextResponse.redirect(redirectUrl(req, "/auth/login", false));
   }
 
   return NextResponse.next();
