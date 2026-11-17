@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Fraunces, Inter, IBM_Plex_Mono } from '@/lib/fonts';
 import { galleryApi } from '@/lib/api/gallery';
 import { GalleryItem } from '@/types';
 import GalleryUploadModal from '@/components/GalleryUploadModal';

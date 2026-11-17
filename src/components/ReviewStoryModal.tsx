@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from "react-dom";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import { BlogPost, Role, Comment, BlogBlock } from "@/types";
 import { blogsApi, officerApi, UpdateBlogPayload, type ReviewBlogResult } from "@/lib/api/blogs";
 import ImageCropperModal from "@/components/ImageCropperModal";

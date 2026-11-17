@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import "@/app/globals.css";
 import Navbar from "@/components/Navbar";
 import { BrandProvider } from "@/components/BrandProvider";

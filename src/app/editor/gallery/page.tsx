@@ -1,7 +1,7 @@
 // app/editor/gallery/page.tsx
 import React from 'react';
 import GalleryManager from '@/components/GalleryManager';
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Fraunces, Inter, IBM_Plex_Mono } from '@/lib/fonts';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 const fraunces = Fraunces({

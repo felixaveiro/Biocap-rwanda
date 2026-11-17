@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { authCookies } from "@/lib/auth/cookies";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import { LogOut } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
 

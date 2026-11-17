@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Cropper, { Point, Area } from 'react-easy-crop';
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Fraunces, Inter, IBM_Plex_Mono } from '@/lib/fonts';
 import { RotateCcw, ZoomIn, Check, X, Loader2, Crop as CropIcon } from 'lucide-react';
 
 const fraunces = Fraunces({

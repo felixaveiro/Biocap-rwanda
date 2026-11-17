@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import { BlogPost, User, Role } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
 import EditStoryModal from "@/components/EditStoryModal";

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from 'react-dom';
-import { Fraunces, Inter, IBM_Plex_Mono } from 'next/font/google';
+import { Fraunces, Inter, IBM_Plex_Mono } from '@/lib/fonts';
 import { BlogPost, BlogBlock } from '@/types';
 import { blogsApi } from '@/lib/api/blogs';
 import {

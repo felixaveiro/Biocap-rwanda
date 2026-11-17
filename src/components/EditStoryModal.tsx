@@ -8,7 +8,7 @@ import React, {
   useCallback,
 } from "react";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import { BlogPost, Role, BlogBlock, ChangeRequest } from "@/types";
 import { blogsApi, editorApi, UpdateBlogPayload } from "@/lib/api/blogs";
 import { useSession } from "@/hooks/useSession";

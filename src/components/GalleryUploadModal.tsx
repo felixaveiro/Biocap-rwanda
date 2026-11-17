@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { createPortal } from 'react-dom';
-import { Poppins } from 'next/font/google';
+import { Poppins } from '@/lib/fonts';
 import { galleryApi } from '@/lib/api/gallery';
 import {
   getBioCapFilename,

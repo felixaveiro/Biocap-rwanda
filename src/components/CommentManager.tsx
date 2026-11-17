@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from "react";
-import { IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono } from "@/lib/fonts";
 import { Comment, Role } from "@/types";
 import { blogsApi } from "@/lib/api/blogs";
 import { 

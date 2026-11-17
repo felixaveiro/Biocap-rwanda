@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import Header from "@/components/Header";
 import BlogTable from "@/components/BlogTable";
 import { blogsApi } from "@/lib/api/blogs";
