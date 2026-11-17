@@ -8,8 +8,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50/50">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#FAF9F5]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#3F6B4F] border-t-transparent" />
       </div>
     );
   }
@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-[#FAF9F5] text-[#1E2620]">
       <Sidebar />
       <div className="lg:pl-64 min-h-screen transition-all">
         {children}

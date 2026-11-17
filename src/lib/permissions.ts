@@ -20,7 +20,8 @@ export type Permission =
   | "user:edit:role"
   | "user:deactivate"
   | "user:delete"
-  | "user:review";
+  | "user:review"
+  | "admin:audit:read";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   admin: [
@@ -43,6 +44,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "user:deactivate",
     "user:delete",
     "user:review",
+    "admin:audit:read",
   ],
   communication_officer: [
     "blog:view",

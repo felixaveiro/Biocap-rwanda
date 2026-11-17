@@ -1,18 +1,8 @@
 import type { NextConfig } from 'next';
 
-const API_ORIGIN =
-  process.env.NEXT_PUBLIC_API_URL || 'https://biocapapi.afs-rwanda.org';
-
 const nextConfig: NextConfig = {
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
   output: 'standalone',
-  async rewrites() {
-    return [
-      {
-        source: '/api/backend/:path*',
-        destination: `${API_ORIGIN.replace(/\/+$/, '')}/:path*`,
-      },
-    ];
-  },
   images: {
     qualities: [75, 85, 90, 95, 100],
     remotePatterns: [

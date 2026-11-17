@@ -24,6 +24,7 @@ import {
   MessageSquare,
   User,
   Image as ImageIcon,
+  History,
 } from "lucide-react";
 
 // Height of the public <Navbar /> (.bc-nav-inner { height: 70px }) that renders above this sidebar.
@@ -61,6 +62,7 @@ export default function Sidebar() {
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },
+      { label: "History Logs", href: "/admin/history-logs", icon: History },
       { label: "Profile", href: "/creator/profile", icon: User },
     ];
   } else if (role === "editor") {

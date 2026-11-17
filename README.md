@@ -45,7 +45,8 @@ npm install
 
 ### Development
 
-The frontend uses the deployed BIOCAP API at `https://biocapapi.afs-rwanda.org`; you do not need to start a separate backend. During local development, Next.js proxies API requests to that deployed service so browser CORS restrictions do not block requests from `localhost`.
+During local development, the frontend first proxies API requests to the local backend at `http://localhost:5000`. If it is not running or cannot be reached, Next.js automatically falls back to the deployed BIOCAP API at `https://biocapapi.afs-rwanda.org`. The local backend's API documentation is available at [Swagger UI](http://localhost:5000/api-docs/#/).
+Development and production builds use separate Next.js output directories (`.next-dev` and `.next`) so running a build does not overwrite files used by the dev server.
 
 ```bash
 npm run dev
@@ -53,7 +54,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To use a different API, set `NEXT_PUBLIC_API_URL` in `.env.local`. The gallery also uses a server-side `GALLERY_API_TOKEN` for its external gallery service; keep that credential server-only and do not prefix it with `NEXT_PUBLIC_`.
+To change the local backend origin, set `LOCAL_API_ORIGIN` in `.env.local`. To use a different fallback API, set `NEXT_PUBLIC_API_URL`. The gallery also uses a server-side `GALLERY_API_TOKEN` for its external gallery service; keep that credential server-only and do not prefix it with `NEXT_PUBLIC_`.
 
 ### Production Build
 

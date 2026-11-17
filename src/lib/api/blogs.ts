@@ -1,6 +1,16 @@
 // src/lib/api/blogs.ts
 
 import { apiRequest, apiFormRequest, ApiError } from "./client";
+import {
+  getAdminAuditLogs,
+  getAdminAuditLogsByBlog,
+  getAdminAuditLogsByUser,
+} from "./audit";
+export {
+  getAdminAuditLogs,
+  getAdminAuditLogsByBlog,
+  getAdminAuditLogsByUser,
+} from "./audit";
 import { base64ToFile } from "@/lib/utils/file";
 import {
   BlogPost,
@@ -98,27 +108,6 @@ export interface CreatorActivity {
   action: string;
   storyTitle?: string;
   timestamp: string;
-}
-
-export interface ActivityLog {
-  _id: string;
-  user: string | { _id: string; username: string; firstName: string; lastName: string; role: Role };
-  action: string;
-  resource?: string;
-  resourceId?: string;
-  details?: string;
-  createdAt: string;
-}
-
-export interface AuditLogFilterOptions {
-  action?: string;
-  actor?: string;
-  target?: string;
-  targetId?: string;
-  from?: string;
-  to?: string;
-  page?: number;
-  limit?: number;
 }
 
 export interface CloudinarySignatureResponse {
@@ -801,29 +790,6 @@ export async function markNotificationRead(id: string): Promise<{ message: strin
     method: "PATCH",
     auth: true,
   });
-}
-
-export async function getAdminAuditLogs(params: AuditLogFilterOptions = {}): Promise<PaginatedResponse<ActivityLog> | ActivityLog[]> {
-  const query = new URLSearchParams();
-  if (params.action) query.append("action", params.action);
-  if (params.actor) query.append("actor", params.actor);
-  if (params.target) query.append("target", params.target);
-  if (params.targetId) query.append("targetId", params.targetId);
-  if (params.from) query.append("from", params.from);
-  if (params.to) query.append("to", params.to);
-  if (params.page) query.append("page", String(params.page));
-  if (params.limit) query.append("limit", String(params.limit));
-
-  const q = query.toString() ? `?${query.toString()}` : "";
-  return apiRequest<PaginatedResponse<ActivityLog> | ActivityLog[]>(`/api/admin/audit-logs${q}`, { auth: true });
-}
-
-export async function getAdminAuditLogsByBlog(id: string): Promise<ActivityLog[]> {
-  return apiRequest<ActivityLog[]>(`/api/admin/audit-logs/blog/${id}`, { auth: true });
-}
-
-export async function getAdminAuditLogsByUser(id: string): Promise<ActivityLog[]> {
-  return apiRequest<ActivityLog[]>(`/api/admin/audit-logs/user/${id}`, { auth: true });
 }
 
 // ─── Content Creator Operations ────────────────────────────────────────────
