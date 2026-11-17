@@ -1,13 +1,28 @@
 'use client';
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Loader2, AlertCircle, Eye, EyeOff, Clock } from "lucide-react";
-import { loginUser } from "@/lib/api/auth";
+import { loginUser, ssoEnabled, ssoLoginUrl } from "@/lib/api/auth";
+import { roleHomePath } from "@/lib/auth/roleHome";
 import { ApiError } from "@/lib/api/client";
 import { Role } from "@/types";
 import { useBrand } from "@/components/BrandProvider";
+
+/** Messages for the codes the API puts in /auth/login?sso_error=... after an AFS sign-in. */
+const SSO_MESSAGES: Record<string, string> = {
+  cancelled: "Sign-in with AFS was cancelled.",
+  expired: "Your AFS sign-in expired. Please try again.",
+  not_assigned: "Your AFS account is not assigned to Biocap. Contact an administrator.",
+  unknown_role: "Your Biocap role is not set up yet. Contact an administrator.",
+  no_account: "No Biocap account is linked to this AFS account. Contact an administrator.",
+  unverified_email: "Your AFS email address must be verified before it can be linked.",
+  disabled: "This Biocap account is not active. Contact an administrator.",
+  unavailable: "AFS sign-in is temporarily unavailable. Try again shortly.",
+  token: "AFS sign-in failed. Please try again.",
+  invalid_token: "AFS sign-in failed. Please try again.",
+};
 
 function LoginForm() {
   const brand = useBrand();
@@ -15,28 +30,40 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const isExpired = searchParams?.get("expired") === "true";
   const isBiocap = brand.id === "biocap";
+  const ssoError = searchParams?.get("sso_error") ?? null;
+  // Returning from a failed or silent attempt, just signed out, session expired, or the password form was asked for:
+  // show the form instead of signing the person straight in through AFS.
+  const showForm =
+    Boolean(ssoError) ||
+    searchParams?.has("signed_out") === true ||
+    searchParams?.has("expired") === true ||
+    searchParams?.has("password") === true;
+  // "silent" means the AFS session was missing, which is not an error: the form is simply shown.
+  const ssoMessage =
+    ssoError && ssoError !== "silent" ? SSO_MESSAGES[ssoError] ?? "AFS sign-in failed. Please try again." : "";
 
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ssoOn, setSsoOn] = useState(false);
 
-  const getRedirectPathForRole = (role: Role | string): string => {
-    switch (role) {
-      case "admin":
-        return "/admin";
-      case "communication_officer":
-        return "/officer";
-      case "editor":
-        return "/editor";
-      case "social_media_content_creator":
-      case "media_correspondent":
-      case "principal_investigator":
-        return "/creator/my-stories";
-      default:
-        return "/dashboard";
-    }
-  };
+  useEffect(() => {
+    let cancelled = false;
+    ssoEnabled().then((enabled) => {
+      if (cancelled) return;
+      setSsoOn(enabled);
+      // Someone who already signed in to AFS in this browser goes straight in, without a login form.
+      if (enabled && !showForm) window.location.replace(ssoLoginUrl("/", true));
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Runs once, when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getRedirectPathForRole = (role: Role | string): string => roleHomePath(role);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,10 +154,10 @@ function LoginForm() {
         </div>
       )}
 
-      {error && (
+      {(error || ssoMessage) && (
         <div className="mb-4 rounded-xl bg-rose-500/20 border border-rose-500/40 p-2.5 flex items-center gap-2 text-white text-xs font-semibold">
           <AlertCircle className="w-4 h-4 text-rose-200 shrink-0" />
-          <span>{error}</span>
+          <span>{error || ssoMessage}</span>
         </div>
       )}
 
@@ -187,6 +214,22 @@ function LoginForm() {
           )}
         </button>
       </form>
+
+      {ssoOn && (
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center gap-3 text-xs text-[color:var(--lg-dark)] font-medium" aria-hidden>
+            <span className="h-px flex-1 bg-white/40" />
+            or
+            <span className="h-px flex-1 bg-white/40" />
+          </div>
+          <a
+            href={ssoLoginUrl("/")}
+            className="w-full py-2.5 px-5 rounded-full bg-white/90 hover:bg-white text-center text-[color:var(--lg-dark)] font-semibold text-sm shadow-lg border border-white/60 transition-all block"
+          >
+            Sign in with AFS SSO
+          </a>
+        </div>
+      )}
 
       <div className="mt-5 text-center border-t border-white/30 pt-3 space-y-1.5">
         <p className="text-xs text-[color:var(--lg-dark)] font-medium">

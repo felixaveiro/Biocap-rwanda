@@ -46,7 +46,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
     authCookies.clearAll();
 
     // 2. Redirect to login page and refresh router state
-    router.push("/auth/login");
+    router.push("/auth/login?signed_out=1");
     router.refresh();
   };
 
