@@ -45,11 +45,15 @@ npm install
 
 ### Development
 
+The frontend uses the deployed BIOCAP API at `https://biocapapi.afs-rwanda.org`; you do not need to start a separate backend. During local development, Next.js proxies API requests to that deployed service so browser CORS restrictions do not block requests from `localhost`.
+
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+To use a different API, set `NEXT_PUBLIC_API_URL` in `.env.local`. The gallery also uses a server-side `GALLERY_API_TOKEN` for its external gallery service; keep that credential server-only and do not prefix it with `NEXT_PUBLIC_`.
 
 ### Production Build
 

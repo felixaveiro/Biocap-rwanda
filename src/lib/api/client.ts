@@ -3,8 +3,9 @@
 import { authCookies } from "@/lib/auth/cookies";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://biocapapi.afs-rwanda.org";
+  process.env.NODE_ENV === "development"
+    ? "/api/backend"
+    : process.env.NEXT_PUBLIC_API_URL || "https://biocapapi.afs-rwanda.org";
   
 export class ApiError extends Error {
   status: number;
