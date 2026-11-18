@@ -55,8 +55,14 @@ export const galleryApi = {
     return websiteGalleryRequest<unknown>(`collections/${encodeURIComponent(slug)}`);
   },
 
-  async getWebsiteCollectionMedia(slug: string): Promise<unknown> {
-    return websiteGalleryRequest<unknown>(`collections/${encodeURIComponent(slug)}/media`);
+  async getWebsiteCollectionMedia(
+    slug: string,
+    pagination?: { page?: number }
+  ): Promise<unknown> {
+    const searchParams = new URLSearchParams();
+    if (pagination?.page) searchParams.set('page', String(pagination.page));
+    const query = searchParams.size ? `?${searchParams.toString()}` : '';
+    return websiteGalleryRequest<unknown>(`collections/${encodeURIComponent(slug)}/media${query}`);
   },
 
   /**

@@ -7,7 +7,7 @@ type RouteContext = { params: Promise<{ path: string[] }> };
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
   const token = process.env.GALLERY_API_TOKEN;
   if (!token) {
     return NextResponse.json({ message: 'Gallery service is not configured.' }, { status: 503 });
@@ -33,7 +33,12 @@ export async function GET(_request: Request, { params }: RouteContext) {
     child === 'media' &&
     path.length === 3
   ) {
-    upstreamPath = `/api/v1/collections/${encodeURIComponent(slug)}/media`;
+    const searchParams = new URL(request.url).searchParams;
+    const page = Number(searchParams.get('page'));
+    const upstreamParams = new URLSearchParams();
+    if (Number.isInteger(page) && page > 0) upstreamParams.set('page', String(page));
+    const query = upstreamParams.size ? `?${upstreamParams.toString()}` : '';
+    upstreamPath = `/api/v1/collections/${encodeURIComponent(slug)}/media${query}`;
   } else {
     return NextResponse.json({ message: 'Unknown gallery resource.' }, { status: 404 });
   }

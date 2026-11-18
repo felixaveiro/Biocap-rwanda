@@ -25,6 +25,8 @@ import type { GalleryItem } from '@/types';
 
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
 const SLIDESHOW_MS = 3000;
+const WEBSITE_MEDIA_PAGE_SIZE = 25;
+const WEBSITE_MEDIA_MAX_ITEMS = 60;
 const SERIF = "'DM Serif Display', Georgia, serif";
 const SANS = "'Plus Jakarta Sans', 'Segoe UI', sans-serif";
 
@@ -91,7 +93,39 @@ async function getWebsiteGalleryImages(
   slug: string,
   collection: Pick<WebsiteGalleryItem, 'thumbnailUrl' | 'coverMediaId' | 'coverId' | 'coverImageId'>
 ): Promise<NonNullable<GalleryItem['images']>> {
-  const mediaResponse = await galleryApi.getWebsiteCollectionMedia(slug);
+  const mediaRecords: Record<string, unknown>[] = [];
+  const seenMedia = new Set<string>();
+
+  for (let page = 1; mediaRecords.length < WEBSITE_MEDIA_MAX_ITEMS; page += 1) {
+    const response = await galleryApi.getWebsiteCollectionMedia(slug, { page });
+    const pageRecords = getMediaRecords(response)
+      .map(asRecord)
+      .filter((media): media is Record<string, unknown> => media !== null);
+    let addedCount = 0;
+
+    for (const media of pageRecords) {
+      const ids = [media.id, media._id, media.mediaId, media.publicId, media.referenceId, media.assetId]
+        .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number')
+        .map(String);
+      const mediaUrls = [
+        media.url, media.originalUrl, media.downloadUrl, media.fileUrl, media.mediaUrl, media.videoUrl,
+        getMediaUrl(media),
+      ].filter((url): url is string => typeof url === 'string' && !!url);
+      const identity = ids.length
+        ? `id:${ids[0]}`
+        : mediaUrls.length
+          ? `url:${mediaUrls[0]}`
+          : `record:${JSON.stringify(media)}`;
+      if (seenMedia.has(identity)) continue;
+      seenMedia.add(identity);
+      mediaRecords.push(media);
+      addedCount += 1;
+      if (mediaRecords.length >= WEBSITE_MEDIA_MAX_ITEMS) break;
+    }
+
+    if (pageRecords.length < WEBSITE_MEDIA_PAGE_SIZE || addedCount === 0) break;
+  }
+
   const coverUrl = collection.thumbnailUrl;
   const coverMediaIds = [collection.coverMediaId, collection.coverId, collection.coverImageId]
     .filter((id): id is string => !!id)
@@ -100,9 +134,6 @@ async function getWebsiteGalleryImages(
   if (coverUrlId) coverMediaIds.push(coverUrlId);
   const normalizeUrl = (url: string) => url.split(/[?#]/, 1)[0].replace(/\/$/, '');
   const normalizedCoverUrl = coverUrl ? normalizeUrl(coverUrl) : undefined;
-  const mediaRecords = getMediaRecords(mediaResponse)
-    .map(asRecord)
-    .filter((media): media is Record<string, unknown> => media !== null);
   const coverRecord = mediaRecords.find((media) => {
     const ids = [media.id, media._id, media.mediaId, media.publicId, media.referenceId, media.assetId]
       .filter((id): id is string | number => typeof id === 'string' || typeof id === 'number')
@@ -528,24 +559,24 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
         <div className="absolute inset-0 bg-gradient-to-t from-[#1B3A5C]/35 via-transparent to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-[1400px] px-5 pb-10 pt-28 sm:px-8 sm:pb-14">
-          <nav
+          {/* <nav
             aria-label="Breadcrumb"
-            className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[3px] text-white/70"
+            className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-[4px] text-white/70"
           >
             <Link href="/" className="transition hover:text-white">Home</Link>
             <span aria-hidden>&rsaquo;</span>
             <Link href="/Gallery" className="transition hover:text-white">Gallery</Link>
-          </nav>
+          </nav> */}
 
           <h1
-            className="max-w-4xl text-[15px] leading-snug text-white drop-shadow-lg"
+            className="mb-4 max-w-4xl text-5xl leading-tight text-white drop-shadow-lg lg:text-5xl"
             style={{ fontFamily: SERIF, fontStyle: 'italic' }}
           >
             {item.title}
           </h1>
 
           {item.caption && (
-            <p className="mt-4 line-clamp-3 max-w-2xl text-sm leading-relaxed text-white/85">
+            <p className="line-clamp-3 max-w-xl text-lg font-medium leading-relaxed text-white/90">
               {item.caption}
             </p>
           )}
