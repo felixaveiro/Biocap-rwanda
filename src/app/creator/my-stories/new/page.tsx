@@ -10,7 +10,6 @@ import StoryEditor from "@/components/StoryEditor";
 import { base64ToFile } from "@/lib/utils/file";
 import { useSession } from "@/hooks/useSession";
 import { blogsApi } from "@/lib/api/blogs";
-import { ApiError } from "@/lib/api/client";
 import { Role, BlogBlock, BlogPost } from "@/types";
 import {
   ArrowLeft,
@@ -67,10 +66,88 @@ interface LocalStoryDraft {
   coverImage: string;
   socialHandle: string;
   organizationLink: string;
-  draftId?: string;
-  serverBlocks?: DraftBlock[];
-  coverUploaded?: boolean;
+  expiresAt: number;
 }
+
+const DRAFT_TTL_MS = 5 * 60 * 60 * 1000;
+const DRAFT_DATABASE_NAME = "biocap-creator-drafts";
+const DRAFT_STORE_NAME = "story-drafts";
+
+const removeLegacyLocalDraft = (key: string) => {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn("Could not remove legacy local story draft:", error);
+  }
+};
+
+const openDraftDatabase = () =>
+  new Promise<IDBDatabase>((resolve, reject) => {
+    const request = window.indexedDB.open(DRAFT_DATABASE_NAME, 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains(DRAFT_STORE_NAME)) {
+        request.result.createObjectStore(DRAFT_STORE_NAME);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Could not open browser draft storage."));
+  });
+
+const readLocalStoryDraft = async (key: string) => {
+  const database = await openDraftDatabase();
+  return new Promise<LocalStoryDraft | null>((resolve, reject) => {
+    const transaction = database.transaction(DRAFT_STORE_NAME, "readonly");
+    const request = transaction.objectStore(DRAFT_STORE_NAME).get(key);
+    request.onsuccess = () => resolve((request.result as LocalStoryDraft | undefined) || null);
+    request.onerror = () => reject(request.error || new Error("Could not read the saved story draft."));
+    transaction.oncomplete = () => database.close();
+    transaction.onerror = () => database.close();
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error || new Error("Reading the saved story draft was interrupted."));
+    };
+  });
+};
+
+const writeLocalStoryDraft = async (key: string, draft: LocalStoryDraft) => {
+  const database = await openDraftDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(DRAFT_STORE_NAME, "readwrite");
+    transaction.objectStore(DRAFT_STORE_NAME).put(draft, key);
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error("Could not save the story draft."));
+    };
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error || new Error("Saving the story draft was interrupted."));
+    };
+  });
+};
+
+const removeLocalStoryDraft = async (key: string) => {
+  const database = await openDraftDatabase();
+  return new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(DRAFT_STORE_NAME, "readwrite");
+    transaction.objectStore(DRAFT_STORE_NAME).delete(key);
+    transaction.oncomplete = () => {
+      database.close();
+      resolve();
+    };
+    transaction.onerror = () => {
+      database.close();
+      reject(transaction.error || new Error("Could not remove the expired story draft."));
+    };
+    transaction.onabort = () => {
+      database.close();
+      reject(transaction.error || new Error("Removing the expired story draft was interrupted."));
+    };
+  });
+};
 
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -110,14 +187,10 @@ export default function CreateNewStoryPage() {
   const [restoredSections, setRestoredSections] = useState<DraftSection[] | undefined>();
   const [editorVersion, setEditorVersion] = useState(0);
   const [draftSaveStatus, setDraftSaveStatus] = useState("Recovery copy ready");
-  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftExpiresAt, setDraftExpiresAt] = useState<number | null>(null);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftRestoreComplete, setDraftRestoreComplete] = useState(false);
-  const [autosaveRetry, setAutosaveRetry] = useState(0);
-  const draftIdRef = useRef<string | null>(null);
-  const serverBlocksRef = useRef<DraftBlock[]>([]);
-  const serverCoverRef = useRef<File | string | null>(null);
-  const autosaveInFlightRef = useRef(false);
-  const autosavePendingRef = useRef(false);
+  const skipNextAutoSaveRef = useRef(true);
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,108 +221,163 @@ export default function CreateNewStoryPage() {
 
   useEffect(() => {
     if (!draftStorageKey) return;
-    try {
-      const rawDraft = localStorage.getItem(draftStorageKey);
-      if (rawDraft) {
-        const saved = JSON.parse(rawDraft) as LocalStoryDraft;
-        setTitle(saved.title || "");
-        setTag(saved.tag || "");
-        setExcerpt(saved.excerpt || "");
-        setSocialHandle(saved.socialHandle || "");
-        setOrganizationLink(saved.organizationLink || "");
-        if (saved.draftId) {
-          draftIdRef.current = saved.draftId;
-          setDraftId(saved.draftId);
-          serverBlocksRef.current = saved.serverBlocks || [];
-        }
-
-        const restoredBlocks: DraftBlock[] = (saved.blocks || []).map((block) => {
-          if (block.type === "image" && block.src?.startsWith("data:image")) {
-            return { ...block, rawFile: dataUrlToFile(block.src, block.fileKey || "inline-image.jpg") };
+    let isCurrent = true;
+    const restoreDraft = async () => {
+      try {
+        let saved = await readLocalStoryDraft(draftStorageKey);
+        if (!saved) {
+          let legacyDraft: string | null = null;
+          try {
+            legacyDraft = localStorage.getItem(draftStorageKey);
+          } catch (error) {
+            console.warn("Could not read legacy local story draft:", error);
           }
-          return block;
-        });
-        setBlocks(restoredBlocks);
-        setInlineImages(
-          restoredBlocks
-            .flatMap((block) =>
-              block.type === "image" && block.rawFile instanceof File ? [block.rawFile] : []
-            )
-        );
-        setRestoredSections(
-          restoredBlocks.map((block) => ({
-            id: crypto.randomUUID(),
-            kind: block.type === "h2" ? "heading" : block.type === "quote" ? "quote" : block.type === "image" ? "image" : "paragraph",
-            text: block.text || "",
-            attribution: block.type === "quote" ? block.caption || "" : "",
-            caption: block.type === "image" ? block.caption || "" : "",
-            fitMode: block.fitMode || "cover",
-            imagePreview: block.type === "image" ? block.src || null : null,
-            imageFile: block.type === "image" ? block.rawFile || null : null,
-            imageFileKey: block.fileKey || null,
-          }))
-        );
-        setEditorVersion((version) => version + 1);
-
-        if (saved.coverImage?.startsWith("data:image")) {
-          const restoredCover = dataUrlToFile(saved.coverImage, "story-cover.jpg");
-          setCoverImageFile(restoredCover);
-          setCroppedPreview(saved.coverImage);
-          setRawImageSrc(saved.coverImage);
-          if (saved.coverUploaded && saved.draftId) serverCoverRef.current = restoredCover;
+          if (legacyDraft) {
+            const parsed = JSON.parse(legacyDraft) as Omit<LocalStoryDraft, "expiresAt"> & { expiresAt?: number };
+            saved = {
+              ...parsed,
+              expiresAt: typeof parsed.expiresAt === "number" ? parsed.expiresAt : Date.now() + DRAFT_TTL_MS,
+            };
+            await writeLocalStoryDraft(draftStorageKey, saved);
+            removeLegacyLocalDraft(draftStorageKey);
+          }
         }
-        setDraftSaveStatus("Recovered unsaved draft");
+        if (!isCurrent) return;
+        if (saved && saved.expiresAt <= Date.now()) {
+          await removeLocalStoryDraft(draftStorageKey);
+          removeLegacyLocalDraft(draftStorageKey);
+          setDraftSaveStatus("Temporary draft expired after 5 hours");
+          return;
+        }
+        if (saved) {
+          setTitle(saved.title || "");
+          setTag(saved.tag || "");
+          setExcerpt(saved.excerpt || "");
+          setSocialHandle(saved.socialHandle || "");
+          setOrganizationLink(saved.organizationLink || "");
+
+          const restoredBlocks: DraftBlock[] = (saved.blocks || []).map((block) => {
+            if (block.type === "image" && block.src?.startsWith("data:image")) {
+              return { ...block, rawFile: dataUrlToFile(block.src, block.fileKey || "inline-image.jpg") };
+            }
+            return block;
+          });
+          setBlocks(restoredBlocks);
+          setInlineImages(
+            restoredBlocks
+              .flatMap((block) =>
+                block.type === "image" && block.rawFile instanceof File ? [block.rawFile] : []
+              )
+          );
+          setRestoredSections(
+            restoredBlocks.map((block) => ({
+              id: crypto.randomUUID(),
+              kind: block.type === "h2" ? "heading" : block.type === "quote" ? "quote" : block.type === "image" ? "image" : "paragraph",
+              text: block.text || "",
+              attribution: block.type === "quote" ? block.caption || "" : "",
+              caption: block.type === "image" ? block.caption || "" : "",
+              fitMode: block.fitMode || "cover",
+              imagePreview: block.type === "image" ? block.src || null : null,
+              imageFile: block.type === "image" ? block.rawFile || null : null,
+              imageFileKey: block.fileKey || null,
+            }))
+          );
+          setEditorVersion((version) => version + 1);
+
+          if (saved.coverImage?.startsWith("data:image")) {
+            const restoredCover = dataUrlToFile(saved.coverImage, "story-cover.jpg");
+            setCoverImageFile(restoredCover);
+            setCroppedPreview(saved.coverImage);
+            setRawImageSrc(saved.coverImage);
+          }
+          setDraftExpiresAt(saved.expiresAt);
+          setDraftSaveStatus("Recovered temporary draft");
+        }
+      } catch (error) {
+        console.error("Could not restore local story draft:", error);
+        setDraftSaveStatus("Browser draft storage unavailable");
+      } finally {
+        if (isCurrent) setDraftRestoreComplete(true);
       }
-    } catch (error) {
-      console.error("Could not restore local story draft:", error);
-      setDraftSaveStatus("Local recovery unavailable");
-    } finally {
-      setDraftRestoreComplete(true);
-    }
+    };
+    void restoreDraft();
+    return () => {
+      isCurrent = false;
+    };
   }, [draftStorageKey]);
 
   useEffect(() => {
-    if (!draftRestoreComplete || !draftStorageKey) return;
-    const timeout = window.setTimeout(async () => {
-      try {
-        const savedBlocks = await Promise.all(
-          blocks.map(async (block) => {
-            if (block.type === "image" && block.rawFile instanceof File) {
-              return { ...block, src: await fileToDataUrl(block.rawFile), rawFile: undefined };
-            }
-            return block;
-          })
-        );
-        const coverImage = coverImageFile
-          ? await fileToDataUrl(coverImageFile)
-          : croppedPreview || rawImageSrc || "";
-        const localDraft: LocalStoryDraft = {
-          title,
-          tag,
-          excerpt,
-          blocks: savedBlocks,
-          coverImage,
-          socialHandle,
-          organizationLink,
-          ...(draftIdRef.current ? { draftId: draftIdRef.current } : {}),
-          ...(serverBlocksRef.current.length ? { serverBlocks: serverBlocksRef.current } : {}),
-          ...(serverCoverRef.current ? { coverUploaded: true } : {}),
-        };
-        localStorage.setItem(draftStorageKey, JSON.stringify(localDraft));
-        setDraftSaveStatus("Saved in this browser");
-      } catch (error) {
-        console.error("Could not save local story recovery copy:", error);
-        setDraftSaveStatus("Browser storage is full");
-      }
-    }, 500);
+    if (!draftStorageKey || !draftExpiresAt) return;
+    const timeout = window.setTimeout(() => {
+      void removeLocalStoryDraft(draftStorageKey)
+        .then(() => {
+          removeLegacyLocalDraft(draftStorageKey);
+          setDraftExpiresAt(null);
+          setDraftSaveStatus("Temporary draft expired after 5 hours");
+        })
+        .catch((error) => {
+          console.error("Could not remove expired story draft:", error);
+          setDraftSaveStatus("Draft expired; cleanup will retry when you reopen the editor");
+        });
+    }, Math.max(0, draftExpiresAt - Date.now()));
     return () => window.clearTimeout(timeout);
+  }, [draftExpiresAt, draftStorageKey]);
+
+  const saveDraftToBrowser = useCallback(async () => {
+    if (!draftRestoreComplete || !draftStorageKey) return false;
+    const hasStoryContent = Boolean(
+      title.trim() ||
+      tag.trim() ||
+      excerpt.trim() ||
+      blocks.length ||
+      coverImageFile ||
+      croppedPreview ||
+      rawImageSrc
+    );
+    if (!hasStoryContent) {
+      setDraftSaveStatus("Add story details before saving a draft");
+      return false;
+    }
+
+    try {
+      const savedBlocks = await Promise.all(
+        blocks.map(async (block) => {
+          if (block.type === "image" && block.rawFile instanceof File) {
+            return { ...block, src: await fileToDataUrl(block.rawFile), rawFile: undefined };
+          }
+          return block;
+        })
+      );
+      const coverImage = coverImageFile
+        ? await fileToDataUrl(coverImageFile)
+        : croppedPreview || rawImageSrc || "";
+      const expiresAt = Date.now() + DRAFT_TTL_MS;
+      const localDraft: LocalStoryDraft = {
+        title,
+        tag,
+        excerpt,
+        blocks: savedBlocks,
+        coverImage,
+        socialHandle,
+        organizationLink,
+        expiresAt,
+      };
+      await writeLocalStoryDraft(draftStorageKey, localDraft);
+      removeLegacyLocalDraft(draftStorageKey);
+      setDraftExpiresAt(expiresAt);
+      setDraftSaveStatus("Saved in this browser; expires 5 hours after last activity");
+      return true;
+    } catch (error) {
+      console.error("Could not save local story draft:", error);
+      setDraftSaveStatus("Browser draft storage unavailable");
+      return false;
+    }
   }, [
     blocks,
     coverImageFile,
     croppedPreview,
     draftRestoreComplete,
     draftStorageKey,
-    draftId,
     excerpt,
     organizationLink,
     rawImageSrc,
@@ -258,108 +386,29 @@ export default function CreateNewStoryPage() {
     title,
   ]);
 
-  useEffect(() => {
-    if (!draftRestoreComplete || !user || !draftStorageKey) return;
-    const hasManuscript = blocks.some((block) => Boolean((block.text || "").trim() || block.type === "image"));
-    const hasCover = Boolean(coverImageFile || croppedPreview || rawImageSrc);
-    if (!title.trim() || !tag.trim() || !excerpt.trim() || !hasManuscript || !hasCover) return;
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    try {
+      await saveDraftToBrowser();
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
 
-    const timeout = window.setTimeout(async () => {
-      if (autosaveInFlightRef.current) {
-        autosavePendingRef.current = true;
-        return;
-      }
-      autosaveInFlightRef.current = true;
-      setDraftSaveStatus("Saving draft to account...");
-      try {
-        const creatorRole = (user.role as Role) || "contributor";
-        const image = coverImageFile || croppedPreview || rawImageSrc;
-        if (!image) return;
-        const previousImages = new Map(
-          serverBlocksRef.current
-            .filter((block) => block.type === "image" && block.fileKey && (block.src || block.url))
-            .map((block) => [block.fileKey, block])
-        );
-        const serverBlocks = blocks.map((block) => {
-          const previous = block.fileKey ? previousImages.get(block.fileKey) : undefined;
-          return previous && block.type === "image"
-            ? { ...block, src: previous.src || previous.url, source: previous.source, rawFile: undefined }
-            : block;
-        });
-        const coverChanged = serverCoverRef.current !== image;
-        let savedStory: BlogPost;
-        if (draftIdRef.current) {
-          try {
-            savedStory = await blogsApi.updateBlog(draftIdRef.current, {
-              title: title.trim(),
-              tag: tag.trim(),
-              excerpt: excerpt.trim(),
-              blocks: serverBlocks,
-              ...(coverChanged ? { img: image } : {}),
-              socialHandle: socialHandle.trim() || undefined,
-              organizationLink: organizationLink.trim() || undefined,
-            }, creatorRole);
-          } catch (error) {
-            if (!(error instanceof ApiError) || error.status !== 404) throw error;
-            draftIdRef.current = null;
-            setDraftId(null);
-            savedStory = await blogsApi.createBlog({
-              title: title.trim(),
-              tag: tag.trim(),
-              excerpt: excerpt.trim(),
-              blocks: serverBlocks,
-              img: image,
-              images: inlineImages,
-              socialHandle: socialHandle.trim() || undefined,
-              organizationLink: organizationLink.trim() || undefined,
-            }, creatorRole);
-          }
-        } else {
-          savedStory = await blogsApi.createBlog({
-              title: title.trim(),
-              tag: tag.trim(),
-              excerpt: excerpt.trim(),
-              blocks: serverBlocks,
-              img: image,
-              images: inlineImages,
-              socialHandle: socialHandle.trim() || undefined,
-              organizationLink: organizationLink.trim() || undefined,
-          }, creatorRole);
-        }
-        if (savedStory?._id) {
-          draftIdRef.current = savedStory._id;
-          setDraftId(savedStory._id);
-        }
-        serverBlocksRef.current = savedStory?.blocks || serverBlocks;
-        serverCoverRef.current = image;
-        setDraftSaveStatus("Draft saved to account");
-      } catch (error) {
-        console.error("Automatic draft save failed:", error);
-        setDraftSaveStatus("Saved in this browser; account sync failed");
-      } finally {
-        autosaveInFlightRef.current = false;
-        if (autosavePendingRef.current) {
-          autosavePendingRef.current = false;
-          setAutosaveRetry((retry) => retry + 1);
-        }
-      }
-    }, 1500);
+  useEffect(() => {
+    if (!draftRestoreComplete || !draftStorageKey) return;
+    if (skipNextAutoSaveRef.current) {
+      skipNextAutoSaveRef.current = false;
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      void saveDraftToBrowser();
+    }, 500);
     return () => window.clearTimeout(timeout);
   }, [
-    blocks,
-    autosaveRetry,
-    coverImageFile,
-    croppedPreview,
     draftRestoreComplete,
     draftStorageKey,
-    excerpt,
-    inlineImages,
-    organizationLink,
-    rawImageSrc,
-    socialHandle,
-    tag,
-    title,
-    user,
+    saveDraftToBrowser,
   ]);
 
   const detectedSocialPlatform = useMemo(() => {
@@ -405,7 +454,6 @@ export default function CreateNewStoryPage() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (file) {
-      serverCoverRef.current = null;
       setCoverImageFile(file);
       setErrors((prev) => ({ ...prev, cover: false }));
       
@@ -421,7 +469,6 @@ export default function CreateNewStoryPage() {
   };
 
   const handleCropSave = (croppedBase64: string) => {
-    serverCoverRef.current = null;
     setCroppedPreview(croppedBase64);
     const file = base64ToFile(croppedBase64, `cover-${Date.now()}.jpg`);
     setCoverImageFile(file);
@@ -507,58 +554,31 @@ export default function CreateNewStoryPage() {
       const rawBlocks: BlogBlock[] = (blocks && blocks.length > 0)
         ? blocks
         : (content.trim() ? [{ type: "p", text: content.trim() }] : []);
-      const savedImages = new Map(
-        serverBlocksRef.current
-          .filter((block) => block.type === "image" && block.fileKey && (block.src || block.url))
-          .map((block) => [block.fileKey, block])
-      );
-      const blocksToSave = rawBlocks.map((block) => {
-        const previous = block.fileKey ? savedImages.get(block.fileKey) : undefined;
-        return previous && block.type === "image"
-          ? { ...block, src: previous.src || previous.url, source: previous.source, rawFile: undefined }
-          : block;
-      });
-
       const blogPayload = {
           title: title.trim(),
           tag: tag.trim(),
           excerpt: excerpt.trim(),
-          blocks: blocksToSave,
+          blocks: rawBlocks,
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
       };
-      let newBlog: BlogPost;
-      if (draftIdRef.current) {
-        try {
-          newBlog = await blogsApi.updateBlog(
-            draftIdRef.current,
-            {
-              ...blogPayload,
-              ...(serverCoverRef.current === finalCoverImg ? {} : { img: finalCoverImg! }),
-            },
-            creatorRole
-          );
-        } catch (error) {
-          if (!(error instanceof ApiError) || error.status !== 404) throw error;
-          draftIdRef.current = null;
-          setDraftId(null);
-          newBlog = await blogsApi.createBlog(
-            { ...blogPayload, img: finalCoverImg!, images: inlineImages },
-            creatorRole
-          );
-        }
-      } else {
-        newBlog = await blogsApi.createBlog(
-          { ...blogPayload, img: finalCoverImg!, images: inlineImages },
-          creatorRole
-        );
-      }
+      const newBlog = await blogsApi.createBlog(
+        { ...blogPayload, img: finalCoverImg!, images: inlineImages },
+        creatorRole
+      );
 
       if (shouldSubmitForReview && newBlog?._id) {
         await blogsApi.submitBlog(newBlog._id, creatorRole);
       }
 
-      if (draftStorageKey) localStorage.removeItem(draftStorageKey);
+      if (draftStorageKey) {
+        try {
+          await removeLocalStoryDraft(draftStorageKey);
+          removeLegacyLocalDraft(draftStorageKey);
+        } catch (error) {
+          console.error("Story was submitted, but its local draft could not be removed:", error);
+        }
+      }
 
       router.refresh();
       router.push("/creator/my-stories");
@@ -844,12 +864,12 @@ export default function CreateNewStoryPage() {
             </span>
             <button
               type="button"
-              disabled={isSubmitting}
-              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting || isSavingDraft || !draftRestoreComplete}
+              onClick={() => void handleSaveDraft()}
               className="inline-flex items-center gap-2 border border-[#D9D4C6] bg-white px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#3A4239] transition-colors hover:border-[#1E2620] disabled:opacity-50 cursor-pointer rounded-[2px]"
             >
-              {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-              Save Draft
+              {isSavingDraft ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              {isSavingDraft ? "Saving..." : "Save Draft"}
             </button>
             <button
               type="button"
