@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
+import JSZip from 'jszip';
 import {
   ArrowLeft,
   Calendar,
@@ -23,7 +24,7 @@ import {
 import { galleryApi } from '@/lib/api/gallery';
 import type { GalleryItem } from '@/types';
 
-const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'mp4', 'mov', 'webm', 'm4v'];
 const SLIDESHOW_MS = 3000;
 const WEBSITE_MEDIA_PAGE_SIZE = 25;
 const WEBSITE_MEDIA_MAX_ITEMS = 60;
@@ -222,6 +223,8 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
   const [onlyFavourites, setOnlyFavourites] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState({ completed: 0, total: 0 });
   const [isPlayingSlideshow, setIsPlayingSlideshow] = useState(false);
 
   const likesLoadedRef = useRef(false);
@@ -434,6 +437,76 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
     }
   };
 
+  const handleDownloadAll = async () => {
+    if (!sortedImages.length || downloadingAll) return;
+
+    setDownloadingAll(true);
+    setDownloadProgress({ completed: 0, total: sortedImages.length });
+
+    try {
+      const zip = new JSZip();
+      const usedNames = new Map<string, number>();
+      let completed = 0;
+
+      for (let index = 0; index < sortedImages.length; index += 1) {
+        const image = sortedImages[index];
+        const mediaUrl = image.videoUrl || image.url;
+
+        try {
+          const response = await fetch(mediaUrl);
+          if (!response.ok) throw new Error('Download failed');
+
+          const blob = await response.blob();
+          const baseName = getFileName(index, image.caption, mediaUrl);
+          const duplicateCount = usedNames.get(baseName) || 0;
+          let fileName = baseName;
+          if (duplicateCount > 0) {
+            const dotIndex = fileName.lastIndexOf('.');
+            fileName = dotIndex >= 0
+              ? `${fileName.slice(0, dotIndex)} (${duplicateCount + 1})${fileName.slice(dotIndex)}`
+              : `${fileName} (${duplicateCount + 1})`;
+          }
+          usedNames.set(baseName, duplicateCount + 1);
+          zip.file(fileName, blob);
+        } catch {
+          // Continue preparing the remaining collection files.
+        } finally {
+          completed += 1;
+          setDownloadProgress({ completed, total: sortedImages.length });
+        }
+      }
+
+      if (Object.keys(zip.files).length === 0) {
+        throw new Error('No files could be downloaded');
+      }
+
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+      });
+      const blobUrl = URL.createObjectURL(zipBlob);
+      const collectionName = (item?.title || 'Collection')
+        .trim()
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-')
+        .replace(/\s+/g, ' ')
+        .replace(/[. ]+$/g, '') || 'Collection';
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `BioCap Gallery - ${collectionName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      const firstMedia = sortedImages[0];
+      if (firstMedia) window.open(firstMedia.videoUrl || firstMedia.url, '_blank');
+    } finally {
+      setDownloadingAll(false);
+      setDownloadProgress({ completed: 0, total: 0 });
+    }
+  };
+
   const flashCopied = () => {
     setCopied(true);
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
@@ -638,6 +711,21 @@ export default function GalleryCollectionPage({ params }: { params: Promise<{ id
                   ? `${visibleImages.length} of ${images.length} photos`
                   : `${images.length} photos`}
               </span>
+              <button
+                type="button"
+                onClick={handleDownloadAll}
+                disabled={downloadingAll || sortedImages.length === 0}
+                className="inline-flex items-center gap-2 rounded-full border border-[#1B3A5C]/20 bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#1B3A5C] transition hover:border-[#1B3A5C] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {downloadingAll ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Download size={13} />
+                )}
+                {downloadingAll
+                  ? `Preparing ${downloadProgress.completed}/${downloadProgress.total}`
+                  : 'Download all'}
+              </button>
               <button
                 onClick={() => setOnlyFavourites((v) => !v)}
                 disabled={likedCount === 0 && !onlyFavourites}
