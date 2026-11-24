@@ -620,13 +620,17 @@ async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promis
     method: "PUT",
     auth: true,
     body: {
-      ...(payload.title && { title: payload.title }),
-      ...(payload.tag && { tag: payload.tag }),
-      ...(payload.excerpt && { excerpt: payload.excerpt }),
+      ...(Object.prototype.hasOwnProperty.call(payload, "title") && { title: payload.title }),
+      ...(Object.prototype.hasOwnProperty.call(payload, "tag") && { tag: payload.tag }),
+      ...(Object.prototype.hasOwnProperty.call(payload, "excerpt") && { excerpt: payload.excerpt }),
       ...(processedBlocks && { blocks: processedBlocks }),
       ...(payload.modal && { modal: payload.modal }),
-      ...(payload.socialHandle && { socialHandle: payload.socialHandle }),
-      ...(payload.organizationLink && { organizationLink: payload.organizationLink }),
+      ...(Object.prototype.hasOwnProperty.call(payload, "socialHandle") && {
+        socialHandle: payload.socialHandle,
+      }),
+      ...(Object.prototype.hasOwnProperty.call(payload, "organizationLink") && {
+        organizationLink: payload.organizationLink,
+      }),
       ...(payload.img !== undefined && {
         img: coverImageUrl || null,
         ...(payload.img === null

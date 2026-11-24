@@ -19,10 +19,18 @@ import {
   AlertCircle,
   ExternalLink,
   Unlink,
+  X,
 } from "lucide-react";
 
 type SectionKind = "paragraph" | "heading" | "quote" | "image";
 
+/**
+ * Rules per kind
+ *  - paragraph : text + image (image REQUIRED, caption REQUIRED). Both always visible.
+ *  - heading   : text only. No image.
+ *  - quote     : text + attribution. No image.
+ *  - image     : image + caption only. No text.
+ */
 interface Section {
   id: string;
   kind: SectionKind;
@@ -42,6 +50,8 @@ interface Props {
   excerptError?: boolean;
   initialSections?: Section[];
   onChange?: (blocks: (BlogBlock & { rawFile?: File })[], files: File[]) => void;
+  /** Optional: called whenever the story becomes valid / invalid (missing image or caption). */
+  onValidationChange?: (isValid: boolean) => void;
   controlsPosition?: "top" | "bottom";
 }
 
@@ -58,6 +68,10 @@ const KIND_META: Record<SectionKind, { glyph: string; label: string; icon: typeo
 };
 
 const KIND_ORDER: SectionKind[] = ["paragraph", "heading", "quote", "image"];
+
+/** Which kinds show the text editor / image uploader */
+const kindHasText = (k: SectionKind) => k !== "image";
+const kindHasImage = (k: SectionKind) => k === "paragraph" || k === "image";
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -114,6 +128,27 @@ function serializeContainer(container: HTMLElement): string {
     .replace(/\n+$/, "");
 }
 
+const splitParagraphs = (text: string) =>
+  (text || "")
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+const sectionHasImage = (sec: Section) => Boolean(sec.imageFile || sec.imagePreview);
+
+const makeEmptySection = (): Section => ({
+  id: crypto.randomUUID(),
+  kind: "paragraph",
+  text: "",
+  plainText: "",
+  attribution: "",
+  imageFile: null,
+  imagePreview: null,
+  imageFileKey: null,
+  caption: "",
+  fitMode: "cover",
+});
+
 interface ActiveSelection {
   sectionId: string;
   range: Range;
@@ -133,11 +168,18 @@ interface ActiveLinkPreviewState {
   element: HTMLElement;
 }
 
-export default function StoryEditor({ excerpt, setExcerpt, excerptError, initialSections, onChange }: Props) {
+export default function StoryEditor({
+  excerpt,
+  setExcerpt,
+  excerptError,
+  initialSections,
+  onChange,
+  onValidationChange,
+}: Props) {
   const [sections, setSections] = useState<Section[]>(() =>
     (initialSections && initialSections.length > 0
       ? initialSections
-      : [{ id: crypto.randomUUID(), kind: "paragraph" as SectionKind, text: "", fitMode: "cover" as const }]
+      : [makeEmptySection()]
     ).map((sec) => ({
       ...sec,
       plainText: sec.plainText ?? stripMarkdownLinks(sec.text || ""),
@@ -146,6 +188,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
 
   const [croppingSectionId, setCroppingSectionId] = useState<string | null>(null);
   const [rawCropSrc, setRawCropSrc] = useState<string | null>(null);
+  const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
 
   const editableRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const linkPopoverRef = useRef<HTMLDivElement>(null);
@@ -161,12 +204,40 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  const onValidationChangeRef = useRef(onValidationChange);
+  useEffect(() => {
+    onValidationChangeRef.current = onValidationChange;
+  }, [onValidationChange]);
+
+  /* ───────────── Emit blocks + validity to parent ───────────── */
   useEffect(() => {
     const blocks: (BlogBlock & { rawFile?: File })[] = [];
     const files: File[] = [];
+    let valid = true;
+
+    const pushImage = (sec: Section) => {
+      const fileKey = sec.imageFileKey || `section-img-${sec.id}.jpg`;
+      const displaySrc =
+        sec.imagePreview && !/^(blob:|data:)/.test(sec.imagePreview)
+          ? sec.imagePreview
+          : undefined;
+
+      blocks.push({
+        type: "image",
+        fileKey,
+        src: displaySrc,
+        rawFile: sec.imageFile || undefined,
+        caption: (sec.caption || "").trim(),
+        fitMode: sec.fitMode || "cover",
+      });
+
+      if (sec.imageFile) files.push(sec.imageFile);
+      if (!(sec.caption || "").trim()) valid = false;
+    };
 
     for (const sec of sections) {
       const text = (sec.text || "").trim();
+      const hasImage = sectionHasImage(sec);
 
       if (sec.kind === "heading") {
         if (text) blocks.push({ type: "h2", text });
@@ -178,54 +249,37 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         continue;
       }
 
-      if (sec.kind === "paragraph" && text) {
-        const paragraphs = text
-          .split(/\n+/)
-          .map((p) => p.trim())
-          .filter(Boolean);
+      if (sec.kind === "paragraph") {
+        splitParagraphs(text).forEach((pText) => blocks.push({ type: "p", text: pText }));
 
-        paragraphs.forEach((pText) => {
-          blocks.push({ type: "p", text: pText });
-        });
+        // A paragraph MUST come with an image
+        if (text && !hasImage) valid = false;
+        if (hasImage) pushImage(sec);
+        continue;
       }
 
-      if (sec.imageFile || sec.imagePreview) {
-        const fileKey = sec.imageFileKey || `section-img-${sec.id}.jpg`;
-        
-        const displaySrc = sec.imagePreview?.startsWith("data:image")
-          ? undefined
-          : sec.imagePreview ?? undefined;
-
-        blocks.push({
-          type: "image",
-          fileKey: fileKey,
-          src: displaySrc,
-          rawFile: sec.imageFile || undefined,
-          caption: (sec.caption || "").trim(),
-          fitMode: sec.fitMode || "cover",
-        });
-
-        if (sec.imageFile) {
-          files.push(sec.imageFile);
-        }
+      if (sec.kind === "image" && hasImage) {
+        pushImage(sec);
       }
     }
 
     onChangeRef.current?.(blocks, files);
+    onValidationChangeRef.current?.(valid);
   }, [sections]);
 
+  /* ───────────── Link popover outside click ───────────── */
   useEffect(() => {
     if (!linkPopover && !activeLinkPreview) return;
 
     const handlePointerDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (linkPopoverRef.current?.contains(target)) return;
-      
+
       const activeEl = editableRefs.current.get(
         linkPopover?.sectionId || activeLinkPreview?.sectionId || ""
       );
       if (activeEl && activeEl.contains(target)) return;
-      
+
       closeLinkPopover();
       setActiveLinkPreview(null);
     };
@@ -385,11 +439,13 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
     closeLinkPopover();
   };
 
+  /* ───────────── Images ───────────── */
   const handleMultiImageSelect = (targetSectionId: string, fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
     const filesArray = Array.from(fileList);
 
+    // Single image -> go through the cropper
     if (filesArray.length === 1) {
       const reader = new FileReader();
       reader.onload = () => {
@@ -400,39 +456,40 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
       return;
     }
 
-    filesArray.forEach((file, idx) => {
-      const fileKey = `${crypto.randomUUID()}__inline_${idx}.jpg`;
-      const previewUrl = URL.createObjectURL(file);
+    // Multiple images: first fills the target section, the rest become
+    // image sections inserted right after it (keeps the order the user expects).
+    const prepared = filesArray.map((file, idx) => ({
+      file,
+      fileKey: `${crypto.randomUUID()}__inline_${idx}.jpg`,
+      previewUrl: URL.createObjectURL(file),
+    }));
 
-      if (idx === 0) {
-        setSections((s) =>
-          s.map((sec) =>
-            sec.id === targetSectionId
-              ? {
-                  ...sec,
-                  kind: "image",
-                  imageFile: file,
-                  imagePreview: previewUrl,
-                  imageFileKey: fileKey,
-                }
-              : sec
-          )
-        );
-      } else {
-        setSections((s) => [
-          ...s,
-          {
-            id: crypto.randomUUID(),
-            kind: "image",
-            text: "",
-            plainText: "",
-            imageFile: file,
-            imagePreview: previewUrl,
-            imageFileKey: fileKey,
-            fitMode: "cover",
-          },
-        ]);
-      }
+    setSections((s) => {
+      const targetIdx = s.findIndex((sec) => sec.id === targetSectionId);
+      if (targetIdx === -1) return s;
+
+      const first = prepared[0];
+      const next = s.map((sec) =>
+        sec.id === targetSectionId
+          ? {
+              ...sec,
+              imageFile: first.file,
+              imagePreview: first.previewUrl,
+              imageFileKey: first.fileKey,
+            }
+          : sec
+      );
+
+      const extras: Section[] = prepared.slice(1).map((p) => ({
+        ...makeEmptySection(),
+        kind: "image",
+        imageFile: p.file,
+        imagePreview: p.previewUrl,
+        imageFileKey: p.fileKey,
+      }));
+
+      next.splice(targetIdx + 1, 0, ...extras);
+      return next;
     });
   };
 
@@ -448,7 +505,6 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         sec.id === croppingSectionId
           ? {
               ...sec,
-              kind: "image",
               imageFile: renamedFile,
               imagePreview: blobPreviewUrl,
               imageFileKey: fileKey,
@@ -459,16 +515,6 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
 
     setCroppingSectionId(null);
     setRawCropSrc(null);
-  };
-
-  const removeImage = (id: string) => {
-    setSections((s) =>
-      s.map((sec) =>
-        sec.id === id
-          ? { ...sec, imageFile: null, imagePreview: null, imageFileKey: null, caption: "" }
-          : sec
-      )
-    );
   };
 
   const moveSection = (id: string, dir: -1 | 1) => {
@@ -482,24 +528,98 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
     });
   };
 
+  /**
+   * Switching kind is non-destructive: data typed for another kind is kept
+   * in state (so switching back restores it) but is ignored while that kind
+   * doesn't use it.
+   */
   const setKind = (id: string, kind: SectionKind) => {
     setSections((s) => s.map((sec) => (sec.id === id ? { ...sec, kind } : sec)));
   };
 
+  /* ───────────── Remove logic ───────────── */
+  const syncEditableDom = (id: string, text: string) => {
+    const el = editableRefs.current.get(id);
+    if (el) el.innerHTML = markdownToHtml(text);
+  };
+
+  const removeWholeSection = (id: string) => {
+    if (sections.length > 1) {
+      setSections((s) => s.filter((sec) => sec.id !== id));
+      return;
+    }
+    // Only section left -> reset it instead of deleting
+    syncEditableDom(id, "");
+    setSections((s) => s.map((sec) => (sec.id === id ? { ...makeEmptySection(), id } : sec)));
+  };
+
+  const removeSectionContent = (
+    id: string,
+    content: "text" | "image" | "section",
+    paragraphIndex?: number
+  ) => {
+    const target = sections.find((sec) => sec.id === id);
+    if (!target) {
+      setRemoveTargetId(null);
+      return;
+    }
+
+    if (content === "section") {
+      removeWholeSection(id);
+      setRemoveTargetId(null);
+      return;
+    }
+
+    if (content === "text") {
+      const nextText =
+        target.kind === "paragraph" && paragraphIndex !== undefined
+          ? splitParagraphs(target.text)
+              .filter((_, index) => index !== paragraphIndex)
+              .join("\n")
+          : "";
+
+      const keepsImage = target.kind === "paragraph" && sectionHasImage(target);
+
+      if (!nextText.trim() && !keepsImage) {
+        // Heading / quote / text-only paragraph -> the whole section goes
+        removeWholeSection(id);
+      } else {
+        syncEditableDom(id, nextText);
+        setSections((s) =>
+          s.map((sec) =>
+            sec.id === id
+              ? {
+                  ...sec,
+                  text: nextText,
+                  plainText: stripMarkdownLinks(nextText),
+                  attribution: nextText.trim() ? sec.attribution : "",
+                }
+              : sec
+          )
+        );
+      }
+      setRemoveTargetId(null);
+      return;
+    }
+
+    // content === "image"
+    const keepsText = target.kind === "paragraph" && Boolean(target.text.trim());
+    if (!keepsText) {
+      removeWholeSection(id);
+    } else {
+      setSections((s) =>
+        s.map((sec) =>
+          sec.id === id
+            ? { ...sec, imageFile: null, imagePreview: null, imageFileKey: null, caption: "" }
+            : sec
+        )
+      );
+    }
+    setRemoveTargetId(null);
+  };
+
   const addSection = () => {
-    setSections((s) => [
-      ...s,
-      {
-        id: crypto.randomUUID(),
-        kind: "paragraph",
-        text: "",
-        plainText: "",
-        imageFile: null,
-        imagePreview: null,
-        imageFileKey: null,
-        fitMode: "cover",
-      },
-    ]);
+    setSections((s) => [...s, makeEmptySection()]);
   };
 
   const setEditableRef = (id: string) => (el: HTMLDivElement | null) => {
@@ -515,6 +635,145 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
     }
   };
 
+  /* ───────────── Reusable image block (paragraph + image kinds) ───────────── */
+  const renderImageBlock = (sec: Section, idx: number) => {
+    const hasImage = sectionHasImage(sec);
+    const isParagraph = sec.kind === "paragraph";
+    const isCaptionMissing = hasImage && !(sec.caption || "").trim();
+    const isImageMissing = isParagraph && !hasImage;
+    const paragraphNeedsImage = isImageMissing && Boolean(sec.text.trim());
+
+    return (
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[#3A4239] transition-colors hover:text-[#3F6B4F]">
+            <ImagePlus size={13} />
+            {hasImage
+              ? "Replace / Add images"
+              : isParagraph
+              ? "Add image (required for paragraph)"
+              : "Add images (select one or multiple)"}
+            {isParagraph && <span className="text-[#B65C4B]">*</span>}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                handleMultiImageSelect(sec.id, e.target.files);
+                e.currentTarget.value = "";
+              }}
+              className="hidden"
+            />
+          </label>
+          {paragraphNeedsImage && (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+              <AlertCircle size={10} /> Image is required with a paragraph
+            </span>
+          )}
+        </div>
+
+        {sec.imagePreview ? (
+          <>
+            <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
+              <img
+                src={sec.imagePreview}
+                alt="Section preview"
+                className="max-h-[650px] w-full object-contain rounded-[2px]"
+              />
+              <div className="absolute top-2 right-2 flex gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRawCropSrc(sec.imagePreview!);
+                    setCroppingSectionId(sec.id);
+                  }}
+                  className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer rounded-[2px]"
+                >
+                  <Crop size={12} className="text-[#8FBF9F]" /> Recrop
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeSectionContent(sec.id, "image")}
+                  aria-label="Remove image"
+                  className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer rounded-[2px]"
+                >
+                  <ImageOff size={13} />
+                </button>
+              </div>
+              <span className="font-mono absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs rounded-[2px]">
+                Fig. {pad(idx + 1)}
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]">
+                  Image Caption <span className="text-[#B65C4B]">*</span>
+                </label>
+                {isCaptionMissing && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                    <AlertCircle size={10} /> Mandatory when image is attached
+                  </span>
+                )}
+              </div>
+              <input
+                type="text"
+                required
+                value={sec.caption || ""}
+                onChange={(e) =>
+                  setSections((s) =>
+                    s.map((x) => (x.id === sec.id ? { ...x, caption: e.target.value } : x))
+                  )
+                }
+                placeholder="Describe this image (mandatory for publication)..."
+                className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors rounded-[2px] ${
+                  isCaptionMissing
+                    ? "border-[#B65C4B] bg-[#FBEEEC]/30 focus:border-[#B65C4B] focus:ring-[#B65C4B]/20"
+                    : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-[#3F6B4F]/15"
+                }`}
+              />
+            </div>
+          </>
+        ) : (
+          <label
+            className={`group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed transition-colors duration-200 rounded-[2px] ${
+              paragraphNeedsImage
+                ? "border-[#B65C4B] bg-[#FBEEEC]/40 hover:bg-[#FBEEEC]/60"
+                : "border-[#D9D4C6] bg-[#FAF9F5] hover:border-[#3F6B4F] hover:bg-[#F3F2ED]"
+            }`}
+          >
+            <ImagePlus
+              size={22}
+              className={`transition-colors ${
+                paragraphNeedsImage ? "text-[#B65C4B]" : "text-[#B4B0A2] group-hover:text-[#3F6B4F]"
+              }`}
+            />
+            <span
+              className={`mt-2 text-[11px] font-medium transition-colors ${
+                paragraphNeedsImage ? "text-[#B65C4B]" : "text-[#8B9188] group-hover:text-[#3F6B4F]"
+              }`}
+            >
+              {isParagraph
+                ? "Image required — click or drag to select one or multiple images"
+                : "No image attached (click or drag to select one or multiple images)"}
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) => {
+                handleMultiImageSelect(sec.id, e.target.files);
+                e.currentTarget.value = "";
+              }}
+              className="hidden"
+            />
+          </label>
+        )}
+      </div>
+    );
+  };
+
+  /* ───────────── Render ───────────── */
   return (
     <div className="space-y-6">
       <style>{`
@@ -543,7 +802,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         }
       `}</style>
 
-      {/* 🟢 LOCALIZED EXCERPT / BRIEF SUMMARY FIELD WITH RED WARNING TEXT & BORDER ON ERROR */}
+      {/* Excerpt */}
       <div>
         <div className="mb-1.5 flex items-baseline justify-between">
           <label className="text-[10px] font-bold uppercase tracking-wider text-[#1E2620]">
@@ -575,7 +834,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
             }
           }}
           placeholder="Short summary for preview cards..."
-          className={`w-full border p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:outline-none overflow-hidden resize-none transition-all duration-100 leading-relaxed text-justify text-justify-inter-word rounded-[2px] ${
+          className={`w-full border p-3 text-xs text-[#1E2620] placeholder:text-[#8B9188] focus:outline-none overflow-hidden resize-none transition-all duration-100 leading-relaxed text-justify rounded-[2px] ${
             excerptError
               ? "border-[#B65C4B] bg-[#FBEEEC]/40 focus:border-[#B65C4B] focus:ring-2 focus:ring-[#B65C4B]/20"
               : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-2 focus:ring-[#3F6B4F]/15"
@@ -583,16 +842,14 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         />
       </div>
 
-      {/* Manuscript Section */}
+      {/* Manuscript */}
       <div className="border border-[#E2DDCF] bg-white rounded-[2px]">
         <div className="flex items-center justify-between border-b border-[#EDEAE0] px-5 py-4">
           <div>
             <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]">
               Manuscript
             </p>
-            <p className="font-display mt-0.5 text-lg italic text-[#1E2620]">
-              Story body
-            </p>
+            <p className="font-display mt-0.5 text-lg italic text-[#1E2620]">Story body</p>
           </div>
           <p className="font-mono hidden text-[10px] text-[#B4B0A2] sm:block">
             Select text to insert link · Click link to view or open in new tab
@@ -602,8 +859,11 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
         <div className="divide-y divide-[#EDEAE0]">
           {sections.map((sec, idx) => {
             const meta = KIND_META[sec.kind];
-            const hasImage = Boolean(sec.imagePreview);
-            const isCaptionMissing = hasImage && !(sec.caption || "").trim();
+            const showText = kindHasText(sec.kind);
+            const showImage = kindHasImage(sec.kind);
+            const hasText = Boolean(sec.text.trim());
+            const hasImage = sectionHasImage(sec);
+            const canRemove = sections.length > 1 || (showText && hasText) || (showImage && hasImage);
 
             return (
               <div key={sec.id} className="flex gap-4 p-5 transition-opacity duration-200">
@@ -639,6 +899,7 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-3">
+                  {/* Kind switcher + remove */}
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="inline-flex border border-[#D9D4C6] rounded-[2px]">
                       {KIND_ORDER.map((k) => {
@@ -659,10 +920,10 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
                       })}
                     </div>
 
-                    {sections.length > 1 && (
+                    {canRemove && (
                       <button
                         type="button"
-                        onClick={() => setSections((s) => s.filter((x) => x.id !== sec.id))}
+                        onClick={() => setRemoveTargetId(sec.id)}
                         className="inline-flex items-center gap-1 text-xs font-medium text-[#B65C4B] transition-opacity hover:opacity-70 cursor-pointer"
                       >
                         <Trash2 size={12} /> Remove
@@ -670,43 +931,54 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
                     )}
                   </div>
 
-                  {sec.kind !== "image" && (
-                    <div
-                      ref={setEditableRef(sec.id)}
-                      contentEditable
-                      suppressContentEditableWarning
-                      data-placeholder={
-                        sec.kind === "heading"
-                          ? "Section heading..."
-                          : sec.kind === "quote"
-                          ? "The words being quoted..."
-                          : `Paragraph ${idx + 1} content...`
-                      }
-                      onInput={(e) => handleInput(sec.id, e.currentTarget)}
-                      onMouseUp={() => handleTextSelection(sec.id)}
-                      onKeyUp={() => handleTextSelection(sec.id)}
-                      onClick={(e) => handleEditorClick(sec.id, e)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          document.execCommand("insertText", false, "\n");
+                  {/* TEXT: paragraph / heading / quote */}
+                  {showText && (
+                    <div className="space-y-1.5">
+                      <div
+                        ref={setEditableRef(sec.id)}
+                        contentEditable
+                        suppressContentEditableWarning
+                        data-placeholder={
+                          sec.kind === "heading"
+                            ? "Section heading..."
+                            : sec.kind === "quote"
+                            ? "The words being quoted..."
+                            : `Paragraph ${idx + 1} content...`
                         }
-                      }}
-                      onPaste={(e) => {
-                        e.preventDefault();
-                        const text = e.clipboardData.getData("text/plain");
-                        document.execCommand("insertText", false, text);
-                      }}
-                      className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3.5 py-2.5 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 rounded-[2px] ${
-                        sec.kind === "heading"
-                          ? "font-display min-h-[2.25rem] text-base italic font-semibold text-left"
-                          : sec.kind === "quote"
-                          ? "min-h-[3rem] text-xs italic font-medium text-left"
-                          : "min-h-[4.5rem] text-xs font-normal text-justify"
-                      }`}
-                    />
+                        onInput={(e) => handleInput(sec.id, e.currentTarget)}
+                        onMouseUp={() => handleTextSelection(sec.id)}
+                        onKeyUp={() => handleTextSelection(sec.id)}
+                        onClick={(e) => handleEditorClick(sec.id, e)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            document.execCommand("insertText", false, "\n");
+                          }
+                        }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const text = e.clipboardData.getData("text/plain");
+                          document.execCommand("insertText", false, text);
+                        }}
+                        className={`story-editable w-full border border-[#D9D4C6] bg-[#FAF9F5] px-3.5 py-2.5 leading-relaxed text-[#1E2620] transition-colors focus:border-[#3F6B4F] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 rounded-[2px] ${
+                          sec.kind === "heading"
+                            ? "font-display min-h-[2.25rem] text-base italic font-semibold text-left"
+                            : sec.kind === "quote"
+                            ? "min-h-[3rem] text-xs italic font-medium text-left"
+                            : "min-h-[4.5rem] text-xs font-normal text-justify"
+                        }`}
+                      />
+                      {sec.kind === "paragraph" && (
+                        <div className="flex justify-end">
+                          <span className="font-mono text-[10px] tabular-nums text-[#B4B0A2]">
+                            {wordCount(sec.plainText ?? sec.text)} words
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   )}
 
+                  {/* QUOTE attribution */}
                   {sec.kind === "quote" && (
                     <input
                       type="text"
@@ -717,110 +989,12 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
                         )
                       }
                       placeholder="Attribution (optional)"
-                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 text-justify rounded-[2px]"
+                      className="w-full border border-[#D9D4C6] bg-white px-3 py-1.5 text-[11px] font-medium uppercase tracking-wide text-[#8B4136] placeholder:text-[#B4B0A2] focus:border-[#3F6B4F] focus:outline-none focus:ring-2 focus:ring-[#3F6B4F]/15 rounded-[2px]"
                     />
                   )}
 
-                  {(sec.kind === "image" || sec.kind === "paragraph") && (
-                    <>
-                      {sec.kind === "paragraph" && (
-                        <div className="flex items-center justify-between">
-                          <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] font-medium text-[#3A4239] transition-colors hover:text-[#3F6B4F]">
-                            <ImagePlus size={13} /> {sec.imagePreview ? "Replace / Add images" : "Add images (select one or multiple)"}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={(e) => handleMultiImageSelect(sec.id, e.target.files)}
-                              className="hidden"
-                            />
-                          </label>
-                          <span className="font-mono text-[10px] tabular-nums text-[#B4B0A2]">
-                            {wordCount(sec.plainText ?? sec.text)} words
-                          </span>
-                        </div>
-                      )}
-
-                      {sec.imagePreview ? (
-                        <div className="space-y-2.5 pt-1">
-                          <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
-                            <img
-                              src={sec.imagePreview}
-                              alt="Section preview"
-                              className="max-h-[650px] w-full object-contain rounded-[2px]"
-                            />
-                            <div className="absolute top-2 right-2 flex gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setRawCropSrc(sec.imagePreview!);
-                                  setCroppingSectionId(sec.id);
-                                }}
-                                className="inline-flex items-center gap-1 border border-white/20 bg-[#1E2620]/85 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-xs transition-colors hover:bg-[#1E2620] cursor-pointer rounded-[2px]"
-                              >
-                                <Crop size={12} className="text-[#8FBF9F]" /> Recrop
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeImage(sec.id)}
-                                className="inline-flex items-center border border-white/20 bg-[#1E2620]/85 p-1.5 text-white backdrop-blur-xs transition-colors hover:bg-[#B65C4B] cursor-pointer rounded-[2px]"
-                              >
-                                <ImageOff size={13} />
-                              </button>
-                            </div>
-                            <span
-                              className="font-mono absolute bottom-2 left-2 border border-white/15 bg-[#1E2620]/85 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#A9812F] backdrop-blur-xs rounded-[2px]"
-                            >
-                              Fig. {pad(idx + 1)}
-                            </span>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[10px] font-semibold uppercase tracking-wider text-[#5A6259]">
-                                Image Caption <span className="text-[#B65C4B]">*</span>
-                              </label>
-                              {isCaptionMissing && (
-                                <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
-                                  <AlertCircle size={10} /> Mandatory when image is attached
-                                </span>
-                              )}
-                            </div>
-                            <input
-                              type="text"
-                              required
-                              value={sec.caption || ""}
-                              onChange={(e) =>
-                                setSections((s) =>
-                                  s.map((x) => (x.id === sec.id ? { ...x, caption: e.target.value } : x))
-                                )
-                              }
-                              placeholder="Describe this image (mandatory for publication)..."
-                              className={`w-full border px-3 py-1.5 text-[11px] italic text-[#1E2620] placeholder:text-[#B4B0A2] focus:outline-none focus:ring-2 transition-colors text-justify rounded-[2px] ${
-                                isCaptionMissing
-                                  ? "border-[#B65C4B] bg-[#FBEEEC]/30 focus:border-[#B65C4B] focus:ring-[#B65C4B]/20"
-                                  : "border-[#D9D4C6] bg-white focus:border-[#3F6B4F] focus:ring-[#3F6B4F]/15"
-                              }`}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED] rounded-[2px]">
-                          <ImagePlus size={22} className="text-[#B4B0A2] transition-colors group-hover:text-[#3F6B4F]" />
-                          <span className="mt-2 text-[11px] font-medium text-[#8B9188] transition-colors group-hover:text-[#3F6B4F]">
-                            No image attached (click or drag to select one or multiple images)
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={(e) => handleMultiImageSelect(sec.id, e.target.files)}
-                            className="hidden"
-                          />
-                        </label>
-                      )}
-                    </>
-                  )}
+                  {/* IMAGE: paragraph (required) + image kind. Heading / quote never show it. */}
+                  {showImage && renderImageBlock(sec, idx)}
                 </div>
               </div>
             );
@@ -837,6 +1011,133 @@ export default function StoryEditor({ excerpt, setExcerpt, excerptError, initial
           </button>
         </div>
       </div>
+
+      {/* Remove dialog: options depend on what the section actually contains */}
+      {removeTargetId &&
+        (() => {
+          const target = sections.find((section) => section.id === removeTargetId);
+          if (!target) return null;
+
+          const kind = target.kind;
+          const hasText = kindHasText(kind) && Boolean(target.text.trim());
+          const hasImage = kindHasImage(kind) && sectionHasImage(target);
+          const paragraphs = kind === "paragraph" && hasText ? splitParagraphs(target.text) : [];
+          const label = KIND_META[kind].label.toLowerCase();
+
+          const optionClass =
+            "border border-[#D9D4C6] px-3 py-2 text-left text-xs font-semibold text-[#1E2620] hover:bg-[#FAF9F5] cursor-pointer";
+
+          return (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+              role="presentation"
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="remove-content-title"
+                className="w-full max-w-sm border   -[#D9D4C6] bg-white p-5 shadow-2xl"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <h3 id="remove-content-title" className="text-sm font-bold text-[#1E2620]">
+                      What do you want to remove?
+                    </h3>
+                    <p className="mt-1 text-xs text-[#5A6259]">
+                      Pick one item from this {label} section, or cancel to keep everything.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRemoveTargetId(null)}
+                    aria-label="Cancel removal"
+                    className="text-[#8B9188] hover:text-[#1E2620] cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {/* Paragraph text */}
+                  {kind === "paragraph" && hasText && paragraphs.length > 1 &&
+                    paragraphs.map((paragraph, index) => (
+                      <button
+                        key={`${index}-${paragraph}`}
+                        type="button"
+                        onClick={() => removeSectionContent(target.id, "text", index)}
+                        className={optionClass}
+                      >
+                        Remove paragraph {index + 1}: {paragraph.slice(0, 70)}
+                        {paragraph.length > 70 ? "…" : ""}
+                      </button>
+                    ))}
+
+                  {kind === "paragraph" && hasText && paragraphs.length <= 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeSectionContent(target.id, "text")}
+                      className={optionClass}
+                    >
+                      Remove paragraph
+                    </button>
+                  )}
+
+                  {/* Heading / quote: only that item */}
+                  {(kind === "heading" || kind === "quote") && hasText && (
+                    <button
+                      type="button"
+                      onClick={() => removeSectionContent(target.id, "text")}
+                      className={optionClass}
+                    >
+                      Remove {label}
+                    </button>
+                  )}
+
+                  {/* Image (paragraph's image or image section) */}
+                  {hasImage && (
+                    <button
+                      type="button"
+                      onClick={() => removeSectionContent(target.id, "image")}
+                      className={optionClass}
+                    >
+                      Remove image
+                    </button>
+                  )}
+
+                  {/* Paragraph with both text and image: allow wiping everything */}
+                  {kind === "paragraph" && hasText && hasImage && (
+                    <button
+                      type="button"
+                      onClick={() => removeSectionContent(target.id, "section")}
+                      className="border border-[#B65C4B]/40 px-3 py-2 text-left text-xs font-semibold text-[#B65C4B] hover:bg-[#FBEEEC] cursor-pointer"
+                    >
+                      Remove entire section (paragraph + image)
+                    </button>
+                  )}
+
+                  {/* Nothing filled in */}
+                  {!hasText && !hasImage && (
+                    <button
+                      type="button"
+                      onClick={() => removeSectionContent(target.id, "section")}
+                      className={optionClass}
+                    >
+                      Remove empty {label} section
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setRemoveTargetId(null)}
+                    className="mt-1 px-3 py-2 text-xs font-semibold text-[#5A6259] hover:bg-[#FAF9F5] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* Floating Link Popover */}
       {linkPopover && (

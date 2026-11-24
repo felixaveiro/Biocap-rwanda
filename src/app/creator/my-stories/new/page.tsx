@@ -67,6 +67,7 @@ interface LocalStoryDraft {
   socialHandle: string;
   organizationLink: string;
   expiresAt: number;
+  serverDraftId?: string;
 }
 
 const DRAFT_TTL_MS = 5 * 60 * 60 * 1000;
@@ -165,6 +166,14 @@ const dataUrlToFile = (dataUrl: string, name: string) => {
   return new File([bytes], name, { type: mime });
 };
 
+const draftBlocksFingerprint = (blocks: DraftBlock[]) =>
+  JSON.stringify(
+    blocks.map(({ rawFile, ...block }) => ({
+      ...block,
+      rawFile: rawFile ? `${rawFile.name}:${rawFile.size}:${rawFile.lastModified}` : undefined,
+    }))
+  );
+
 export default function CreateNewStoryPage() {
   const router = useRouter();
   const { user, loading, allowed } = useSession("blog:create");
@@ -190,7 +199,10 @@ export default function CreateNewStoryPage() {
   const [draftExpiresAt, setDraftExpiresAt] = useState<number | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftRestoreComplete, setDraftRestoreComplete] = useState(false);
+  const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
   const skipNextAutoSaveRef = useRef(true);
+  const blocksRef = useRef<DraftBlock[]>([]);
+  const serverSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -224,7 +236,50 @@ export default function CreateNewStoryPage() {
     let isCurrent = true;
     const restoreDraft = async () => {
       try {
+        const requestedDraftId = new URLSearchParams(window.location.search).get("edit");
         let saved = await readLocalStoryDraft(draftStorageKey);
+        if (
+          requestedDraftId &&
+          (saved?.serverDraftId !== requestedDraftId || saved.expiresAt <= Date.now())
+        ) {
+          const serverDraft = await blogsApi.getBlogById(requestedDraftId, user?.role as Role);
+          if (!isCurrent) return;
+          setEditingDraftId(requestedDraftId);
+          setTitle(serverDraft.title || "");
+          setTag(serverDraft.tag || "");
+          setExcerpt(serverDraft.excerpt || "");
+          setSocialHandle(serverDraft.socialHandle || "");
+          setOrganizationLink(serverDraft.organizationLink || "");
+          const serverBlocks = (serverDraft.blocks || []) as DraftBlock[];
+          setBlocks(serverBlocks);
+          setInlineImages([]);
+          setRestoredSections(
+            serverBlocks.map((block) => ({
+              id: crypto.randomUUID(),
+              kind:
+                block.type === "h2"
+                  ? "heading"
+                  : block.type === "quote"
+                  ? "quote"
+                  : block.type === "image"
+                  ? "image"
+                  : "paragraph",
+              text: block.text || "",
+              attribution: block.type === "quote" ? block.caption || "" : "",
+              caption: block.type === "image" ? block.caption || "" : "",
+              fitMode: block.fitMode || "cover",
+              imagePreview: block.type === "image" ? block.src || null : null,
+              imageFile: null,
+              imageFileKey: block.fileKey || null,
+            }))
+          );
+          setEditorVersion((version) => version + 1);
+          setCroppedPreview(serverDraft.img || null);
+          setRawImageSrc(serverDraft.img || null);
+          setDraftSaveStatus("Draft loaded from My Stories");
+          setDraftRestoreComplete(true);
+          return;
+        }
         if (!saved) {
           let legacyDraft: string | null = null;
           try {
@@ -250,6 +305,8 @@ export default function CreateNewStoryPage() {
           return;
         }
         if (saved) {
+          const restoredServerDraftId = saved.serverDraftId || null;
+          setEditingDraftId(restoredServerDraftId);
           setTitle(saved.title || "");
           setTag(saved.tag || "");
           setExcerpt(saved.excerpt || "");
@@ -291,7 +348,9 @@ export default function CreateNewStoryPage() {
             setRawImageSrc(saved.coverImage);
           }
           setDraftExpiresAt(saved.expiresAt);
-          setDraftSaveStatus("Recovered temporary draft");
+          setDraftSaveStatus(
+            restoredServerDraftId ? "Recovered draft; local changes will sync" : "Recovered temporary draft"
+          );
         }
       } catch (error) {
         console.error("Could not restore local story draft:", error);
@@ -304,7 +363,7 @@ export default function CreateNewStoryPage() {
     return () => {
       isCurrent = false;
     };
-  }, [draftStorageKey]);
+  }, [draftStorageKey, user?.role]);
 
   useEffect(() => {
     if (!draftStorageKey || !draftExpiresAt) return;
@@ -323,7 +382,7 @@ export default function CreateNewStoryPage() {
     return () => window.clearTimeout(timeout);
   }, [draftExpiresAt, draftStorageKey]);
 
-  const saveDraftToBrowser = useCallback(async () => {
+  const saveDraftToBrowser = useCallback(async (saveNewDraftToServer = false) => {
     if (!draftRestoreComplete || !draftStorageKey) return false;
     const hasStoryContent = Boolean(
       title.trim() ||
@@ -361,15 +420,106 @@ export default function CreateNewStoryPage() {
         socialHandle,
         organizationLink,
         expiresAt,
+        serverDraftId: editingDraftId || undefined,
       };
       await writeLocalStoryDraft(draftStorageKey, localDraft);
       removeLegacyLocalDraft(draftStorageKey);
       setDraftExpiresAt(expiresAt);
-      setDraftSaveStatus("Saved in this browser; expires 5 hours after last activity");
+
+      const currentCover = coverImageFile || croppedPreview || rawImageSrc;
+      if (editingDraftId) {
+        const blocksBeingSaved = blocks;
+        const updatePromise = serverSaveQueueRef.current.then(() =>
+          blogsApi.updateBlog(
+            editingDraftId,
+            {
+              title,
+              tag,
+              excerpt,
+              blocks: blocksBeingSaved,
+              socialHandle,
+              organizationLink,
+              img: currentCover || null,
+            },
+            user?.role as Role
+          )
+        );
+        serverSaveQueueRef.current = updatePromise.then(
+          () => undefined,
+          () => undefined
+        );
+        const updatedDraft = await updatePromise;
+        if (
+          updatedDraft.blocks &&
+          draftBlocksFingerprint(blocksRef.current) === draftBlocksFingerprint(blocksBeingSaved)
+        ) {
+          const persistedBlocks = updatedDraft.blocks as DraftBlock[];
+          blocksRef.current = persistedBlocks;
+          setBlocks(persistedBlocks);
+          setInlineImages([]);
+        }
+        setDraftSaveStatus("Draft saved to My Stories and this browser");
+      } else if (saveNewDraftToServer) {
+        if (!currentCover) {
+          setDraftSaveStatus("Saved on this device. Add a cover image to list this draft in My Stories.");
+          return true;
+        }
+        const newDraft = await blogsApi.createBlog(
+          {
+            title,
+            tag,
+            excerpt,
+            blocks,
+            socialHandle,
+            organizationLink,
+            img: currentCover,
+            images: inlineImages,
+          },
+          user?.role as Role
+        );
+        if (!newDraft?._id) {
+          throw new Error("The draft was saved locally, but the server did not return a draft ID.");
+        }
+        setEditingDraftId(newDraft._id);
+        const latestLocalDraft = (await readLocalStoryDraft(draftStorageKey)) || localDraft;
+        if (
+          latestLocalDraft.title !== localDraft.title ||
+          latestLocalDraft.tag !== localDraft.tag ||
+          latestLocalDraft.excerpt !== localDraft.excerpt ||
+          draftBlocksFingerprint(latestLocalDraft.blocks) !== draftBlocksFingerprint(localDraft.blocks) ||
+          latestLocalDraft.coverImage !== localDraft.coverImage ||
+          latestLocalDraft.socialHandle !== localDraft.socialHandle ||
+          latestLocalDraft.organizationLink !== localDraft.organizationLink
+        ) {
+          await blogsApi.updateBlog(
+            newDraft._id,
+            {
+              title: latestLocalDraft.title,
+              tag: latestLocalDraft.tag,
+              excerpt: latestLocalDraft.excerpt,
+              blocks: latestLocalDraft.blocks,
+              socialHandle: latestLocalDraft.socialHandle,
+              organizationLink: latestLocalDraft.organizationLink,
+              img: latestLocalDraft.coverImage || null,
+            },
+            user?.role as Role
+          );
+        }
+        const savedRemoteDraft = { ...latestLocalDraft, serverDraftId: newDraft._id };
+        await writeLocalStoryDraft(draftStorageKey, savedRemoteDraft);
+        setDraftSaveStatus("Draft saved to My Stories and this browser");
+      } else {
+        setDraftSaveStatus("Saved in this browser; expires 5 hours after last activity");
+      }
       return true;
     } catch (error) {
-      console.error("Could not save local story draft:", error);
-      setDraftSaveStatus("Browser draft storage unavailable");
+      console.error("Could not save story draft:", error);
+      const details = error instanceof Error ? error.message : "Unexpected save error.";
+      setDraftSaveStatus(
+        editingDraftId || saveNewDraftToServer
+          ? `Saved on this device, but could not sync to My Stories: ${details}`
+          : `Browser draft storage unavailable: ${details}`
+      );
       return false;
     }
   }, [
@@ -378,18 +528,24 @@ export default function CreateNewStoryPage() {
     croppedPreview,
     draftRestoreComplete,
     draftStorageKey,
+    editingDraftId,
     excerpt,
+    inlineImages,
     organizationLink,
     rawImageSrc,
     socialHandle,
     tag,
     title,
+    user?.role,
   ]);
 
   const handleSaveDraft = async () => {
     setIsSavingDraft(true);
     try {
-      await saveDraftToBrowser();
+      const saved = await saveDraftToBrowser(true);
+      if (saved && (editingDraftId || coverImageFile || croppedPreview || rawImageSrc)) {
+        router.push("/creator/my-stories");
+      }
     } finally {
       setIsSavingDraft(false);
     }
@@ -403,7 +559,7 @@ export default function CreateNewStoryPage() {
     }
     const timeout = window.setTimeout(() => {
       void saveDraftToBrowser();
-    }, 500);
+    }, 300);
     return () => window.clearTimeout(timeout);
   }, [
     draftRestoreComplete,
@@ -423,7 +579,9 @@ export default function CreateNewStoryPage() {
   }, [socialHandle]);
 
   const handleStoryEditorChange = useCallback((b: BlogBlock[], files: File[]) => {
-    setBlocks((b || []) as DraftBlock[]);
+    const updatedBlocks = (b || []) as DraftBlock[];
+    blocksRef.current = updatedBlocks;
+    setBlocks(updatedBlocks);
     setInlineImages(files || []);
   }, []);
 
@@ -562,10 +720,20 @@ export default function CreateNewStoryPage() {
           socialHandle: finalSocialHandle,
           organizationLink: finalOrgLink,
       };
-      const newBlog = await blogsApi.createBlog(
-        { ...blogPayload, img: finalCoverImg!, images: inlineImages },
-        creatorRole
-      );
+      const newBlog = editingDraftId
+        ? await blogsApi.updateBlog(
+            editingDraftId,
+            {
+              ...blogPayload,
+              img: finalCoverImg!,
+              images: inlineImages,
+            },
+            creatorRole
+          )
+        : await blogsApi.createBlog(
+            { ...blogPayload, img: finalCoverImg!, images: inlineImages },
+            creatorRole
+          );
 
       if (shouldSubmitForReview && newBlog?._id) {
         await blogsApi.submitBlog(newBlog._id, creatorRole);

@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Fraunces, Inter, IBM_Plex_Mono } from "@/lib/fonts";
 import Header from "@/components/Header";
@@ -69,6 +69,7 @@ function StoryTableWrapper({
 }
 
 export default function CreatorMyStoriesPage() {
+  const router = useRouter();
   const {
     user: currentCreatorUser,
     loading: sessionLoading,
@@ -269,7 +270,13 @@ export default function CreatorMyStoriesPage() {
                 stories={personalStoriesList}
                 user={currentCreatorUser}
                 onRefresh={fetchPersonalStories}
-                onEditStory={(story) => setEditingStory(story)}
+                onEditStory={(story) => {
+                  if (story.status === "draft") {
+                    router.push(`/creator/my-stories/new?edit=${encodeURIComponent(story._id)}`);
+                  } else {
+                    setEditingStory(story);
+                  }
+                }}
               />
             </Suspense>
           </div>

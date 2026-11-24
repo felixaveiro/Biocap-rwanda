@@ -31,14 +31,6 @@ function LoginForm() {
   const isExpired = searchParams?.get("expired") === "true";
   const isBiocap = brand.id === "biocap";
   const ssoError = searchParams?.get("sso_error") ?? null;
-  // Returning from a failed or silent attempt, just signed out, session expired, or the password form was asked for:
-  // show the form instead of signing the person straight in through AFS.
-  const showForm =
-    Boolean(ssoError) ||
-    searchParams?.has("signed_out") === true ||
-    searchParams?.has("expired") === true ||
-    searchParams?.has("password") === true;
-  // "silent" means the AFS session was missing, which is not an error: the form is simply shown.
   const ssoMessage =
     ssoError && ssoError !== "silent" ? SSO_MESSAGES[ssoError] ?? "AFS sign-in failed. Please try again." : "";
 
@@ -53,14 +45,10 @@ function LoginForm() {
     ssoEnabled().then((enabled) => {
       if (cancelled) return;
       setSsoOn(enabled);
-      // Someone who already signed in to AFS in this browser goes straight in, without a login form.
-      if (enabled && !showForm) window.location.replace(ssoLoginUrl("/", true));
     });
     return () => {
       cancelled = true;
     };
-    // Runs once, when the page opens.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getRedirectPathForRole = (role: Role | string): string => roleHomePath(role);

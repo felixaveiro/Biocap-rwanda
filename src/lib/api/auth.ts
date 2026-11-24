@@ -258,11 +258,9 @@ export async function ssoEnabled(): Promise<boolean> {
   }
 }
 
-/** Where the browser goes to start an AFS sign-in. `silent` asks AFS not to show a form. */
-export function ssoLoginUrl(next: string, silent = false): string {
-  const params = new URLSearchParams({ next });
-  if (silent) params.set("silent", "1");
-  return `${BASE_URL}/api/auth/sso/login?${params.toString()}`;
+/** Where the browser goes when the person explicitly chooses AFS sign-in. */
+export function ssoLoginUrl(next: string): string {
+  return `${BASE_URL}/api/auth/sso/login?${new URLSearchParams({ next }).toString()}`;
 }
 
 /**
