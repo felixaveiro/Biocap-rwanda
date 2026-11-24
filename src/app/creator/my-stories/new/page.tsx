@@ -174,6 +174,61 @@ const draftBlocksFingerprint = (blocks: DraftBlock[]) =>
     }))
   );
 
+const getDraftBlockImageSrc = (block: BlogBlock) => block.src || block.url || null;
+
+const draftSectionsFromBlocks = (blocks: DraftBlock[]): DraftSection[] => {
+  const sections: DraftSection[] = [];
+
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+
+    if (block.type === "p") {
+      const paragraphs: string[] = [];
+      while (blocks[index]?.type === "p") {
+        paragraphs.push(blocks[index].text || "");
+        index += 1;
+      }
+
+      const image = blocks[index]?.type === "image" ? blocks[index] : undefined;
+      if (image) index += 1;
+      index -= 1;
+
+      sections.push({
+        id: crypto.randomUUID(),
+        kind: "paragraph",
+        text: paragraphs.join("\n"),
+        caption: image?.caption || "",
+        fitMode: image?.fitMode || "cover",
+        imagePreview: image ? getDraftBlockImageSrc(image) : null,
+        imageFile: image?.rawFile || null,
+        imageFileKey: image?.fileKey || null,
+      });
+      continue;
+    }
+
+    sections.push({
+      id: crypto.randomUUID(),
+      kind:
+        block.type === "h2"
+          ? "heading"
+          : block.type === "quote"
+            ? "quote"
+            : block.type === "image"
+              ? "image"
+              : "paragraph",
+      text: block.text || "",
+      attribution: block.type === "quote" ? block.caption || "" : "",
+      caption: block.type === "image" ? block.caption || "" : "",
+      fitMode: block.fitMode || "cover",
+      imagePreview: block.type === "image" ? getDraftBlockImageSrc(block) : null,
+      imageFile: block.type === "image" ? block.rawFile || null : null,
+      imageFileKey: block.type === "image" ? block.fileKey || null : null,
+    });
+  }
+
+  return sections;
+};
+
 export default function CreateNewStoryPage() {
   const router = useRouter();
   const { user, loading, allowed } = useSession("blog:create");
@@ -250,29 +305,14 @@ export default function CreateNewStoryPage() {
           setExcerpt(serverDraft.excerpt || "");
           setSocialHandle(serverDraft.socialHandle || "");
           setOrganizationLink(serverDraft.organizationLink || "");
-          const serverBlocks = (serverDraft.blocks || []) as DraftBlock[];
+          const serverBlocks = ((serverDraft.blocks || []) as DraftBlock[]).map((block) =>
+            block.type === "image" && !block.src && block.url
+              ? { ...block, src: block.url }
+              : block
+          );
           setBlocks(serverBlocks);
           setInlineImages([]);
-          setRestoredSections(
-            serverBlocks.map((block) => ({
-              id: crypto.randomUUID(),
-              kind:
-                block.type === "h2"
-                  ? "heading"
-                  : block.type === "quote"
-                  ? "quote"
-                  : block.type === "image"
-                  ? "image"
-                  : "paragraph",
-              text: block.text || "",
-              attribution: block.type === "quote" ? block.caption || "" : "",
-              caption: block.type === "image" ? block.caption || "" : "",
-              fitMode: block.fitMode || "cover",
-              imagePreview: block.type === "image" ? block.src || null : null,
-              imageFile: null,
-              imageFileKey: block.fileKey || null,
-            }))
-          );
+          setRestoredSections(draftSectionsFromBlocks(serverBlocks));
           setEditorVersion((version) => version + 1);
           setCroppedPreview(serverDraft.img || null);
           setRawImageSrc(serverDraft.img || null);
@@ -304,6 +344,18 @@ export default function CreateNewStoryPage() {
           setDraftSaveStatus("Temporary draft expired after 5 hours");
           return;
         }
+        let restoredCoverImage = saved?.coverImage || "";
+        let coverRestoreWarning = false;
+        if (!restoredCoverImage && requestedDraftId) {
+          try {
+            const serverDraft = await blogsApi.getBlogById(requestedDraftId, user?.role as Role);
+            if (!isCurrent) return;
+            restoredCoverImage = serverDraft.img || "";
+          } catch (error) {
+            console.error("Could not retrieve the saved draft cover image:", error);
+            coverRestoreWarning = true;
+          }
+        }
         if (saved) {
           const restoredServerDraftId = saved.serverDraftId || null;
           setEditingDraftId(restoredServerDraftId);
@@ -314,8 +366,13 @@ export default function CreateNewStoryPage() {
           setOrganizationLink(saved.organizationLink || "");
 
           const restoredBlocks: DraftBlock[] = (saved.blocks || []).map((block) => {
-            if (block.type === "image" && block.src?.startsWith("data:image")) {
-              return { ...block, rawFile: dataUrlToFile(block.src, block.fileKey || "inline-image.jpg") };
+            const imageSrc = getDraftBlockImageSrc(block);
+            if (block.type === "image" && imageSrc?.startsWith("data:image")) {
+              return {
+                ...block,
+                src: imageSrc,
+                rawFile: dataUrlToFile(imageSrc, block.fileKey || "inline-image.jpg"),
+              };
             }
             return block;
           });
@@ -326,30 +383,25 @@ export default function CreateNewStoryPage() {
                 block.type === "image" && block.rawFile instanceof File ? [block.rawFile] : []
               )
           );
-          setRestoredSections(
-            restoredBlocks.map((block) => ({
-              id: crypto.randomUUID(),
-              kind: block.type === "h2" ? "heading" : block.type === "quote" ? "quote" : block.type === "image" ? "image" : "paragraph",
-              text: block.text || "",
-              attribution: block.type === "quote" ? block.caption || "" : "",
-              caption: block.type === "image" ? block.caption || "" : "",
-              fitMode: block.fitMode || "cover",
-              imagePreview: block.type === "image" ? block.src || null : null,
-              imageFile: block.type === "image" ? block.rawFile || null : null,
-              imageFileKey: block.fileKey || null,
-            }))
-          );
+          setRestoredSections(draftSectionsFromBlocks(restoredBlocks));
           setEditorVersion((version) => version + 1);
 
-          if (saved.coverImage?.startsWith("data:image")) {
-            const restoredCover = dataUrlToFile(saved.coverImage, "story-cover.jpg");
-            setCoverImageFile(restoredCover);
-            setCroppedPreview(saved.coverImage);
-            setRawImageSrc(saved.coverImage);
+          if (restoredCoverImage) {
+            if (restoredCoverImage.startsWith("data:image")) {
+              setCoverImageFile(dataUrlToFile(restoredCoverImage, "story-cover.jpg"));
+            } else {
+              setCoverImageFile(null);
+            }
+            setCroppedPreview(restoredCoverImage);
+            setRawImageSrc(restoredCoverImage);
           }
           setDraftExpiresAt(saved.expiresAt);
           setDraftSaveStatus(
-            restoredServerDraftId ? "Recovered draft; local changes will sync" : "Recovered temporary draft"
+            coverRestoreWarning
+              ? "Draft restored, but the saved cover image could not be loaded"
+              : restoredServerDraftId
+                ? "Recovered draft; local changes will sync"
+                : "Recovered temporary draft"
           );
         }
       } catch (error) {
