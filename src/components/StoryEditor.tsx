@@ -26,7 +26,7 @@ type SectionKind = "paragraph" | "heading" | "quote" | "image";
 
 /**
  * Rules per kind
- *  - paragraph : text + image (image REQUIRED, caption REQUIRED). Both always visible.
+ *  - paragraph : text + optional image (caption REQUIRED when an image is attached).
  *  - heading   : text only. No image.
  *  - quote     : text + attribution. No image.
  *  - image     : image + caption only. No text.
@@ -252,8 +252,6 @@ export default function StoryEditor({
       if (sec.kind === "paragraph") {
         splitParagraphs(text).forEach((pText) => blocks.push({ type: "p", text: pText }));
 
-        // A paragraph MUST come with an image
-        if (text && !hasImage) valid = false;
         if (hasImage) pushImage(sec);
         continue;
       }
@@ -640,8 +638,6 @@ export default function StoryEditor({
     const hasImage = sectionHasImage(sec);
     const isParagraph = sec.kind === "paragraph";
     const isCaptionMissing = hasImage && !(sec.caption || "").trim();
-    const isImageMissing = isParagraph && !hasImage;
-    const paragraphNeedsImage = isImageMissing && Boolean(sec.text.trim());
 
     return (
       <div className="space-y-2.5">
@@ -651,9 +647,8 @@ export default function StoryEditor({
             {hasImage
               ? "Replace / Add images"
               : isParagraph
-              ? "Add image (required for paragraph)"
+              ? "Add image (optional)"
               : "Add images (select one or multiple)"}
-            {isParagraph && <span className="text-[#B65C4B]">*</span>}
             <input
               type="file"
               accept="image/*"
@@ -665,11 +660,6 @@ export default function StoryEditor({
               className="hidden"
             />
           </label>
-          {paragraphNeedsImage && (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
-              <AlertCircle size={10} /> Image is required with a paragraph
-            </span>
-          )}
         </div>
 
         {sec.imagePreview ? (
@@ -735,26 +725,11 @@ export default function StoryEditor({
             </div>
           </>
         ) : (
-          <label
-            className={`group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed transition-colors duration-200 rounded-[2px] ${
-              paragraphNeedsImage
-                ? "border-[#B65C4B] bg-[#FBEEEC]/40 hover:bg-[#FBEEEC]/60"
-                : "border-[#D9D4C6] bg-[#FAF9F5] hover:border-[#3F6B4F] hover:bg-[#F3F2ED]"
-            }`}
-          >
-            <ImagePlus
-              size={22}
-              className={`transition-colors ${
-                paragraphNeedsImage ? "text-[#B65C4B]" : "text-[#B4B0A2] group-hover:text-[#3F6B4F]"
-              }`}
-            />
-            <span
-              className={`mt-2 text-[11px] font-medium transition-colors ${
-                paragraphNeedsImage ? "text-[#B65C4B]" : "text-[#8B9188] group-hover:text-[#3F6B4F]"
-              }`}
-            >
+          <label className="group relative flex h-36 cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[#D9D4C6] bg-[#FAF9F5] transition-colors duration-200 hover:border-[#3F6B4F] hover:bg-[#F3F2ED] rounded-[2px]">
+            <ImagePlus size={22} className="text-[#B4B0A2] transition-colors group-hover:text-[#3F6B4F]" />
+            <span className="mt-2 text-[11px] font-medium text-[#8B9188] transition-colors group-hover:text-[#3F6B4F]">
               {isParagraph
-                ? "Image required — click or drag to select one or multiple images"
+                ? "Optional image — click or drag to select one or multiple images"
                 : "No image attached (click or drag to select one or multiple images)"}
             </span>
             <input

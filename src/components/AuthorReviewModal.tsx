@@ -253,8 +253,8 @@ export default function AuthorReviewModal({
           </div>
         )}
 
-        {/* Scrollable Article Area */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10 space-y-8 bg-white">
+        {/* Scrollable Article Area (page background instead of plain white) */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 lg:p-10 space-y-8 bg-[#FDFCFA]">
           <div className="space-y-3.5 border-b border-[#EDEAE0] pb-6">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1 border border-[#D9D4C6] bg-[#C22055] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -276,9 +276,9 @@ export default function AuthorReviewModal({
             </div>
           </div>
 
-          {/* 🟢 DYNAMIC COVER IMAGE PREVIEW CONTAINER */}
+          {/* DYNAMIC COVER IMAGE PREVIEW CONTAINER (no dark background / border) */}
           {story.img && (
-            <div className="group relative flex max-h-[600px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-xl">
+            <div className="group relative flex max-h-[600px] w-full items-center justify-center overflow-hidden rounded-xl">
               <img 
                 src={story.img} 
                 alt="Story Cover Preview" 
@@ -336,8 +336,8 @@ export default function AuthorReviewModal({
                   if (block.type === 'image' && imageUrl) {
                     return (
                       <figure key={idx} className="my-6 space-y-2">
-                        {/* 🟢 DYNAMIC INLINE SECTION IMAGE CONTAINER */}
-                        <div className="max-h-[550px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-900 flex justify-center items-center">
+                        {/* DYNAMIC INLINE SECTION IMAGE CONTAINER (no dark background / border) */}
+                        <div className="max-h-[550px] w-full overflow-hidden flex justify-center items-center">
                           <img
                             src={imageUrl}
                             alt={block.caption || `Section ${idx + 1}`}
