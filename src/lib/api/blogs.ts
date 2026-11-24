@@ -28,15 +28,17 @@ import {
 // Inline image blocks may carry the original File picked by the editor
 type BlogBlockWithRawFile = BlogBlock & { rawFile?: File };
 
+// New stories are created as drafts, which may be incomplete. The backend checks completeness on submit.
 export interface CreateBlogPayload {
-  title: string;
-  tag: string;
-  excerpt: string;
-  blocks: BlogBlock[];
+  title?: string;
+  tag?: string;
+  excerpt?: string;
+  blocks?: BlogBlock[];
   modal?: BlogModalMetadata;
   socialHandle?: string;
   organizationLink?: string;
-  img: File | string; // Allow File or hosted/base64 URL
+  img?: File | string | null; // File, hosted URL or base64 data URL
+  imgPublicId?: string; // Cloudinary public id when img is an already-uploaded URL
   document?: File | string;
   images?: File[];
 }
@@ -50,6 +52,7 @@ export interface UpdateBlogPayload {
   socialHandle?: string;
   organizationLink?: string;
   img?: File | string | null; // null explicitly clears an existing cover image
+  imgPublicId?: string; // Cloudinary public id when img is an already-uploaded URL
   document?: File | string;
   images?: File[];
 }
@@ -384,7 +387,7 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
   // Cover Image File Resolution
   let coverFileToUpload: File | null = null;
   let coverUrl = "";
-  let coverPublicId: string | undefined = undefined;
+  let coverPublicId: string | undefined = payload.imgPublicId;
 
   if (payload.img instanceof File) {
     coverFileToUpload = payload.img;
@@ -445,10 +448,6 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
     coverPublicId = uploadResults[coverPromiseIdx].publicId;
   }
 
-  if (!coverUrl) {
-    throw new ApiError("A cover image is required before submitting your story.", 400);
-  }
-
   // Map Document Upload
   let documentData: { url: string; publicId: string } | undefined;
   if (docPromiseIdx !== -1 && uploadResults[docPromiseIdx]) {
@@ -483,8 +482,8 @@ export async function createBlog(payload: CreateBlogPayload, _role?: Role): Prom
       modal: payload.modal,
       socialHandle: payload.socialHandle,
       organizationLink: payload.organizationLink,
-      img: coverUrl,
-      ...(coverPublicId && { imgPublicId: coverPublicId }),
+      ...(coverUrl && { img: coverUrl }),
+      ...(coverUrl && coverPublicId && { imgPublicId: coverPublicId }),
       ...(documentData && {
         documentUrl: documentData.url,
         ...(documentData.publicId && { documentPublicId: documentData.publicId }),
@@ -531,7 +530,7 @@ async function saveBlogChanges(path: string, payload: UpdateBlogPayload): Promis
   // Cover Image
   let coverFileToUpload: File | null = null;
   let coverImageUrl: string | undefined;
-  let coverImagePublicId: string | undefined;
+  let coverImagePublicId: string | undefined = payload.imgPublicId;
 
   if (payload.img instanceof File) {
     coverFileToUpload = payload.img;

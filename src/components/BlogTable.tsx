@@ -259,7 +259,7 @@ export default function BlogTable({
                     style={{ boxShadow: `inset 3px 0 0 ${accentColor}` }}
                   >
                     <td className="px-6 py-4 max-w-md">
-                      <p className="font-semibold text-[#1E2620]">{story.title}</p>
+                      <p className="font-semibold text-[#1E2620]">{story.title?.trim() || "Untitled draft"}</p>
                       <p className="mt-0.5 line-clamp-1 text-xs italic text-[#8B9188]" style={displayFont}>
                         {story.excerpt || "No excerpt provided."}
                       </p>
@@ -401,7 +401,7 @@ export default function BlogTable({
 
                             <button
                               disabled={isBusy}
-                              onClick={() => handleDeleteStory(story._id, story.title)}
+                              onClick={() => handleDeleteStory(story._id, story.title?.trim() || "Untitled draft")}
                               className={`${iconBtn} border-[#B65C4B]/30 text-[#B65C4B] hover:border-[#B65C4B] hover:bg-[#B65C4B] hover:text-white`}
                               title="Delete Story Draft"
                             >
