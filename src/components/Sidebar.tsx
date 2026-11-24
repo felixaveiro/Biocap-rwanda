@@ -23,6 +23,7 @@ import {
   Bell,
   MessageSquare,
   User,
+  UserCheck,
   Image as ImageIcon,
   History,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export default function Sidebar() {
       { label: "All Stories", href: "/admin/stories", icon: FileText },
       { label: "Comments", href: "/admin/comments", icon: MessageSquare },
       { label: "Media Gallery", href: "/admin/gallery", icon: ImageIcon },
+      { label: "Pending Accounts", href: "/admin/accounts", icon: UserCheck },
       { label: "User Management", href: "/admin/team", icon: Users },
       { label: "Add New User", href: "/admin/team/new", icon: PlusSquare },
       { label: "Trash History", href: "/admin/trash", icon: Trash2 },

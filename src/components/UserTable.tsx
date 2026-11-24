@@ -9,6 +9,7 @@ import {
   Edit3,
   Trash2,
   CheckCircle2,
+  Clock3,
   Loader2,
   X,
   Save,
@@ -32,6 +33,7 @@ export default function UserTable({
   onUserUpdated,
 }: UserTableProps) {
   const [activeDeletingUserId, setActiveDeletingUserId] = useState<string | null>(null);
+  const [activeReviewingUserId, setActiveReviewingUserId] = useState<string | null>(null);
   const [tableActionError, setTableActionError] = useState<string | null>(null);
   const [tableActionSuccess, setTableActionSuccess] = useState<string | null>(null);
   const [activeResettingUserId, setActiveResettingUserId] = useState<string | null>(null);
@@ -116,6 +118,32 @@ export default function UserTable({
       setTableActionError(errorMessage);
     } finally {
       setActiveDeletingUserId(null);
+    }
+  };
+
+  const handleVerifyUser = async (member: User) => {
+    const memberName =
+      `${member.firstName || ""} ${member.lastName || ""}`.trim() || member.username;
+    setActiveReviewingUserId(member._id);
+    setTableActionError(null);
+    setTableActionSuccess(null);
+
+    try {
+      const response = await usersApi.reviewUser(
+        member._id,
+        { decision: "verified" },
+        currentUser.role
+      );
+      setTableActionSuccess(response.message || `${memberName} was verified.`);
+      if (onUserUpdated) onUserUpdated();
+      else window.location.reload();
+    } catch (error) {
+      console.error(`Failed to verify account ${member._id}:`, error);
+      setTableActionError(
+        error instanceof Error ? error.message : "Failed to verify this account."
+      );
+    } finally {
+      setActiveReviewingUserId(null);
     }
   };
 
@@ -230,6 +258,7 @@ export default function UserTable({
                 const isSelfAccount = currentUser._id === memberId;
                 const canModifyRoles = can(currentUser.role, "user:edit:role");
                 const canDeleteAccounts = can(currentUser.role, "user:delete");
+                const needsVerification = member.profileReviewStatus === "pending";
 
                 return (
                   <tr key={memberId} className="transition hover:bg-[#FAF9F5]">
@@ -270,13 +299,44 @@ export default function UserTable({
                     </td>
 
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#3F6B4F]">
-                        <CheckCircle2 size={14} /> Active
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                          needsVerification
+                            ? "text-[#A9812F]"
+                            : member.isActive
+                              ? "text-[#3F6B4F]"
+                              : "text-[#B65C4B]"
+                        }`}
+                      >
+                        {needsVerification ? (
+                          <><Clock3 size={14} /> Pending verification</>
+                        ) : member.isActive ? (
+                          <><CheckCircle2 size={14} /> Active</>
+                        ) : (
+                          <><X size={14} /> Deactivated</>
+                        )}
                       </span>
                     </td>
 
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {needsVerification && can(currentUser.role, "user:review") && (
+                          <button
+                            type="button"
+                            disabled={activeReviewingUserId !== null}
+                            onClick={() => void handleVerifyUser(member)}
+                            className="inline-flex items-center gap-1 border border-[#3F6B4F]/40 bg-[#3F6B4F]/10 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#2C4B38] transition hover:bg-[#3F6B4F] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                            title="Verify account"
+                          >
+                            {activeReviewingUserId === memberId ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <CheckCircle2 size={13} />
+                            )}
+                            Verify
+                          </button>
+                        )}
+
                         {canModifyRoles && (
                           <button
                             onClick={() => handleOpenEditModal(member)}

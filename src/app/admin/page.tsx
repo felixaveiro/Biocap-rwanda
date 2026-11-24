@@ -17,6 +17,7 @@ import {
   Plus,
   ArrowRight,
   ShieldCheck,
+  UserCheck,
   AlertCircle,
   RefreshCw,
   Loader2,
@@ -255,6 +256,9 @@ export default function AdminOverviewDashboardPage() {
             <div className="mt-5 flex flex-wrap gap-2.5 border-t border-[#EDEAE0] pt-5">
               <Link href="/admin/team" className={btnNeutral}>
                 View Directory <ArrowRight size={13} />
+              </Link>
+              <Link href="/admin/accounts" className={btnGold}>
+                <UserCheck size={13} /> Pending Accounts
               </Link>
               <Link href="/admin/audit" className={btnNeutral}>
                 <Clock size={13} /> Audit Logs
