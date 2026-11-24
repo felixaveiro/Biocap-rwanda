@@ -68,24 +68,62 @@ interface UploadedImage {
 
 const DRAFT_PAGE_PATH = "/creator/my-stories/new";
 
-const blockToSection = (block: DraftBlock): DraftSection => ({
-  id: crypto.randomUUID(),
-  kind:
-    block.type === "h2"
-      ? "heading"
-      : block.type === "quote"
-      ? "quote"
-      : block.type === "image"
-      ? "image"
-      : "paragraph",
-  text: block.text || "",
-  attribution: block.type === "quote" ? block.caption || "" : "",
-  caption: block.type === "image" ? block.caption || "" : "",
-  fitMode: block.fitMode || "cover",
-  imagePreview: block.type === "image" ? block.src || null : null,
-  imageFile: null,
-  imageFileKey: block.fileKey || null,
-});
+const getDraftBlockImageSrc = (block: BlogBlock) => block.src || block.url || null;
+
+// Rebuilds editor sections from saved blocks. The editor saves a paragraph followed by its image,
+// so a run of paragraphs and the image after it become one paragraph section.
+const draftSectionsFromBlocks = (blocks: DraftBlock[]): DraftSection[] => {
+  const sections: DraftSection[] = [];
+
+  for (let index = 0; index < blocks.length; index += 1) {
+    const block = blocks[index];
+
+    if (block.type === "p") {
+      const paragraphs: string[] = [];
+      while (blocks[index]?.type === "p") {
+        paragraphs.push(blocks[index].text || "");
+        index += 1;
+      }
+
+      const image = blocks[index]?.type === "image" ? blocks[index] : undefined;
+      if (image) index += 1;
+      index -= 1;
+
+      sections.push({
+        id: crypto.randomUUID(),
+        kind: "paragraph",
+        text: paragraphs.join("\n"),
+        caption: image?.caption || "",
+        fitMode: image?.fitMode || "cover",
+        imagePreview: image ? getDraftBlockImageSrc(image) : null,
+        imageFile: image?.rawFile || null,
+        imageFileKey: image?.fileKey || null,
+      });
+      continue;
+    }
+
+    sections.push({
+      id: crypto.randomUUID(),
+      kind:
+        block.type === "h2"
+          ? "heading"
+          : block.type === "quote"
+            ? "quote"
+            : block.type === "image"
+              ? "image"
+              : "paragraph",
+      text: block.text || "",
+      attribution: block.type === "quote" ? block.caption || "" : "",
+      caption: block.type === "image" ? block.caption || "" : "",
+      fitMode: block.fitMode || "cover",
+      imagePreview: block.type === "image" ? getDraftBlockImageSrc(block) : null,
+      imageFile: block.type === "image" ? block.rawFile || null : null,
+      imageFileKey: block.type === "image" ? block.fileKey || null : null,
+    });
+  }
+
+  return sections;
+};
 
 const isHostedUrl = (value: string | null | undefined): value is string =>
   typeof value === "string" && /^https?:\/\//.test(value);
@@ -235,9 +273,12 @@ export default function CreateNewStoryPage() {
         setExcerpt(story.excerpt || "");
         setSocialHandle(story.socialHandle || "");
         setOrganizationLink(story.organizationLink || "");
-        const storyBlocks = (story.blocks || []) as DraftBlock[];
+        // Older image blocks may hold their address in url instead of src.
+        const storyBlocks = ((story.blocks || []) as DraftBlock[]).map((block) =>
+          block.type === "image" && !block.src && block.url ? { ...block, src: block.url } : block
+        );
         setBlocks(storyBlocks);
-        setRestoredSections(storyBlocks.map(blockToSection));
+        setRestoredSections(draftSectionsFromBlocks(storyBlocks));
         setEditorVersion((version) => version + 1);
         setCoverImageFile(null);
         setCroppedPreview(story.img || null);

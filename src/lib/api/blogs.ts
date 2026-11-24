@@ -359,10 +359,12 @@ export async function getBlogs(role?: Role, params: BlogFilterOptions = {}): Pro
 export async function getBlogById(id: string, role?: Role): Promise<BlogPost> {
   const basePath = getBlogBasePath(role);
   try {
-    return await apiRequest<BlogPost>(`${basePath}/${id}`, { auth: true });
+    const response = await apiRequest<unknown>(`${basePath}/${id}`, { auth: true });
+    return extractBlogFromResponse(response).blog;
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) {
-      return await apiRequest<BlogPost>(`/api/blogs/${id}`, { auth: true });
+      const response = await apiRequest<unknown>(`/api/blogs/${id}`, { auth: true });
+      return extractBlogFromResponse(response).blog;
     }
     throw err;
   }
