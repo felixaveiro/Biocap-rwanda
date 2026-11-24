@@ -494,7 +494,9 @@ export default function StoryEditor({
   const handleCropSave = (croppedBase64: string) => {
     if (!croppingSectionId) return;
 
-    const fileKey = `${crypto.randomUUID()}__inline.jpg`;
+    const mime = croppedBase64.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/jpeg";
+    const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+    const fileKey = `${crypto.randomUUID()}__inline.${ext}`;
     const renamedFile = base64ToFile(croppedBase64, fileKey);
     const blobPreviewUrl = URL.createObjectURL(renamedFile);
 
@@ -664,11 +666,12 @@ export default function StoryEditor({
 
         {sec.imagePreview ? (
           <>
-            <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
+            {/* No dark background / border: the page background shows through */}
+            <div className="relative flex max-h-[650px] w-full items-center justify-center overflow-hidden rounded-[2px]">
               <img
                 src={sec.imagePreview}
                 alt="Section preview"
-                className="max-h-[650px] w-full object-contain rounded-[2px]"
+                className="max-h-[650px] w-auto max-w-full object-contain rounded-[2px]"
               />
               <div className="absolute top-2 right-2 flex gap-1.5">
                 <button
@@ -1011,7 +1014,7 @@ export default function StoryEditor({
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="remove-content-title"
-                className="w-full max-w-sm border   -[#D9D4C6] bg-white p-5 shadow-2xl"
+                className="w-full max-w-sm border border-[#D9D4C6] bg-white p-5 shadow-2xl"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>

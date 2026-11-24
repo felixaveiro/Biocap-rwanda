@@ -255,7 +255,27 @@ export default function BlogTable({
                 return (
                   <tr
                     key={story._id}
-                    className="transition-colors hover:bg-[#FAF9F5]"
+                    tabIndex={showTrash ? undefined : 0}
+                    aria-label={showTrash ? undefined : `Preview story: ${story.title?.trim() || "Untitled draft"}`}
+                    onClick={(event) => {
+                      if (showTrash) return;
+                      const target = event.target;
+                      if (
+                        target instanceof Element &&
+                        target.closest("button, a, input, select, textarea, [role='button']")
+                      ) {
+                        return;
+                      }
+                      handleOpenViewModal(story);
+                    }}
+                    onKeyDown={(event) => {
+                      if (showTrash || event.target !== event.currentTarget) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleOpenViewModal(story);
+                      }
+                    }}
+                    className={`transition-colors hover:bg-[#FAF9F5] ${showTrash ? "" : "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#3F6B4F]"}`}
                     style={{ boxShadow: `inset 3px 0 0 ${accentColor}` }}
                   >
                     <td className="px-6 py-4 max-w-md">

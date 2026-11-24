@@ -68,6 +68,24 @@ interface UploadedImage {
 
 const DRAFT_PAGE_PATH = "/creator/my-stories/new";
 
+/** Longest we wait for "save before review" before showing an error instead of an endless spinner. */
+const REVIEW_SAVE_TIMEOUT_MS = 60_000;
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      }
+    );
+  });
+
 const getDraftBlockImageSrc = (block: BlogBlock) => block.src || block.url || null;
 
 // Rebuilds editor sections from saved blocks. The editor saves a paragraph followed by its image,
@@ -187,7 +205,8 @@ export default function CreateNewStoryPage() {
   const [excerpt, setExcerpt] = useState("");
   const [content] = useState("");
   const [blocks, setBlocks] = useState<DraftBlock[]>([]);
-  
+  const [editorValid, setEditorValid] = useState(true);
+
   const [socialHandle, setSocialHandle] = useState("");
   const [organizationLink, setOrganizationLink] = useState("");
   const [isProfileSynced, setIsProfileSynced] = useState(false);
@@ -223,6 +242,7 @@ export default function CreateNewStoryPage() {
     tag?: boolean;
     excerpt?: boolean;
     content?: boolean;
+    captions?: boolean;
   }>({});
 
   const coverRef = useRef<HTMLDivElement>(null);
@@ -398,6 +418,31 @@ export default function CreateNewStoryPage() {
     fingerprint: draftFingerprint,
     save: persistDraft,
   });
+  const { flush: flushDraftAutosave } = autosave;
+
+  // Saves the latest editor content, then returns the saved story for the review modal to display.
+  // Wrapped in a timeout so a hung request shows an error instead of an endless spinner.
+  const saveDraftForReview = useCallback(async () => {
+    if (!draftLoaded || !draftEditable || submitted) {
+      throw new Error("This story is not ready to be saved for review.");
+    }
+
+    const run = async () => {
+      const result = await flushDraftAutosave();
+      if (!result.ok) {
+        throw new Error(result.error || "Could not save the latest story changes.");
+      }
+
+      // A clean fingerprint can make autosave a no-op before a draft ID exists.
+      if (!draftIdRef.current) await persistDraft();
+      const savedDraftId = draftIdRef.current;
+      if (!savedDraftId) throw new Error("The draft could not be created before review.");
+
+      return blogsApi.getBlogById(savedDraftId, user?.role as Role);
+    };
+
+    return withTimeout(run(), REVIEW_SAVE_TIMEOUT_MS, "Saving took too long. Check your connection and try again.");
+  }, [draftEditable, draftLoaded, flushDraftAutosave, persistDraft, submitted, user?.role]);
 
   // A one-off notice gives way to the save status after a few seconds. Notices about a draft
   // that cannot be edited stay.
@@ -406,6 +451,11 @@ export default function CreateNewStoryPage() {
     const timeout = window.setTimeout(() => setDraftNotice(null), 8000);
     return () => window.clearTimeout(timeout);
   }, [draftNotice, draftEditable]);
+
+  // Clears the missing-caption warning as soon as every image has a caption.
+  useEffect(() => {
+    if (editorValid) setErrors((prev) => (prev.captions ? { ...prev, captions: false } : prev));
+  }, [editorValid]);
 
   const draftSaveStatus = (() => {
     if (draftNotice) return draftNotice;
@@ -454,6 +504,10 @@ export default function CreateNewStoryPage() {
     setBlocks((b || []) as DraftBlock[]);
   }, []);
 
+  const handleEditorValidity = useCallback((valid: boolean) => {
+    setEditorValid(valid);
+  }, []);
+
   const scrollToElement = (ref: React.RefObject<HTMLElement | null>) => {
     if (ref.current) {
       ref.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -483,7 +537,7 @@ export default function CreateNewStoryPage() {
     if (file) {
       setCoverImageFile(file);
       setErrors((prev) => ({ ...prev, cover: false }));
-      
+
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
@@ -497,57 +551,50 @@ export default function CreateNewStoryPage() {
 
   const handleCropSave = (croppedBase64: string) => {
     setCroppedPreview(croppedBase64);
-    const file = base64ToFile(croppedBase64, `cover-${Date.now()}.jpg`);
+    // Keep the file extension in sync with the real image type (PNG / WebP / JPEG).
+    const mime = croppedBase64.match(/^data:(image\/[a-zA-Z+]+);base64,/)?.[1] || "image/jpeg";
+    const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+    const file = base64ToFile(croppedBase64, `cover-${Date.now()}.${ext}`);
     setCoverImageFile(file);
     setIsCropperOpen(false);
   };
 
-  const handleOpenReviewModal = () => {
-    let finalCoverImg: File | string | null = null;
-    if (coverImageFile instanceof File && coverImageFile.size > 0) {
-      finalCoverImg = coverImageFile;
-    } else if (typeof croppedPreview === "string" && croppedPreview.length > 0) {
-      finalCoverImg = croppedPreview;
-    } else if (typeof rawImageSrc === "string" && rawImageSrc.length > 0) {
-      finalCoverImg = rawImageSrc;
-    }
+  const getFinalCover = (): File | string | null => {
+    if (coverImageFile instanceof File && coverImageFile.size > 0) return coverImageFile;
+    if (typeof croppedPreview === "string" && croppedPreview.length > 0) return croppedPreview;
+    if (typeof rawImageSrc === "string" && rawImageSrc.length > 0) return rawImageSrc;
+    return null;
+  };
 
+  const handleOpenReviewModal = () => {
     const newErrors: typeof errors = {};
 
-    if (!finalCoverImg) newErrors.cover = true;
+    if (!getFinalCover()) newErrors.cover = true;
     if (!title.trim()) newErrors.title = true;
     if (!tag.trim()) newErrors.tag = true;
     if (!excerpt.trim()) newErrors.excerpt = true;
     if ((!blocks || blocks.length === 0) && !content.trim()) newErrors.content = true;
+    if (!editorValid) newErrors.captions = true;
 
     setErrors(newErrors);
 
     if (newErrors.cover) return scrollToElement(coverRef);
     if (newErrors.title) return scrollToElement(titleRef);
     if (newErrors.tag) return scrollToElement(categoryRef);
-    if (newErrors.excerpt || newErrors.content) return scrollToElement(editorRef);
+    if (newErrors.excerpt || newErrors.content || newErrors.captions) return scrollToElement(editorRef);
 
     setIsReviewModalOpen(true);
   };
 
   const handleSubmit = async (shouldSubmitForReview: boolean = false) => {
-    let finalCoverImg: File | string | null = null;
-
-    if (coverImageFile instanceof File && coverImageFile.size > 0) {
-      finalCoverImg = coverImageFile;
-    } else if (typeof croppedPreview === "string" && croppedPreview.length > 0) {
-      finalCoverImg = croppedPreview;
-    } else if (typeof rawImageSrc === "string" && rawImageSrc.length > 0) {
-      finalCoverImg = rawImageSrc;
-    }
-
     const newErrors: typeof errors = {};
 
-    if (!finalCoverImg) newErrors.cover = true;
+    if (!getFinalCover()) newErrors.cover = true;
     if (!title.trim()) newErrors.title = true;
     if (!tag.trim()) newErrors.tag = true;
     if (!excerpt.trim()) newErrors.excerpt = true;
     if ((!blocks || blocks.length === 0) && !content.trim()) newErrors.content = true;
+    if (!editorValid) newErrors.captions = true;
 
     setErrors(newErrors);
 
@@ -567,6 +614,10 @@ export default function CreateNewStoryPage() {
       scrollToElement(editorRef);
       throw new Error("Excerpt and manuscript content required.");
     }
+    if (newErrors.captions) {
+      scrollToElement(editorRef);
+      throw new Error("Every image needs a caption before the story can be submitted.");
+    }
 
     const finalSocialHandle = socialHandle.trim() || user.socialHandle || "";
     const finalOrgLink = organizationLink.trim() || user.organizationLink || "";
@@ -582,6 +633,7 @@ export default function CreateNewStoryPage() {
       // The story is the autosaved draft: save the latest changes, then submit that draft.
       const saved = await autosave.flush();
       if (!saved.ok) throw new Error(`Could not save the story before submitting: ${saved.error}`);
+      if (!draftIdRef.current) await persistDraft();
       const storyId = draftIdRef.current;
       if (!storyId) throw new Error("Could not save the story before submitting. Please try again.");
 
@@ -602,8 +654,8 @@ export default function CreateNewStoryPage() {
       router.refresh();
       router.push("/creator/my-stories");
     } catch (err: unknown) {
+      // The review modal stays open and shows this error (it awaits this promise).
       console.error("Failed to submit story:", err);
-      setIsReviewModalOpen(false);
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -611,7 +663,7 @@ export default function CreateNewStoryPage() {
   };
 
   const previewStoryObject = {
-    _id: "temp-preview-id",
+    _id: draftId || "temp-preview-id",
     title: title || "Untitled Story",
     tag: tag || "General",
     excerpt: excerpt || "",
@@ -685,7 +737,7 @@ export default function CreateNewStoryPage() {
             />
 
             {croppedPreview ? (
-              <div className="group relative max-h-80 overflow-hidden border border-[#D9D4C6] bg-[#1E2620] rounded-[2px]">
+              <div className="group relative max-h-80 overflow-hidden rounded-[2px]">
                 <img src={croppedPreview} alt="Cover Preview" className="h-full w-full object-cover" />
                 <div className="absolute right-3 top-3 flex flex-wrap justify-end gap-2">
                   <button
@@ -816,6 +868,16 @@ export default function CreateNewStoryPage() {
           </div>
 
           <div ref={editorRef} className="border-t border-[#EDEAE0] pt-6">
+            {errors.content && (
+              <p className="mb-3 flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                <AlertCircle size={10} /> Add some story content before reviewing
+              </p>
+            )}
+            {errors.captions && (
+              <p className="mb-3 flex items-center gap-1 text-[10px] font-bold text-[#B65C4B]">
+                <AlertCircle size={10} /> Every image needs a caption before you can review or submit
+              </p>
+            )}
             <StoryEditor
               key={editorVersion}
               excerpt={excerpt}
@@ -827,6 +889,7 @@ export default function CreateNewStoryPage() {
               initialSections={restoredSections}
               controlsPosition="bottom"
               onChange={handleStoryEditorChange}
+              onValidationChange={handleEditorValidity}
             />
           </div>
 
@@ -892,8 +955,9 @@ export default function CreateNewStoryPage() {
             </button>
             <button
               type="button"
+              disabled={!draftLoaded || !draftEditable || isSubmitting}
               onClick={handleOpenReviewModal}
-              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3B664B] hover:border-[#3B664B] cursor-pointer rounded-[2px]"
+              className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3B664B] hover:border-[#3B664B] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer rounded-[2px]"
             >
               <Eye size={14} /> Review Story
             </button>
@@ -916,6 +980,7 @@ export default function CreateNewStoryPage() {
           story={previewStoryObject}
           onClose={() => setIsReviewModalOpen(false)}
           onSubmitForReview={() => handleSubmit(true)}
+          onAutoSave={saveDraftForReview}
         />
       )}
     </div>

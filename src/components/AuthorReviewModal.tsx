@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { sanitizeHtml } from "@/lib/sanitize";
 import { createPortal } from 'react-dom';
 import { Fraunces, Inter, IBM_Plex_Mono } from '@/lib/fonts';
@@ -44,6 +44,12 @@ interface AuthorReviewModalProps {
   story: BlogPost;
   onClose: () => void;
   onSubmitForReview: () => Promise<void> | void;
+  /**
+   * Optional. Called once when the review opens. Should silently save the current
+   * editor content as a draft and return the saved story (or nothing). The modal then
+   * shows the freshly saved content, so new sections are always included.
+   */
+  onAutoSave?: () => Promise<BlogPost | null | void>;
 }
 
 function formatMarkdownLinks(text: string): string {
@@ -116,29 +122,80 @@ export default function AuthorReviewModal({
   story: initialStory,
   onClose,
   onSubmitForReview,
+  onAutoSave,
 }: AuthorReviewModalProps) {
   const [story, setStory] = useState<BlogPost>(initialStory);
   const [loadingFullPayload, setLoadingFullPayload] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(Boolean(onAutoSave));
+  const autoSaveRan = useRef(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
+  const onAutoSaveRef = useRef(onAutoSave);
   useEffect(() => {
+    onAutoSaveRef.current = onAutoSave;
+  }, [onAutoSave]);
+
+  const unmountedRef = useRef(false);
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
+
+  /* 1) Auto-save once when the review opens (independent of parent re-renders) */
+  useEffect(() => {
+    const run = onAutoSaveRef.current;
+    if (!run || autoSaveRan.current) return;
+    autoSaveRan.current = true;
+
+    (async () => {
+      setAutoSaving(true);
+      setModalError(null);
+      try {
+        const saved = await run();
+        const id = (saved && saved._id) || initialStory._id;
+        if (saved && saved.blocks && saved.blocks.length > 0) {
+          if (!unmountedRef.current) setStory(saved);
+        } else if (id) {
+          const fresh = await blogsApi.getBlogById(id);
+          if (!unmountedRef.current && fresh) setStory(fresh);
+        }
+      } catch (err: unknown) {
+        console.error('Auto-save before review failed:', err);
+        if (!unmountedRef.current) {
+          setModalError(
+            err instanceof Error
+              ? `Could not save your latest changes: ${err.message}`
+              : 'Could not save your latest changes. The preview may be out of date.'
+          );
+        }
+      } finally {
+        if (!unmountedRef.current) setAutoSaving(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* 2) Default path (no onAutoSave): load the full payload if only a summary was passed in */
+  useEffect(() => {
+    if (onAutoSaveRef.current) return;
     let active = true;
-    const loadFullStoryDetails = async () => {
+
+    const load = async () => {
       if (initialStory.blocks && initialStory.blocks.length > 0) return;
       if (!initialStory._id) return;
 
       setLoadingFullPayload(true);
       try {
         const fullData = await blogsApi.getBlogById(initialStory._id);
-        if (active && fullData) {
-          setStory(fullData);
-        }
+        if (active && fullData) setStory(fullData);
       } catch (err) {
         console.error('Failed to load full author story payload:', err);
       } finally {
@@ -146,7 +203,7 @@ export default function AuthorReviewModal({
       }
     };
 
-    loadFullStoryDetails();
+    load();
     return () => {
       active = false;
     };
@@ -156,9 +213,9 @@ export default function AuthorReviewModal({
     setModalError(null);
     setSubmitting(true);
     try {
-      const submitPromise = onSubmitForReview();
+      // Wait for the submit to finish so errors are shown here instead of being lost.
+      await onSubmitForReview();
       onClose();
-      await submitPromise;
     } catch (error: unknown) {
       console.error('Failed to submit story from review modal:', error);
       const msg = error instanceof Error ? error.message : "Failed to submit story.";
@@ -282,7 +339,7 @@ export default function AuthorReviewModal({
               <img 
                 src={story.img} 
                 alt="Story Cover Preview" 
-                className="max-h-[600px] w-full object-contain rounded-xl" 
+                className="max-h-[600px] w-auto max-w-full object-contain rounded-xl" 
               />
               <span
                 className="absolute bottom-3 left-3 border border-white/20 bg-[#1E2620]/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#A9812F] backdrop-blur-xs rounded"
@@ -301,10 +358,23 @@ export default function AuthorReviewModal({
           )}
 
           {/* Article Body Blocks */}
-          {loadingFullPayload ? (
-            <div className="space-y-4 animate-pulse py-4">
-              <div className="h-4 w-3/4 bg-slate-100 rounded" />
-              <div className="h-32 w-full bg-slate-100 rounded-xl" />
+          {loadingFullPayload || autoSaving ? (
+            <div className="space-y-4 py-4" role="status" aria-live="polite">
+              <div className="flex items-center gap-3 rounded-lg border border-[#A9B7A8] bg-[#EEF3ED] px-4 py-3 text-[#1E3829] shadow-sm">
+                <Loader2 size={18} className="shrink-0 animate-spin text-[#3F6B4F]" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold">
+                    {autoSaving ? 'Saving your latest changes' : 'Loading story content'}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#526455]">
+                    {autoSaving ? 'Your review will appear as soon as the save is complete.' : 'Please wait while the full story is loaded.'}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-3 animate-pulse" aria-hidden="true">
+                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="h-32 w-full rounded-xl bg-slate-200" />
+              </div>
             </div>
           ) : (
             <div className="space-y-6 pt-2">
@@ -341,7 +411,7 @@ export default function AuthorReviewModal({
                           <img
                             src={imageUrl}
                             alt={block.caption || `Section ${idx + 1}`}
-                            className="max-h-[550px] w-full object-contain rounded-xl"
+                            className="max-h-[550px] w-auto max-w-full object-contain rounded-xl"
                           />
                         </div>
                         {block.caption && (
@@ -471,7 +541,7 @@ export default function AuthorReviewModal({
 
           <button
             type="button"
-            disabled={submitting}
+            disabled={submitting || autoSaving}
             onClick={handleFinalSubmit}
             className="inline-flex items-center gap-2 border border-[#1E2620] bg-[#1E2620] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-[#F3F2ED] transition-colors hover:bg-[#3F6B4F] hover:border-[#3F6B4F] disabled:opacity-50 cursor-pointer"
           >

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { usersApi } from "@/lib/api/users";
 import { useSession } from "@/hooks/useSession";
-import { ROLE_LABELS, User } from "@/types";
+import { PaginatedResponse, ROLE_LABELS, User } from "@/types";
 import {
   AlertCircle,
   Building2,
@@ -17,6 +17,8 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
+
+const PENDING_ACCOUNTS_PAGE_SIZE = 100;
 
 export default function PendingAccountsPage() {
   const { user, loading: sessionLoading, allowed } = useSession("user:review");
@@ -33,12 +35,53 @@ export default function PendingAccountsPage() {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      const response = await usersApi.getReviewQueue(user.role);
-      if (!Array.isArray(response.users)) {
-        throw new Error("The account review service returned an unexpected response.");
+      const allPendingUsers: User[] = [];
+      const seenUserIds = new Set<string>();
+      let page = 1;
+      let totalPages = 1;
+
+      while (page <= totalPages) {
+        const response: PaginatedResponse<User> & { users?: User[] } =
+          await usersApi.listUsers(user.role, {
+            profileReviewStatus: "pending",
+            page,
+            limit: PENDING_ACCOUNTS_PAGE_SIZE,
+          });
+        const users =
+          response.data ?? response.docs ?? response.users;
+
+        if (!Array.isArray(users)) {
+          throw new Error("The account service returned an unexpected response.");
+        }
+
+        let addedUsers = 0;
+        for (const account of users) {
+          if (account.profileReviewStatus !== "pending" || seenUserIds.has(account._id)) {
+            continue;
+          }
+          seenUserIds.add(account._id);
+          allPendingUsers.push(account);
+          addedUsers += 1;
+        }
+
+        const reportedTotalPages =
+          response.pagination?.totalPages ??
+          response.pagination?.pages ??
+          response.totalPages;
+        if (typeof reportedTotalPages === "number") {
+          totalPages = Math.max(page, reportedTotalPages);
+        } else if (users.length === PENDING_ACCOUNTS_PAGE_SIZE && addedUsers > 0) {
+          totalPages = page + 1;
+        } else {
+          totalPages = page;
+        }
+
+        if (addedUsers === 0) break;
+        page += 1;
       }
-      setPendingUsers(response.users);
-      setQueueCount(response.count ?? response.users.length);
+
+      setPendingUsers(allPendingUsers);
+      setQueueCount(allPendingUsers.length);
     } catch (error) {
       console.error("Could not load pending account reviews:", error);
       setErrorMessage(

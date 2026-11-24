@@ -31,9 +31,18 @@ type HandleId = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-function getMimeTypeFromSrc(imageSrc: string): string {
+async function getMimeType(imageSrc: string): Promise<string> {
   const match = imageSrc.match(/^data:(image\/[a-zA-Z+]+);base64,/);
-  return match ? match[1] : 'image/jpeg';
+  if (match) return match[1];
+  if (imageSrc.startsWith('blob:')) {
+    try {
+      const blob = await (await fetch(imageSrc)).blob();
+      if (blob.type.startsWith('image/')) return blob.type;
+    } catch {
+      /* fall through */
+    }
+  }
+  return 'image/jpeg';
 }
 
 async function getCroppedImg(imageSrc: string, rect: Rect): Promise<string> {
@@ -57,10 +66,23 @@ async function getCroppedImg(imageSrc: string, rect: Rect): Promise<string> {
 
   canvas.width = width;
   canvas.height = height;
+
+  // Transparent pixels turn BLACK when exported as JPEG, so paint the page
+  // background first; transparent areas of the source then show page color.
+  ctx.fillStyle = '#FDFCFA';
+  ctx.fillRect(0, 0, width, height);
+
+  // Highest-quality resampling (the crop is exported at the image's full native resolution)
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
   ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
 
-  const mimeType = getMimeTypeFromSrc(imageSrc);
-  return canvas.toDataURL(mimeType, 0.95);
+  // PNG stays lossless (charts, text, graphics stay razor sharp).
+  // JPEG / WebP are exported at near-lossless quality.
+  const sourceMime = await getMimeType(imageSrc);
+  const outMime = sourceMime === 'image/png' || sourceMime === 'image/webp' ? sourceMime : 'image/jpeg';
+  return canvas.toDataURL(outMime, outMime === 'image/png' ? undefined : 0.98);
 }
 
 /** Initial crop frame: 90% of the image, centered, honouring the aspect ratio. */
