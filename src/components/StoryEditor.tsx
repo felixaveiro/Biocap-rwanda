@@ -16,6 +16,19 @@ import {
   Quote,
   Pilcrow,
   Link2,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Subscript,
+  Superscript,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Highlighter,
+  Type,
+  Link,
   AlertCircle,
   ExternalLink,
   Unlink,
@@ -76,30 +89,82 @@ const kindHasImage = (k: SectionKind) => k === "paragraph" || k === "image";
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+const escapeAttribute = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
 const stripMarkdownLinks = (text: string) =>
-  (text || "").replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1");
+  (text || "")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+    .replace(/<[^>]*>/g, "");
 
 function markdownToHtml(text: string): string {
   const src = text || "";
   const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const containsRichText = /<\/?(?:b|strong|i|em|u|s|strike|sub|sup|span|div|p|br)\b/i.test(src);
   let result = "";
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
   while ((match = regex.exec(src))) {
-    result += escapeHtml(src.slice(lastIndex, match.index));
+    result += containsRichText ? src.slice(lastIndex, match.index) : escapeHtml(src.slice(lastIndex, match.index));
     const label = escapeHtml(match[1]);
     const href = escapeHtml(match[2]);
     result += `<span class="editor-link" data-href="${href}">${label}</span>`;
     lastIndex = regex.lastIndex;
   }
-  result += escapeHtml(src.slice(lastIndex));
-  return result;
+  result += containsRichText ? src.slice(lastIndex) : escapeHtml(src.slice(lastIndex));
+  const parsed = new DOMParser().parseFromString(result, "text/html");
+  const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "SUB", "SUP", "SPAN", "BR", "DIV", "P"]);
+  const sanitizeNode = (node: Node) => {
+    Array.from(node.childNodes).forEach((child) => {
+      if (!(child instanceof HTMLElement)) {
+        sanitizeNode(child);
+        return;
+      }
+
+      sanitizeNode(child);
+      if (!allowedTags.has(child.tagName)) {
+        child.replaceWith(...Array.from(child.childNodes));
+        return;
+      }
+
+      if (child.tagName === "SPAN" && child.classList.contains("editor-link")) {
+        const href = child.getAttribute("data-href") || "";
+        Array.from(child.attributes).forEach((attribute) => {
+          if (attribute.name !== "class" && attribute.name !== "data-href") child.removeAttribute(attribute.name);
+        });
+        if (!/^(https?:\/\/|mailto:)/i.test(href)) child.removeAttribute("data-href");
+        return;
+      }
+
+      Array.from(child.attributes).forEach((attribute) => {
+        if (attribute.name !== "style") child.removeAttribute(attribute.name);
+      });
+      if (child.hasAttribute("style")) {
+        const source = child.getAttribute("style") || "";
+        child.removeAttribute("style");
+        const style = child.style;
+        source.split(";").forEach((declaration) => {
+          const [property, ...parts] = declaration.split(":");
+          const value = parts.join(":").trim();
+          if (
+            ["color", "background-color", "font-size", "font-weight", "font-style", "text-decoration", "text-align", "display"].includes(property?.trim()) &&
+            value &&
+            !/[<>]/.test(value)
+          ) {
+            style.setProperty(property.trim(), value);
+          }
+        });
+      }
+    });
+  };
+  sanitizeNode(parsed.body);
+  return parsed.body.innerHTML;
 }
 
 function serializeNode(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent || "";
+    return escapeHtml(node.textContent || "");
   }
   if (node.nodeType === Node.ELEMENT_NODE) {
     const el = node as HTMLElement;
@@ -109,14 +174,32 @@ function serializeNode(node: Node): string {
     if (el.classList.contains("editor-link")) {
       const href = el.getAttribute("data-href") || "";
       const inner = Array.from(el.childNodes).map(serializeNode).join("");
-      return `[${inner}](${href})`;
+      return `<span class="editor-link" data-href="${escapeAttribute(href)}">${inner}</span>`;
     }
 
     if (el.tagName === "DIV" || el.tagName === "P") {
-      return Array.from(el.childNodes).map(serializeNode).join("") + "\n";
+      const inner = Array.from(el.childNodes).map(serializeNode).join("");
+      const align = ["left", "center", "right", "justify"].includes(el.style.textAlign)
+        ? el.style.textAlign
+        : "";
+      return `${align ? `<span style="display:block;text-align:${align}">${inner}</span>` : inner}\n`;
     }
 
-    return Array.from(el.childNodes).map(serializeNode).join("");
+    const inner = Array.from(el.childNodes).map(serializeNode).join("");
+    if (["B", "STRONG", "I", "EM", "U", "S", "STRIKE", "SUB", "SUP"].includes(el.tagName)) {
+      return `<${el.tagName.toLowerCase()}>${inner}</${el.tagName.toLowerCase()}>`;
+    }
+    if (el.tagName === "SPAN") {
+      const styles = ["color", "background-color", "font-size", "font-weight", "font-style", "text-decoration", "text-align", "display"]
+        .map((property) => {
+          const value = el.style.getPropertyValue(property);
+          return value ? `${property}:${value}` : "";
+        })
+        .filter(Boolean)
+        .join(";");
+      return styles ? `<span style="${escapeAttribute(styles)}">${inner}</span>` : inner;
+    }
+    return inner;
   }
   return "";
 }
@@ -152,6 +235,11 @@ const makeEmptySection = (): Section => ({
 interface ActiveSelection {
   sectionId: string;
   range: Range;
+}
+
+interface FormatToolbarState {
+  top: number;
+  left: number;
 }
 
 interface LinkPopoverState {
@@ -192,9 +280,11 @@ export default function StoryEditor({
 
   const editableRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const linkPopoverRef = useRef<HTMLDivElement>(null);
+  const formatToolbarRef = useRef<HTMLDivElement>(null);
   const linkUrlInputRef = useRef<HTMLInputElement>(null);
   const [linkPopover, setLinkPopover] = useState<LinkPopoverState | null>(null);
   const [linkUrlValue, setLinkUrlValue] = useState("");
+  const [formatToolbar, setFormatToolbar] = useState<FormatToolbarState | null>(null);
 
   const [activeLinkPreview, setActiveLinkPreview] = useState<ActiveLinkPreviewState | null>(null);
   const activeSelectionRef = useRef<ActiveSelection | null>(null);
@@ -267,24 +357,29 @@ export default function StoryEditor({
 
   /* ───────────── Link popover outside click ───────────── */
   useEffect(() => {
-    if (!linkPopover && !activeLinkPreview) return;
+    if (!linkPopover && !activeLinkPreview && !formatToolbar) return;
 
     const handlePointerDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (linkPopoverRef.current?.contains(target)) return;
+      if (formatToolbarRef.current?.contains(target)) return;
 
       const activeEl = editableRefs.current.get(
-        linkPopover?.sectionId || activeLinkPreview?.sectionId || ""
+        linkPopover?.sectionId ||
+          activeLinkPreview?.sectionId ||
+          activeSelectionRef.current?.sectionId ||
+          ""
       );
       if (activeEl && activeEl.contains(target)) return;
 
       closeLinkPopover();
       setActiveLinkPreview(null);
+      setFormatToolbar(null);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, [linkPopover, activeLinkPreview]);
+  }, [linkPopover, activeLinkPreview, formatToolbar]);
 
   const closeLinkPopover = () => {
     setLinkPopover(null);
@@ -303,29 +398,97 @@ export default function StoryEditor({
   const handleTextSelection = (sectionId: string) => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
-      if (!linkUrlValue) closeLinkPopover();
+      setFormatToolbar(null);
       return;
     }
 
     const el = editableRefs.current.get(sectionId);
-    if (!el || !el.contains(sel.anchorNode)) return;
-
-    const anchorEl =
-      sel.anchorNode?.nodeType === Node.TEXT_NODE
-        ? sel.anchorNode.parentElement
-        : (sel.anchorNode as HTMLElement | null);
-
-    if (anchorEl?.closest(".editor-link")) {
-      closeLinkPopover();
-      return;
-    }
+    if (!el || !el.contains(sel.anchorNode) || !el.contains(sel.focusNode)) return;
 
     setActiveLinkPreview(null);
     const range = sel.getRangeAt(0);
     activeSelectionRef.current = { sectionId, range: range.cloneRange() };
 
     const rect = range.getBoundingClientRect();
-    setLinkPopover({ sectionId, top: rect.top, left: rect.left + rect.width / 2 });
+    const width = Math.min(390, window.innerWidth - 16);
+    setFormatToolbar({
+      top: rect.top >= 120 ? rect.top - 108 : rect.bottom + 8,
+      left: Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8),
+    });
+  };
+
+  const runTextCommand = (command: string, value?: string) => {
+    const active = activeSelectionRef.current;
+    if (!active) return;
+    const editor = editableRefs.current.get(active.sectionId);
+    const selection = window.getSelection();
+    if (!editor || !selection) return;
+
+    editor.focus({ preventScroll: true });
+    selection.removeAllRanges();
+    selection.addRange(active.range);
+
+    if (command === "unlink") {
+      const selectedRange = selection.getRangeAt(0);
+      editor.querySelectorAll<HTMLElement>(".editor-link").forEach((link) => {
+        try {
+          if (!selectedRange.intersectsNode(link)) return;
+        } catch {
+          return;
+        }
+        const parent = link.parentNode;
+        if (!parent) return;
+        while (link.firstChild) parent.insertBefore(link.firstChild, link);
+        parent.removeChild(link);
+      });
+    } else if (command === "clear") {
+      document.execCommand("removeFormat");
+    } else if (command === "foreColor" || command === "hiliteColor") {
+      document.execCommand("styleWithCSS", false, "true");
+      document.execCommand(command, false, value || (command === "foreColor" ? "#1E2620" : "#FEF08A"));
+      document.execCommand("styleWithCSS", false, "false");
+    } else if (command === "fontSize") {
+      document.execCommand("styleWithCSS", false, "false");
+      document.execCommand("fontSize", false, "7");
+      editor.querySelectorAll<HTMLElement>('font[size="7"]').forEach((font) => {
+        const span = document.createElement("span");
+        span.style.fontSize = `${value || "14"}px`;
+        while (font.firstChild) span.appendChild(font.firstChild);
+        font.replaceWith(span);
+      });
+    } else {
+      document.execCommand(command);
+    }
+
+    handleInput(active.sectionId, editor);
+    const updatedSelection = window.getSelection();
+    if (updatedSelection?.rangeCount) {
+      activeSelectionRef.current = {
+        sectionId: active.sectionId,
+        range: updatedSelection.getRangeAt(0).cloneRange(),
+      };
+    }
+    requestAnimationFrame(() => {
+      const range = window.getSelection();
+      if (!range?.rangeCount || range.getRangeAt(0).collapsed) {
+        setFormatToolbar(null);
+        return;
+      }
+      const rect = range.getRangeAt(0).getBoundingClientRect();
+      const width = Math.min(390, window.innerWidth - 16);
+      setFormatToolbar({
+        top: rect.top >= 120 ? rect.top - 108 : rect.bottom + 8,
+        left: Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8),
+      });
+    });
+  };
+
+  const openLinkToolbar = () => {
+    const active = activeSelectionRef.current;
+    if (!active) return;
+    const rect = active.range.getBoundingClientRect();
+    setFormatToolbar(null);
+    setLinkPopover({ sectionId: active.sectionId, top: rect.top, left: rect.left + rect.width / 2 });
     requestAnimationFrame(() => linkUrlInputRef.current?.focus());
   };
 
@@ -337,6 +500,7 @@ export default function StoryEditor({
     e.stopPropagation();
 
     closeLinkPopover();
+    setFormatToolbar(null);
 
     const href = target.getAttribute("data-href") || "";
     const rect = target.getBoundingClientRect();
@@ -925,6 +1089,7 @@ export default function StoryEditor({
                         }
                         onInput={(e) => handleInput(sec.id, e.currentTarget)}
                         onMouseUp={() => handleTextSelection(sec.id)}
+                        onTouchEnd={() => handleTextSelection(sec.id)}
                         onKeyUp={() => handleTextSelection(sec.id)}
                         onClick={(e) => handleEditorClick(sec.id, e)}
                         onKeyDown={(e) => {
@@ -1116,6 +1281,138 @@ export default function StoryEditor({
             </div>
           );
         })()}
+
+      {formatToolbar && (
+        <div
+          ref={formatToolbarRef}
+          role="toolbar"
+          aria-label="Text formatting"
+          className="fixed z-50 flex w-[min(390px,calc(100vw-16px))] flex-wrap items-center gap-1 rounded-lg border border-[#D9D4C6] bg-white p-2 shadow-xl"
+          style={{ top: formatToolbar.top, left: formatToolbar.left }}
+          onMouseDown={(event) => {
+            if (!(event.target as HTMLElement).closest("input, select")) event.preventDefault();
+          }}
+        >
+          <label className="sr-only" htmlFor="story-font-size">Font size</label>
+          <select
+            id="story-font-size"
+            defaultValue="14"
+            onChange={(event) => runTextCommand("fontSize", event.target.value)}
+            className="h-8 w-[50px] rounded px-1 text-xs text-[#1E2620] hover:bg-[#F1F0EA] focus:outline-none"
+            title="Font size"
+          >
+            {[10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36].map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+          <span className="mx-1 h-5 w-px bg-[#E2DDCF]" />
+          {[
+            { label: "Bold", command: "bold", Icon: Bold },
+            { label: "Italic", command: "italic", Icon: Italic },
+            { label: "Underline", command: "underline", Icon: Underline },
+            { label: "Strikethrough", command: "strikeThrough", Icon: Strikethrough },
+          ].map(({ label, command, Icon }) => (
+            <button
+              key={command}
+              type="button"
+              title={label}
+              aria-label={label}
+              onClick={() => runTextCommand(command)}
+              className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+          <label
+            title="Text color"
+            className="flex h-8 w-8 cursor-pointer flex-col items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+          >
+            <Type size={15} />
+            <input
+              type="color"
+              aria-label="Text color"
+              defaultValue="#1E2620"
+              onChange={(event) => runTextCommand("foreColor", event.target.value)}
+              className="h-1 w-4 cursor-pointer border-0 p-0"
+            />
+          </label>
+          <label
+            title="Highlight color"
+            className="flex h-8 w-8 cursor-pointer flex-col items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+          >
+            <Highlighter size={15} />
+            <input
+              type="color"
+              aria-label="Highlight color"
+              defaultValue="#FEF08A"
+              onChange={(event) => runTextCommand("hiliteColor", event.target.value)}
+              className="h-1 w-4 cursor-pointer border-0 p-0"
+            />
+          </label>
+          <button
+            type="button"
+            title="Clear formatting"
+            aria-label="Clear formatting"
+            onClick={() => runTextCommand("clear")}
+            className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+          >
+            <Type size={16} className="text-[#B65C4B]" />
+          </button>
+          <span className="mx-1 h-5 w-px bg-[#E2DDCF]" />
+          {[
+            { label: "Subscript", command: "subscript", Icon: Subscript },
+            { label: "Superscript", command: "superscript", Icon: Superscript },
+          ].map(({ label, command, Icon }) => (
+            <button
+              key={command}
+              type="button"
+              title={label}
+              aria-label={label}
+              onClick={() => runTextCommand(command)}
+              className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px bg-[#E2DDCF]" />
+          {[
+            { label: "Align left", command: "justifyLeft", Icon: AlignLeft },
+            { label: "Align center", command: "justifyCenter", Icon: AlignCenter },
+            { label: "Align right", command: "justifyRight", Icon: AlignRight },
+            { label: "Justify", command: "justifyFull", Icon: AlignJustify },
+          ].map(({ label, command, Icon }) => (
+            <button
+              key={command}
+              type="button"
+              title={label}
+              aria-label={label}
+              onClick={() => runTextCommand(command)}
+              className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+            >
+              <Icon size={16} />
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px bg-[#E2DDCF]" />
+          <button
+            type="button"
+            title="Insert link"
+            aria-label="Insert link"
+            onClick={openLinkToolbar}
+            className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+          >
+            <Link size={16} />
+          </button>
+          <button
+            type="button"
+            title="Remove link"
+            aria-label="Remove link"
+            onClick={() => runTextCommand("unlink")}
+            className="flex h-8 w-8 items-center justify-center rounded text-[#1E2620] hover:bg-[#F1F0EA]"
+          >
+            <Unlink size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Floating Link Popover */}
       {linkPopover && (

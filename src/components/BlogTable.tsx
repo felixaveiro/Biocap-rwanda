@@ -353,7 +353,7 @@ export default function BlogTable({
                               disabled={isBusy}
                               onClick={() => handleOpenViewModal(story)}
                               className={`${iconBtn} border-[#D9D4C6] text-[#5A6259] hover:border-[#1E2620] hover:text-[#1E2620]`}
-                              title="View Full Story"
+                              aria-label="View full story"
                             >
                               <Eye size={15} />
                             </button>
